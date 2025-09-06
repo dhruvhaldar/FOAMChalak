@@ -1,12 +1,22 @@
-let caseDir = "";  // will be fetched from server on load
+let caseDir = "";        // will be fetched from server on load
+let openfoamRoot = "";   // will be fetched from server on load
 
 // --- Initialize on page load ---
 window.onload = () => {
+  // Fetch CASE_ROOT
   fetch("/get_case_root")
     .then(r => r.json())
     .then(data => {
       caseDir = data.caseDir || "";
       document.getElementById("caseDir").value = caseDir;
+    });
+
+  // Fetch OPENFOAM_ROOT
+  fetch("/get_openfoam_root")
+    .then(r => r.json())
+    .then(data => {
+      openfoamRoot = data.openfoamRoot || "";
+      document.getElementById("openfoamRoot").value = openfoamRoot;
     });
 };
 
@@ -22,7 +32,7 @@ function appendOutput(message, type="stdout") {
 
   line.textContent = message;
   container.appendChild(line);
-  container.scrollTop = container.scrollHeight; // auto-scroll
+  container.scrollTop = container.scrollHeight;
 }
 
 // --- Set case directory manually ---
@@ -47,39 +57,56 @@ function setCase() {
   });
 }
 
+// --- Set OpenFOAM root directory ---
+function setOpenFOAMRoot(path) {
+  openfoamRoot = path;
+  fetch("/set_openfoam_root", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({openfoamRoot: openfoamRoot})
+  })
+  .then(r => r.json())
+  .then(data => {
+    openfoamRoot = data.openfoamRoot;
+    document.getElementById("openfoamRoot").value = openfoamRoot;
+
+    appendOutput(`OpenFOAM root set to: ${openfoamRoot}`, "info");
+  });
+}
+
 // --- Load a tutorial ---
 function loadTutorial() {
-    const selected = document.getElementById("tutorialSelect").value;
-    fetch("/load_tutorial", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({tutorial: selected})
-    })
-    .then(r => r.json())
-    .then(data => {
-      caseDir = data.caseDir;  // points to tutorial folder
-      document.getElementById("caseDir").value = caseDir;
+  const selected = document.getElementById("tutorialSelect").value;
+  fetch("/load_tutorial", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({tutorial: selected})
+  })
+  .then(r => r.json())
+  .then(data => {
+    caseDir = data.caseDir;
+    document.getElementById("caseDir").value = caseDir;
 
-      // Optional: persist loaded tutorial as new CASE_ROOT
-      fetch("/set_case", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caseDir: caseDir })
-      });
-  
-      data.output.split('\n').forEach(line => {
-        line = line.trim();
-        if(line.startsWith("INFO::[FOAMPilot] Tutorial loaded::")) {
-          appendOutput(line.replace("INFO::[FOAMPilot] Tutorial loaded::","Tutorial loaded: "), "tutorial");
-        } else if(line.startsWith("Source:") || line.startsWith("Copied to:")) {
-          appendOutput(line, "info");
-        } else {
-          const type = /error/i.test(line) ? "stderr" : "stdout";
-          appendOutput(line, type);
-        }
-      });
+    // Optional: persist loaded tutorial as new CASE_ROOT
+    fetch("/set_case", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseDir: caseDir })
     });
-  }
+
+    data.output.split('\n').forEach(line => {
+      line = line.trim();
+      if(line.startsWith("INFO::[FOAMPilot] Tutorial loaded::")) {
+        appendOutput(line.replace("INFO::[FOAMPilot] Tutorial loaded::","Tutorial loaded: "), "tutorial");
+      } else if(line.startsWith("Source:") || line.startsWith("Copied to:")) {
+        appendOutput(line, "info");
+      } else {
+        const type = /error/i.test(line) ? "stderr" : "stdout";
+        appendOutput(line, type);
+      }
+    });
+  });
+}
 
 // --- Run OpenFOAM commands ---
 function runCommand(cmd) {

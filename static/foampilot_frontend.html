@@ -34,6 +34,14 @@
       </button>
     </div>
 
+    <!-- OpenFOAM Root Directory -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input type="text" id="openfoamRoot" name="openfoamRoot" class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" placeholder="OpenFOAM root directory" />
+      <button type="button" onclick="setOpenFOAMRoot(document.getElementById('openfoamRoot').value)" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        Set OpenFOAM Root
+      </button>
+    </div>
+
     <!-- Tutorial Selection -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
       <select id="tutorialSelect" class="border border-gray-300 rounded px-3 py-2 w-full sm:w-auto sm:max-w-xs">
