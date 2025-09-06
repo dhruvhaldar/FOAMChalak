@@ -15,17 +15,6 @@
 
 ---
 
-## Project Structure
-foampilot/
-├── app.py # Flask backend server
-├── case_config.json # Stores persistent CASE_ROOT
-├── static/
-│ ├── foampilot_frontend.js # Frontend JS for interactivity
-│ └── foampilot_frontend.html # HTML template using Tailwind CSS
-└── README.md
-
----
-
 ## Installation
 
 1. **Clone the repository**:
@@ -64,3 +53,20 @@ The tutorial will be copied to your selected case directory.
 5. **Run OpenFOAM commands**:
 Use the buttons (blockMesh, simpleFoam, pimpleFoam) to execute commands.
 Live output is shown in the console panel.
+
+---
+
+## Project Structure
+```
+FOAMPilot/
+├── app.py # Main Flask application
+├── case_config.json # Stores the last used CASE_ROOT
+├── static/
+│ ├── foampilot_frontend.html # HTML template
+│ └── js/foampilot_frontend.js # JavaScript logic
+├── my-py-env/ # Optional: local Python virtual environment
+├── requirements.txt # Python dependencies
+└── README.md # This file
+```
+
+---
