@@ -1,8 +1,8 @@
-[![Flask](https://img.shields.io/badge/Flask-3.1.2-blue)] (https://flask.palletsprojects.com/)
-[![Tailwind](https://img.shields.io/badge/Tailwind-3.1.6-white)] (https://tailwindcss.com/)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-f5d7e3)] (https://www.python.org/)
-[![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)] (https://openfoam.org/)
-[![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)] (https://opensource.org/licenses/GPL-3.0)
+[![Flask](https://img.shields.io/badge/Flask-3.1.2-cyan)](https://flask.palletsprojects.com/)
+[![Tailwind](https://img.shields.io/badge/Tailwind-3.1.6-white)](https://tailwindcss.com/)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-f5d7e3)](https://www.python.org/)
+[![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)](https://openfoam.org/)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 
 # FOAMPilot
 
