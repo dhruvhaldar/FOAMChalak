@@ -70,66 +70,9 @@
 
   <!-- JS -->
   <script>
-    let caseDir = "{{ CASE_ROOT }}";
-
-    window.onload = () => {
-      document.getElementById("caseDir").value = caseDir;
-    };
-
-    function appendOutput(message, type="stdout") {
-      const container = document.getElementById("output");
-      const line = document.createElement("div");
-      line.className = type === "stderr" ? "text-red-600" : "text-green-700";
-      line.textContent = message;
-      container.appendChild(line);
-      container.scrollTop = container.scrollHeight; // auto-scroll
-    }
-
-    function setCase() {
-      caseDir = document.getElementById("caseDir").value;
-      fetch("/set_case", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({caseDir: caseDir})
-      })
-      .then(r => r.json())
-      .then(data => {
-        caseDir = data.caseDir;
-        document.getElementById("caseDir").value = caseDir;
-        data.output.split('\n').forEach(line => appendOutput(line, line.startsWith("[Error]") ? "stderr" : "stdout"));
-      });
-    }
-
-    function loadTutorial() {
-      const selected = document.getElementById("tutorialSelect").value;
-      fetch("/load_tutorial", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({tutorial: selected})
-      })
-      .then(r => r.json())
-      .then(data => {
-        caseDir = data.caseDir;
-        document.getElementById("caseDir").value = caseDir;
-        data.output.split('\n').forEach(line => appendOutput(line, "stdout"));
-      });
-    }
-
-    function runCommand(cmd) {
-      fetch("/run", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({caseDir: caseDir, command: cmd})
-      })
-      .then(r => r.json())
-      .then(data => {
-        data.output.split('\n').forEach(line => {
-          const type = /error/i.test(line) ? "stderr" : "stdout";
-          appendOutput(line, type);
-        });
-      });
-    }
+    const CASE_ROOT = "{{ CASE_ROOT }}";
   </script>
+  <script src="{{ url_for('static', filename='js/foampilot_frontend.js') }}"></script>
 
 </body>
 </html>

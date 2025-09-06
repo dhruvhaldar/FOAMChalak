@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 CONFIG_FILE = "case_config.json"
 
 def load_case_root():
-    """Load persistent case root from config file if available."""
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
@@ -25,12 +24,15 @@ def load_case_root():
     return os.path.abspath("tutorial_cases")
 
 def save_case_root(case_root):
-    """Save case root to config file."""
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump({"CASE_ROOT": case_root}, f)
     except Exception as e:
         logger.error(f"[ERROR] Could not save config file: {e}")
+
+@app.route("/get_case_root", methods=["GET"])
+def get_case_root():
+    return jsonify({"caseDir": CASE_ROOT})
 
 # --- Load OpenFOAM environment once ---
 BASHRC = "/usr/lib/openfoam/openfoam2506/etc/bashrc"  # adjust if needed
@@ -53,18 +55,18 @@ if FOAM_TUTORIALS and os.path.isdir(FOAM_TUTORIALS):
     TUTORIAL_LIST.sort()
 
 # --- Load HTML template ---
-TEMPLATE_FILE = os.path.join("static", "template.html")
+TEMPLATE_FILE = os.path.join("static", "foampilot_frontend.html")
 with open(TEMPLATE_FILE, "r") as f:
     TEMPLATE = f.read()
+
+# --- Global CASE_ROOT ---
+CASE_ROOT = load_case_root()
+logger.info(f"[INDEX] Loaded CASE_ROOT: {CASE_ROOT}")
 
 @app.route("/")
 def index():
     options = "".join([f'<option value="{t}">{t}</option>' for t in TUTORIAL_LIST])
     return render_template_string(TEMPLATE, options=options, CASE_ROOT=CASE_ROOT)
-
-# --- Global CASE_ROOT with persistence ---
-CASE_ROOT = load_case_root()
-logger.info(f"[INDEX] Loaded CASE_ROOT: {CASE_ROOT}")
 
 @app.route("/set_case", methods=["POST"])
 def set_case():
@@ -72,13 +74,16 @@ def set_case():
     data = request.get_json()
     case_dir = data.get("caseDir")
     if not case_dir:
-        return jsonify({"output": "[Error] No caseDir provided"})
+        return jsonify({"output": "[FOAMPilot] [Error] No caseDir provided"})
     case_dir = os.path.abspath(case_dir)
     os.makedirs(case_dir, exist_ok=True)
     CASE_ROOT = case_dir
-    save_case_root(CASE_ROOT)   # persist to disk
+    save_case_root(CASE_ROOT)
     logger.debug(f"[DEBUG] [set_case] CASE_ROOT set to: {CASE_ROOT}")
-    return jsonify({"output": f"Case root set to: {CASE_ROOT}", "caseDir": CASE_ROOT})
+    return jsonify({
+        "output": f"INFO::[FOAMPilot] Case root set to: {CASE_ROOT}",
+        "caseDir": CASE_ROOT
+    })
 
 @app.route("/load_tutorial", methods=["POST"])
 def load_tutorial():
@@ -86,54 +91,45 @@ def load_tutorial():
     data = request.get_json()
     tutorial = data.get("tutorial")
     if not tutorial:
-        return jsonify({"output": "[Error] No tutorial selected", "caseDir": ""})
+        return jsonify({"output": "[FOAMPilot] [Error] No tutorial selected", "caseDir": ""})
 
     src = os.path.join(FOAM_TUTORIALS, tutorial)
-
-    # Use the current CASE_ROOT as the destination
     dest_root = CASE_ROOT
     os.makedirs(dest_root, exist_ok=True)
 
+    # Create a folder for this tutorial
     dest = os.path.join(dest_root, tutorial.replace("/", "_"))
     if not os.path.exists(dest):
         subprocess.run(["cp", "-r", src, dest])
 
-    # Update the frontend caseDir to match CASE_ROOT
     return jsonify({
-        "output": f"Tutorial loaded: {tutorial}\nSource: {src}\nCopied to: {dest_root}",
-        "caseDir": dest_root
+        "output": f"INFO::[FOAMPilot] Tutorial loaded::{tutorial}\nSource: {src}\nCopied to: {dest}",
+        "caseDir": dest   # <-- return the actual case folder
     })
 
 @app.route("/run", methods=["POST"])
 def run():
     data = request.get_json()
-    case_dir = data.get("caseDir")
+    case_dir = data.get("caseDir") or CASE_ROOT  # fallback
     command = data.get("command")
-    logger.debug(f"[DEBUG] [run] case_dir: {case_dir}")
-    logger.debug(f"[DEBUG] [run] command: {command}")
 
     if not case_dir or not os.path.isdir(case_dir):
-        return jsonify({"output": "[Error] Invalid case directory"})
+        return jsonify({"output": "[FOAMPilot] [Error] Invalid case directory"})
 
     try:
-        # Notify that we are changing directory
-        prep_msg = f"Changing directory to: {case_dir}\n$ {command}\n"
-        logger.debug(prep_msg)
-
+        prep_msg = f"INFO::[FOAMPilot] Changing directory to: {case_dir}\n$ {command}\n"
         proc = subprocess.run(
             command,
-            cwd=case_dir,             # this ensures we run in the caseDir
+            cwd=case_dir,
             shell=True,
             capture_output=True,
             text=True,
             env={**os.environ, **OPENFOAM_ENV}
         )
-
-        # Combine the prep message and actual stdout/stderr
         output = prep_msg + proc.stdout + proc.stderr
         return jsonify({"output": output})
     except Exception as e:
-        return jsonify({"output": str(e)})
+        return jsonify({"output": f"[FOAMPilot] [Error] {str(e)}"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
