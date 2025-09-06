@@ -1,3 +1,9 @@
+![Flask](https://img.shields.io/badge/Flask-3.1.2-blue)
+![Tailwind](https://img.shields.io/badge/Tailwind-3.1.6-white)
+![Python](https://img.shields.io/badge/Python-3.11-orange)
+![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)
+
+
 # FOAMPilot
 
 **FOAMPilot** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
