@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logging
+import json
 from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
@@ -8,6 +9,28 @@ app = Flask(__name__)
 # --- Logging ---
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# --- Config file for persistence ---
+CONFIG_FILE = "case_config.json"
+
+def load_case_root():
+    """Load persistent case root from config file if available."""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("CASE_ROOT", os.path.abspath("tutorial_cases"))
+        except Exception as e:
+            logger.warning(f"[WARN] Could not load config file: {e}")
+    return os.path.abspath("tutorial_cases")
+
+def save_case_root(case_root):
+    """Save case root to config file."""
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump({"CASE_ROOT": case_root}, f)
+    except Exception as e:
+        logger.error(f"[ERROR] Could not save config file: {e}")
 
 # --- Load OpenFOAM environment once ---
 BASHRC = "/usr/lib/openfoam/openfoam2506/etc/bashrc"  # adjust if needed
@@ -60,11 +83,27 @@ TEMPLATE = """
 
 <script>
 {% raw %}
-let caseDir = "";
+let caseDir = "{{ CASE_ROOT }}";  // pre-fill from backend
+
+// Set the input value on page load
+window.onload = () => {
+    document.getElementById("caseDir").value = caseDir;
+};
 
 function setCase() {
   caseDir = document.getElementById("caseDir").value;
-  document.getElementById("output").innerText += "Case set to: " + caseDir + "\\n";
+
+  fetch("/set_case", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({caseDir: caseDir})
+  })
+  .then(r => r.json())
+  .then(data => {
+    caseDir = data.caseDir;
+    document.getElementById("caseDir").value = caseDir;
+    document.getElementById("output").innerText += data.output + "\\n";
+  });
 }
 
 function loadTutorial() {
@@ -99,11 +138,11 @@ function runCommand(cmd) {
 @app.route("/")
 def index():
     options = "".join([f'<option value="{t}">{t}</option>' for t in TUTORIAL_LIST])
-    return render_template_string(TEMPLATE, options=options)
+    return render_template_string(TEMPLATE, options=options, CASE_ROOT=CASE_ROOT)
 
-# --- Global cache for case root ---
-CASE_ROOT = os.path.abspath("tutorial_cases")  # default if nothing set
-
+# --- Global CASE_ROOT with persistence ---
+CASE_ROOT = load_case_root()
+logger.info(f"[INIT] Loaded CASE_ROOT: {CASE_ROOT}")
 
 @app.route("/set_case", methods=["POST"])
 def set_case():
@@ -115,25 +154,33 @@ def set_case():
     case_dir = os.path.abspath(case_dir)
     os.makedirs(case_dir, exist_ok=True)
     CASE_ROOT = case_dir
+    save_case_root(CASE_ROOT)   # persist to disk
     logger.debug(f"[DEBUG] [set_case] CASE_ROOT set to: {CASE_ROOT}")
     return jsonify({"output": f"Case root set to: {CASE_ROOT}", "caseDir": CASE_ROOT})
 
 @app.route("/load_tutorial", methods=["POST"])
 def load_tutorial():
+    global CASE_ROOT
     data = request.get_json()
     tutorial = data.get("tutorial")
     if not tutorial:
         return jsonify({"output": "[Error] No tutorial selected", "caseDir": ""})
+
     src = os.path.join(FOAM_TUTORIALS, tutorial)
-    dest_root = os.path.abspath("tutorial_cases")
-    logger.debug(f"[DEBUG] [load_tutorial] src: {src}")
-    logger.debug(f"[DEBUG] [load_tutorial] dest_root: {dest_root}")
+
+    # Use the current CASE_ROOT as the destination
+    dest_root = CASE_ROOT
     os.makedirs(dest_root, exist_ok=True)
+
     dest = os.path.join(dest_root, tutorial.replace("/", "_"))
     if not os.path.exists(dest):
         subprocess.run(["cp", "-r", src, dest])
-    return jsonify({"output": f"Tutorial loaded: {tutorial}\nSource: {src}\nCopied to: {dest_root}",
-                    "caseDir": dest_root})
+
+    # Update the frontend caseDir to match CASE_ROOT
+    return jsonify({
+        "output": f"Tutorial loaded: {tutorial}\nSource: {src}\nCopied to: {dest_root}",
+        "caseDir": dest_root
+    })
 
 @app.route("/run", methods=["POST"])
 def run():
