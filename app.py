@@ -52,88 +52,10 @@ if FOAM_TUTORIALS and os.path.isdir(FOAM_TUTORIALS):
             TUTORIAL_LIST.append(relpath)
     TUTORIAL_LIST.sort()
 
-# --- HTML Template ---
-TEMPLATE = """
-<!doctype html>
-<html>
-<head>
-  <title>OpenFOAM Web GUI</title>
-</head>
-<body style="font-family: sans-serif; margin:20px;">
-  <h1>OpenFOAM Web GUI</h1>
-
-  <h3>Select Tutorial</h3>
-  <select id="tutorialSelect">
-    {{ options|safe }}
-  </select>
-  <button onclick="loadTutorial()">Load Tutorial</button>
-
-  <h3>Or Set Case Directory</h3>
-  <form id="caseForm">
-    <label>Case Directory:</label>
-    <input type="text" id="caseDir" name="caseDir" size="60" />
-    <button type="button" onclick="setCase()">Set Case</button>
-  </form>
-  <br>
-
-  <button onclick="runCommand('blockMesh')">Run blockMesh</button>
-  <button onclick="runCommand('simpleFoam')">Run simpleFoam</button>
-
-  <pre id="output" style="background:#eee; padding:10px; height:300px; overflow:auto;"></pre>
-
-<script>
-{% raw %}
-let caseDir = "{{ CASE_ROOT }}";  // pre-fill from backend
-
-// Set the input value on page load
-window.onload = () => {
-    document.getElementById("caseDir").value = caseDir;
-};
-
-function setCase() {
-  caseDir = document.getElementById("caseDir").value;
-
-  fetch("/set_case", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({caseDir: caseDir})
-  })
-  .then(r => r.json())
-  .then(data => {
-    caseDir = data.caseDir;
-    document.getElementById("caseDir").value = caseDir;
-    document.getElementById("output").innerText += data.output + "\\n";
-  });
-}
-
-function loadTutorial() {
-  const selected = document.getElementById("tutorialSelect").value;
-  fetch("/load_tutorial", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({tutorial: selected})
-  }).then(r => r.json()).then(data => {
-    caseDir = data.caseDir;
-    document.getElementById("caseDir").value = caseDir;
-    document.getElementById("output").innerText += data.output + "\\n";
-  });
-}
-
-function runCommand(cmd) {
-  fetch("/run", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({caseDir: caseDir, command: cmd})
-  }).then(r => r.json()).then(data => {
-    document.getElementById("output").innerText += data.output + "\\n";
-  });
-}
-{% endraw %}
-</script>
-
-</body>
-</html>
-"""
+# --- Load HTML template ---
+TEMPLATE_FILE = os.path.join("static", "template.html")
+with open(TEMPLATE_FILE, "r") as f:
+    TEMPLATE = f.read()
 
 @app.route("/")
 def index():
@@ -142,7 +64,7 @@ def index():
 
 # --- Global CASE_ROOT with persistence ---
 CASE_ROOT = load_case_root()
-logger.info(f"[INIT] Loaded CASE_ROOT: {CASE_ROOT}")
+logger.info(f"[INDEX] Loaded CASE_ROOT: {CASE_ROOT}")
 
 @app.route("/set_case", methods=["POST"])
 def set_case():
