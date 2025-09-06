@@ -19,50 +19,47 @@
     }
   </script>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen p-6">
+<body class="bg-gray-50 text-gray-800 min-h-screen p-4 sm:p-6">
 
-  <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-    <h1 class="text-4xl font-bold text-center mb-6">FOAMPilot</h1>
+  <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6 flex flex-col gap-6">
 
-    <!-- Tutorial Selection -->
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold mb-2">Select Tutorial</h2>
-      <div class="flex items-center gap-2">
-        <select id="tutorialSelect" class="border border-gray-300 rounded px-3 py-2 flex-1">
-          {{ options|safe }}
-        </select>
-        <button onclick="loadTutorial()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-          Load Tutorial
-        </button>
-      </div>
-    </div>
+    <!-- Header -->
+    <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">FOAMPilot</h1>
 
     <!-- Case Directory -->
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold mb-2">Or Set Case Directory</h2>
-      <div class="flex items-center gap-2">
-        <input type="text" id="caseDir" name="caseDir" class="border border-gray-300 rounded px-3 py-2 flex-1" />
-        <button type="button" onclick="setCase()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-          Set Case
-        </button>
-      </div>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input type="text" id="caseDir" name="caseDir" class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" />
+      <button type="button" onclick="setCase()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        Set Case Dir
+      </button>
+    </div>
+
+    <!-- Tutorial Selection -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <select id="tutorialSelect" class="border border-gray-300 rounded px-3 py-2 w-full sm:w-auto sm:max-w-xs">
+        {{ options|safe }}
+      </select>
+      <button onclick="loadTutorial()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        Load Tutorial
+      </button>
     </div>
 
     <!-- Run Commands -->
-    <div class="mb-6 flex gap-4">
-      <button onclick="runCommand('blockMesh')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded flex-1">
+    <div class="flex flex-col sm:flex-row gap-2">
+      <button onclick="runCommand('blockMesh')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full sm:flex-1">
         Run blockMesh
       </button>
-      <button onclick="runCommand('simpleFoam')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex-1">
+      <button onclick="runCommand('simpleFoam')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full sm:flex-1">
         Run simpleFoam
       </button>
     </div>
 
     <!-- Output -->
-    <div>
+    <div class="flex flex-col">
       <h2 class="text-xl font-semibold mb-2">Output</h2>
-      <pre id="output" class="bg-gray-100 border border-gray-300 rounded p-4 h-64 overflow-auto text-sm"></pre>
+      <div id="output" class="bg-gray-100 border border-gray-300 rounded p-4 h-64 sm:h-80 overflow-auto text-sm font-mono"></div>
     </div>
+
   </div>
 
   <!-- JS -->
@@ -72,6 +69,15 @@
     window.onload = () => {
       document.getElementById("caseDir").value = caseDir;
     };
+
+    function appendOutput(message, type="stdout") {
+      const container = document.getElementById("output");
+      const line = document.createElement("div");
+      line.className = type === "stderr" ? "text-red-600" : "text-green-700";
+      line.textContent = message;
+      container.appendChild(line);
+      container.scrollTop = container.scrollHeight; // auto-scroll
+    }
 
     function setCase() {
       caseDir = document.getElementById("caseDir").value;
@@ -84,7 +90,7 @@
       .then(data => {
         caseDir = data.caseDir;
         document.getElementById("caseDir").value = caseDir;
-        document.getElementById("output").innerText += data.output + "\n";
+        data.output.split('\n').forEach(line => appendOutput(line, line.startsWith("[Error]") ? "stderr" : "stdout"));
       });
     }
 
@@ -99,7 +105,7 @@
       .then(data => {
         caseDir = data.caseDir;
         document.getElementById("caseDir").value = caseDir;
-        document.getElementById("output").innerText += data.output + "\n";
+        data.output.split('\n').forEach(line => appendOutput(line, "stdout"));
       });
     }
 
@@ -111,7 +117,10 @@
       })
       .then(r => r.json())
       .then(data => {
-        document.getElementById("output").innerText += data.output + "\n";
+        data.output.split('\n').forEach(line => {
+          const type = /error/i.test(line) ? "stderr" : "stdout";
+          appendOutput(line, type);
+        });
       });
     }
   </script>
