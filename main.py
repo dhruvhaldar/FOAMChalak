@@ -189,18 +189,27 @@ def run():
     command = data.get("command")
     logger.debug(f"[DEBUG] [run] case_dir: {case_dir}")
     logger.debug(f"[DEBUG] [run] command: {command}")
+
     if not case_dir or not os.path.isdir(case_dir):
         return jsonify({"output": "[Error] Invalid case directory"})
+
     try:
+        # Notify that we are changing directory
+        prep_msg = f"Changing directory to: {case_dir}\n$ {command}\n"
+        logger.debug(prep_msg)
+
         proc = subprocess.run(
             command,
-            cwd=case_dir,
+            cwd=case_dir,             # this ensures we run in the caseDir
             shell=True,
             capture_output=True,
             text=True,
             env={**os.environ, **OPENFOAM_ENV}
         )
-        return jsonify({"output": f"$ {command}\\n{proc.stdout}\\n{proc.stderr}"})
+
+        # Combine the prep message and actual stdout/stderr
+        output = prep_msg + proc.stdout + proc.stderr
+        return jsonify({"output": output})
     except Exception as e:
         return jsonify({"output": str(e)})
 
