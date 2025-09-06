@@ -28,10 +28,6 @@ cd FOAMPilot
 ```bash
 pip install -r requirements.txt
 ```
-3.  Adjust OpenFOAM environment in `app.py` if needed:
-```bash
-BASHRC = "/usr/lib/openfoam/openfoam2506/etc/bashrc"
-```
 
 ## Usage
 1. **Run the server**:
