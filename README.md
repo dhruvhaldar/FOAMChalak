@@ -45,12 +45,16 @@ Open your browser and navigate to `http://localhost:5000`.
 Enter a path for your simulation cases.
 Click `Set Case Dir`.
 
-4. **Load a tutorial**:
+4. **Set OpenFOAM root directory**:
+Enter a path for your OpenFOAM root directory.
+Click `Set OpenFOAM Root`.
+
+5. **Load a tutorial**:
 Select a tutorial from the dropdown.
 Click `Load Tutorial`.
 The tutorial will be copied to your selected case directory.
 
-5. **Run OpenFOAM commands**:
+6. **Run OpenFOAM commands**:
 Use the buttons (blockMesh, simpleFoam, pimpleFoam) to execute commands.
 Live output is shown in the console panel.
 
