@@ -44,14 +44,20 @@
       </button>
     </div>
 
-    <!-- Run Commands -->
-    <div class="flex flex-col sm:flex-row gap-2">
-      <button onclick="runCommand('blockMesh')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full sm:flex-1">
-        Run blockMesh
-      </button>
-      <button onclick="runCommand('simpleFoam')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full sm:flex-1">
-        Run simpleFoam
-      </button>
+    <!-- Run Commands Section -->
+    <div class="my-4">
+      <h3 class="text-xl font-semibold mb-2">Run OpenFOAM Commands</h3>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <button onclick="runCommand('blockMesh')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full sm:flex-1">
+          blockMesh
+        </button>
+        <button onclick="runCommand('simpleFoam')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded w-full sm:flex-1">
+          simpleFoam
+        </button>
+        <button onclick="runCommand('pimpleFoam')" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded w-full sm:flex-1">
+          pimpleFoam
+        </button>
+      </div>
     </div>
 
     <!-- Output -->
