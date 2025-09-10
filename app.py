@@ -15,16 +15,45 @@ CONFIG_FILE = "case_config.json"
 
 
 def load_config():
+    """
+    Load CASE_ROOT and OPENFOAM_ROOT from JSON config.
+    If OPENFOAM_ROOT is not set, auto-detect the latest OpenFOAM installation in /usr/lib.
+    CASE_ROOT defaults to OPENFOAM_ROOT if not set.
+    """
+    case_root_default = None
+    openfoam_root_default = None
+
+    # Try to read from config file
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
                 data = json.load(f)
-                case_root = data.get("CASE_ROOT", os.path.abspath("tutorial_cases"))
-                openfoam_root = data.get("OPENFOAM_ROOT", "/usr/lib/openfoam/openfoam2506")
-                return case_root, openfoam_root
+                case_root = data.get("CASE_ROOT")
+                openfoam_root = data.get("OPENFOAM_ROOT")
+                if case_root and openfoam_root:
+                    return case_root, openfoam_root
         except Exception as e:
             logger.warning(f"[WARN] Could not load config file: {e}")
-    return os.path.abspath("tutorial_cases"), "/usr/lib/openfoam/openfoam2506"
+
+    # Auto-detect OpenFOAM installations in /usr/lib
+    openfoam_base = "/usr/lib"
+    if os.path.isdir(openfoam_base):
+        versions = [d for d in os.listdir(openfoam_base) if d.startswith("openfoam")]
+        if versions:
+            # Pick the latest version
+            versions.sort(reverse=True)
+            openfoam_root_default = os.path.join(openfoam_base, versions[0])
+            case_root_default = openfoam_root_default  # Use the same as default case directory
+        else:
+            logger.warning(f"[WARN] No OpenFOAM installation found in {openfoam_base}")
+    else:
+        logger.warning(f"[WARN] OpenFOAM base directory {openfoam_base} does not exist")
+
+    # Fallback defaults
+    openfoam_root = openfoam_root_default or "/usr/lib/openfoam2506"
+    case_root = case_root_default or openfoam_root
+
+    return case_root, openfoam_root
 
 
 def save_config(case_root=None, openfoam_root=None):
