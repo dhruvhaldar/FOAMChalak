@@ -1,5 +1,6 @@
 let caseDir = "";        // will be fetched from server on load
-let openfoamRoot = "";   // will be fetched from server on load
+let dockerImage = "";    // will be fetched from server on load
+let openfoamVersion = ""; // will be fetched from server on load
 
 // --- Initialize on page load ---
 window.onload = () => {
@@ -11,12 +12,14 @@ window.onload = () => {
       document.getElementById("caseDir").value = caseDir;
     });
 
-  // Fetch OPENFOAM_ROOT
-  fetch("/get_openfoam_root")
+  // Fetch Docker config (instead of OpenFOAM root)
+  fetch("/get_docker_config")
     .then(r => r.json())
     .then(data => {
-      openfoamRoot = data.openfoamRoot || "";
-      document.getElementById("openfoamRoot").value = openfoamRoot;
+      dockerImage = data.dockerImage || "";
+      openfoamVersion = data.openfoamVersion || "";
+      document.getElementById("openfoamRoot").value =
+        `${dockerImage} (OpenFOAM ${openfoamVersion})`;
     });
 };
 
@@ -57,20 +60,23 @@ function setCase() {
   });
 }
 
-// --- Set OpenFOAM root directory ---
-function setOpenFOAMRoot(path) {
-  openfoamRoot = path;
-  fetch("/set_openfoam_root", {
+// --- Set Docker config (image + version) ---
+function setDockerConfig(image, version) {
+  dockerImage = image;
+  openfoamVersion = version;
+  fetch("/set_docker_config", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({openfoamRoot: openfoamRoot})
+    body: JSON.stringify({dockerImage: dockerImage, openfoamVersion: openfoamVersion})
   })
   .then(r => r.json())
   .then(data => {
-    openfoamRoot = data.openfoamRoot;
-    document.getElementById("openfoamRoot").value = openfoamRoot;
+    dockerImage = data.dockerImage;
+    openfoamVersion = data.openfoamVersion;
+    document.getElementById("openfoamRoot").value =
+      `${dockerImage} (OpenFOAM ${openfoamVersion})`;
 
-    appendOutput(`OpenFOAM root set to: ${openfoamRoot}`, "info");
+    appendOutput(`Docker config updated: ${dockerImage} (OpenFOAM ${openfoamVersion})`, "info");
   });
 }
 
@@ -87,7 +93,7 @@ function loadTutorial() {
     caseDir = data.caseDir;
     document.getElementById("caseDir").value = caseDir;
 
-    // Optional: persist loaded tutorial as new CASE_ROOT
+    // Persist loaded tutorial as new CASE_ROOT
     fetch("/set_case", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

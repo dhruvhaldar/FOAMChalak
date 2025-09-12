@@ -1,1 +1,5 @@
-{"CASE_ROOT": "/home/dhruv/OpenFOAM/dhruv-v2506/run", "OPENFOAM_ROOT": "/usr/lib/openfoam/openfoam2506"}
+{
+    "CASE_ROOT": "E:/Misc/OpenFOAM_testcases_Dhruv/OpenFOAM_v12_cases",
+    "DOCKER_IMAGE": "haldardhruv/ubuntu_noble_openfoam:v12",
+    "OPENFOAM_VERSION": "12"
+}
