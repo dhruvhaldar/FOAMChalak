@@ -1,6 +1,6 @@
 let caseDir = "";        // will be fetched from server on load
-let dockerImage = "";    // will be fetched from server on load
-let openfoamVersion = ""; // will be fetched from server on load
+let dockerImage = "";    // from server
+let openfoamVersion = ""; // from server
 
 // --- Initialize on page load ---
 window.onload = () => {
@@ -12,7 +12,7 @@ window.onload = () => {
       document.getElementById("caseDir").value = caseDir;
     });
 
-  // Fetch Docker config (instead of OpenFOAM root)
+  // Fetch Docker config (instead of OPENFOAM_ROOT)
   fetch("/get_docker_config")
     .then(r => r.json())
     .then(data => {
@@ -60,14 +60,17 @@ function setCase() {
   });
 }
 
-// --- Set Docker config (image + version) ---
+// --- Update Docker config (instead of OpenFOAM root) ---
 function setDockerConfig(image, version) {
   dockerImage = image;
   openfoamVersion = version;
   fetch("/set_docker_config", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({dockerImage: dockerImage, openfoamVersion: openfoamVersion})
+    body: JSON.stringify({
+      dockerImage: dockerImage,
+      openfoamVersion: openfoamVersion
+    })
   })
   .then(r => r.json())
   .then(data => {
@@ -76,7 +79,7 @@ function setDockerConfig(image, version) {
     document.getElementById("openfoamRoot").value =
       `${dockerImage} (OpenFOAM ${openfoamVersion})`;
 
-    appendOutput(`Docker config updated: ${dockerImage} (OpenFOAM ${openfoamVersion})`, "info");
+    appendOutput(`Docker config set to: ${dockerImage} (OpenFOAM ${openfoamVersion})`, "info");
   });
 }
 
@@ -90,20 +93,11 @@ function loadTutorial() {
   })
   .then(r => r.json())
   .then(data => {
-    caseDir = data.caseDir;
-    document.getElementById("caseDir").value = caseDir;
-
-    // Persist loaded tutorial as new CASE_ROOT
-    fetch("/set_case", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ caseDir: caseDir })
-    });
-
+    // Do not overwrite caseDir input — keep it as the run folder
     data.output.split('\n').forEach(line => {
       line = line.trim();
-      if(line.startsWith("INFO::[FOAMPilot] Tutorial loaded::")) {
-        appendOutput(line.replace("INFO::[FOAMPilot] Tutorial loaded::","Tutorial loaded: "), "tutorial");
+      if(line.startsWith("INFO::[FOAMChalak] Tutorial loaded::")) {
+        appendOutput(line.replace("INFO::[FOAMChalak] Tutorial loaded::","Tutorial loaded: "), "tutorial");
       } else if(line.startsWith("Source:") || line.startsWith("Copied to:")) {
         appendOutput(line, "info");
       } else {

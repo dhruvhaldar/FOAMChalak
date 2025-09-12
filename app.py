@@ -1,4 +1,6 @@
 import os
+import posixpath
+import platform
 import json
 import docker
 import logging
@@ -55,7 +57,7 @@ with open(TEMPLATE_FILE, "r") as f:
 
 # --- Helpers ---
 def get_tutorials():
-    """Return a list of available OpenFOAM tutorials from inside the container."""
+    """Return a list of available OpenFOAM tutorial cases (category/case)."""
     try:
         bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
         docker_cmd = f"bash -c 'source {bashrc} && echo $FOAM_TUTORIALS'"
@@ -68,17 +70,31 @@ def get_tutorials():
         if not tutorial_root:
             return []
 
-        docker_cmd = f"bash -c 'ls -1 {tutorial_root}'"
+        # Find actual tutorial cases
+        docker_cmd = (
+            "bash -c 'find " + tutorial_root +
+            " -mindepth 2 -maxdepth 2 -type d "
+            "-exec test -d {}/system -a -d {}/constant \\; -print'"
+        )
         container = docker_client.containers.run(
             DOCKER_IMAGE, docker_cmd, remove=True,
             stdout=True, stderr=True, tty=True
         )
-        dirs = container.decode().splitlines()
-        return dirs
+        cases = container.decode().splitlines()
+
+        # Normalize only if running on Windows
+        if platform.system() == "Windows":
+            tutorials = [posixpath.relpath(c, tutorial_root) for c in cases]
+        else:
+            tutorials = [os.path.relpath(c, tutorial_root) for c in cases]
+
+        tutorials.sort()
+        return tutorials
 
     except Exception as e:
-        logger.error(f"[FOAMChalak] Could not fetch tutorials: {e}")
+        logger.error(f"[FOAMPilot] Could not fetch tutorials: {e}")
         return []
+
 
 # --- Routes ---
 @app.route("/")
@@ -170,12 +186,12 @@ def load_tutorial():
                 f"Source: $FOAM_TUTORIALS/{tutorial}\n"
                 f"Copied to: {CASE_ROOT}/{tutorial}\n"
             )
-            CASE_ROOT = os.path.join(CASE_ROOT, tutorial)
-            save_config({"CASE_ROOT": CASE_ROOT})
+            # Do NOT change CASE_ROOT here
         else:
             output = f"[FOAMChalak] [Error] Failed to load tutorial {tutorial}\n{logs}"
 
         return jsonify({"output": output, "caseDir": CASE_ROOT})
+
 
     finally:
         if container:

@@ -24,7 +24,7 @@
   <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6 flex flex-col gap-6">
 
     <!-- Header -->
-    <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">FOAMPilot</h1>
+    <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">FOAMChalak</h1>
 
     <!-- Case Directory -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -34,11 +34,15 @@
       </button>
     </div>
 
-    <!-- OpenFOAM Root Directory -->
+    <!-- Docker Config -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-      <input type="text" id="openfoamRoot" name="openfoamRoot" class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" placeholder="OpenFOAM root directory" />
-      <button type="button" onclick="setOpenFOAMRoot(document.getElementById('openfoamRoot').value)" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full sm:w-auto">
-        Set OpenFOAM Root
+      <input type="text" id="dockerImage" name="dockerImage" placeholder="Docker image (e.g. haldardhruv/ubuntu_noble_openfoam:v12)" class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" />
+      <input type="text" id="openfoamVersion" name="openfoamVersion" placeholder="OpenFOAM version (e.g. 12)" class="border border-gray-300 rounded px-3 py-2 w-full sm:w-32" />
+      <button type="button" onclick="setDockerConfig(
+        document.getElementById('dockerImage').value,
+        document.getElementById('openfoamVersion').value
+      )" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+        Set Docker Config
       </button>
     </div>
 
@@ -77,7 +81,7 @@
   </div>
 
   <!-- JS -->
-  <script src="{{ url_for('static', filename='js/foampilot_frontend.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/FOAMChalak_frontend.js') }}"></script>
 
 </body>
 </html>
