@@ -56,6 +56,18 @@ TEMPLATE_FILE = os.path.join("static", "foamchalak_frontend.html")
 with open(TEMPLATE_FILE, "r") as f:
     TEMPLATE = f.read()
 
+# --- Global storage for FoamRun logs ---
+foamrun_logs = {}  # { "<tutorial_name>": "<log content>" }
+def capture_foamrun_log(command, tutorial, case_dir):
+    """Capture log.FoamRun from host if Allrun was executed"""
+    if command.startswith("./Allrun"):
+                host_log_path = pathlib.Path(case_dir) / tutorial / "log.FoamRun"
+                if host_log_path.exists():
+                    foamrun_logs[tutorial] = host_log_path.read_text()
+                    logger.info(f"[FOAMChalak] Captured log.FoamRun for tutorial '{tutorial}'")
+                else:
+                    logger.warning(f"[FOAMChalak] log.FoamRun not found at {host_log_path}")
+
 # --- Helpers ---
 def get_tutorials():
     """Return a list of available OpenFOAM tutorial cases (category/case)."""
@@ -95,7 +107,6 @@ def get_tutorials():
     except Exception as e:
         logger.error(f"[FOAMPilot] Could not fetch tutorials: {e}")
         return []
-
 
 # --- Routes ---
 @app.route("/")
@@ -208,8 +219,8 @@ def load_tutorial():
 def run_case():
     data = request.json
     tutorial = data.get("tutorial")
-    command = data.get("command")  # Must be provided by user
-    case_dir = data.get("caseDir")  # match frontend naming
+    command = data.get("command")
+    case_dir = data.get("caseDir")
 
     if not command:
         return {"error": "No command provided"}, 400
@@ -228,14 +239,13 @@ def run_case():
             host_path: {"bind": f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run", "mode": "rw"}
         }
 
-        # Docker command: go to case dir, make executable, run command
         docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && chmod +x {command} && ./{command}'"
 
         container = docker_client.containers.run(
             DOCKER_IMAGE,
             docker_cmd,
             detach=True,
-            tty=False,  # key change: disable tty to avoid per-char output
+            tty=False,
             volumes=volumes,
             working_dir=container_case_path
         )
@@ -244,18 +254,21 @@ def run_case():
             # Stream logs line by line
             for line in container.logs(stream=True):
                 decoded = line.decode(errors="ignore")
-                # Docker sometimes sends multiple lines in one chunk
                 for subline in decoded.splitlines():
                     yield subline + "<br>"
+
+            capture_foamrun_log(command, tutorial, case_dir)
+
         finally:
+            # Always clean up container
             try:
                 container.kill()
-            except:
-                pass
+            except Exception:
+                logger.error("[FOAMChalak] Could not kill container")
             try:
                 container.remove()
-            except:
-                pass
+            except Exception:
+                logger.error("[FOAMChalak] Could not remove container")
 
     return Response(stream_container_logs(), mimetype="text/html")
 

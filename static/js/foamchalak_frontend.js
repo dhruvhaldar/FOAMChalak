@@ -12,7 +12,7 @@ window.onload = () => {
       document.getElementById("caseDir").value = caseDir;
     });
 
-  // Fetch Docker config (instead of OPENFOAM_ROOT)
+  // Fetch Docker config
   fetch("/get_docker_config")
     .then(r => r.json())
     .then(data => {
@@ -21,6 +21,20 @@ window.onload = () => {
       document.getElementById("openfoamRoot").value =
         `${dockerImage} (OpenFOAM ${openfoamVersion})`;
     });
+
+  // Restore last selected tutorial
+  const lastTutorial = localStorage.getItem("lastTutorial");
+  if (lastTutorial) {
+    const select = document.getElementById("tutorialSelect");
+    if ([...select.options].some(o => o.value === lastTutorial)) {
+      select.value = lastTutorial;
+    }
+  }
+
+  // Save tutorial selection on dropdown change (optional, before clicking Load)
+  document.getElementById("tutorialSelect").addEventListener("change", (e) => {
+    localStorage.setItem("lastTutorial", e.target.value);
+  });
 };
 
 // --- Append output helper ---
@@ -60,7 +74,7 @@ function setCase() {
   });
 }
 
-// --- Update Docker config (instead of OpenFOAM root) ---
+// --- Update Docker config ---
 function setDockerConfig(image, version) {
   dockerImage = image;
   openfoamVersion = version;
@@ -86,6 +100,8 @@ function setDockerConfig(image, version) {
 // --- Load a tutorial ---
 function loadTutorial() {
   const selected = document.getElementById("tutorialSelect").value;
+  localStorage.setItem("lastTutorial", selected); // ← save last selected tutorial
+
   fetch("/load_tutorial", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -93,7 +109,6 @@ function loadTutorial() {
   })
   .then(r => r.json())
   .then(data => {
-    // Do not overwrite caseDir input — keep it as the run folder
     data.output.split('\n').forEach(line => {
       line = line.trim();
       if(line.startsWith("INFO::[FOAMChalak] Tutorial loaded::")) {
@@ -144,4 +159,3 @@ function runCommand(cmd) {
     read();
   });
 }
-
