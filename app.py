@@ -1,10 +1,11 @@
 import os
 import posixpath
 import platform
+import pathlib
 import json
 import docker
 import logging
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, Response
 
 app = Flask(__name__)
 
@@ -204,67 +205,59 @@ def load_tutorial():
 
 
 @app.route("/run", methods=["POST"])
-def run():
-    global CASE_ROOT, DOCKER_IMAGE, OPENFOAM_VERSION
-    data = request.get_json()
-    case_dir = data.get("caseDir") or CASE_ROOT
-    tutorial = data.get("tutorial")  # optional: include tutorial subfolder
-    command = data.get("command")
+def run_case():
+    data = request.json
+    tutorial = data.get("tutorial")
+    command = data.get("command")  # Must be provided by user
+    case_dir = data.get("caseDir")  # match frontend naming
 
     if not command:
-        return jsonify({"output": "[FOAMChalak] [Error] No command provided"})
+        return {"error": "No command provided"}, 400
+    if not tutorial or not case_dir:
+        return {"error": "Missing tutorial or caseDir"}, 400
 
-    if not case_dir or not os.path.isdir(case_dir):
-        return jsonify({"output": "[FOAMChalak] [Error] Invalid case directory"})
+    def stream_container_logs():
+        container_case_path = posixpath.join(
+            f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run", tutorial
+        )
+        bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
 
-    container_run_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
-    abs_case_dir = os.path.abspath(case_dir)
+        # Convert Windows path to POSIX for Docker volumes
+        host_path = pathlib.Path(case_dir).resolve().as_posix()
+        volumes = {
+            host_path: {"bind": f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run", "mode": "rw"}
+        }
 
-    # Compute relative path inside container
-    try:
-        rel_case_path = posixpath.relpath(abs_case_dir, CASE_ROOT)
-    except ValueError:
-        rel_case_path = os.path.basename(abs_case_dir)
+        # Docker command: go to case dir, make executable, run command
+        docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && chmod +x {command} && ./{command}'"
 
-    if tutorial:
-        rel_case_path = posixpath.join(rel_case_path, tutorial)
-
-    container_case_path = posixpath.join(container_run_path, rel_case_path)
-
-    logger.debug(f"[DEBUG] Running in container path: {container_case_path}")
-    logger.debug(f"[DEBUG] Command: {command}")
-
-    bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
-    docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && bash {command}'"
-
-    container = None
-    try:
         container = docker_client.containers.run(
             DOCKER_IMAGE,
             docker_cmd,
             detach=True,
-            tty=True,
-            stdout=True,
-            stderr=True,
-            volumes={CASE_ROOT: {"bind": container_run_path, "mode": "rw"}}
+            tty=False,  # key change: disable tty to avoid per-char output
+            volumes=volumes,
+            working_dir=container_case_path
         )
 
-        result = container.wait()
-        logs = container.logs().decode()
+        try:
+            # Stream logs line by line
+            for line in container.logs(stream=True):
+                decoded = line.decode(errors="ignore")
+                # Docker sometimes sends multiple lines in one chunk
+                for subline in decoded.splitlines():
+                    yield subline + "<br>"
+        finally:
+            try:
+                container.kill()
+            except:
+                pass
+            try:
+                container.remove()
+            except:
+                pass
 
-        if result["StatusCode"] == 0:
-            output = f"INFO::[FOAMChalak] Command finished successfully\n$ cd {rel_case_path} && {command}\n{logs}"
-        else:
-            output = f"[FOAMChalak] [Error] Command failed\n$ cd {rel_case_path} && {command}\n{logs}"
-
-        return jsonify({"output": output})
-
-    finally:
-        if container:
-            try: container.kill()
-            except Exception: pass
-            try: container.remove()
-            except Exception: pass
+    return Response(stream_container_logs(), mimetype="text/html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

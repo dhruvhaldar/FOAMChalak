@@ -110,7 +110,14 @@ function loadTutorial() {
 
 // --- Run OpenFOAM commands ---
 function runCommand(cmd) {
+  if (!cmd) {
+    appendOutput("Error: No command specified!", "stderr");
+    return;
+  }
   const selectedTutorial = document.getElementById("tutorialSelect").value;
+  const outputDiv = document.getElementById("output");
+  outputDiv.innerHTML = ""; // clear previous output
+
   fetch("/run", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -119,12 +126,22 @@ function runCommand(cmd) {
       tutorial: selectedTutorial,
       command: cmd
     })
-  })
-  .then(r => r.json())
-  .then(data => {
-    data.output.split('\n').forEach(line => {
-      const type = /error/i.test(line) ? "stderr" : "stdout";
-      appendOutput(line, type);
-    });
+  }).then(response => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    function read() {
+      reader.read().then(({done, value}) => {
+        if (done) return;
+        const text = decoder.decode(value);
+        text.split("\n").forEach(line => {
+          if (!line.trim()) return;
+          const type = /error/i.test(line) ? "stderr" : "stdout";
+          appendOutput(line, type);
+        });
+        read();
+      });
+    }
+    read();
   });
 }
+
