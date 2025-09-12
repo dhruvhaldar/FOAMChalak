@@ -4,9 +4,9 @@
 [![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)](https://openfoam.org/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 
-# FOAMPilot
+# FOAMGati
 
-**FOAMPilot** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
+**FOAMGati** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
 
 ---
 
@@ -26,8 +26,8 @@
 1. **Clone the repository**:
 
 ```bash
-git clone https://github.com/dhruvhaldar/FOAMPilot
-cd FOAMPilot
+git clone https://github.com/dhruvhaldar/FOAMGati
+cd FOAMGati
 ```
 
 2. **Install dependencies**:
