@@ -4,9 +4,9 @@
 [![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)](https://openfoam.org/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 
-# FOAMGati
+# FOAMChalak
 
-**FOAMGati** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
+**FOAMChalak** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
 
 ---
 
@@ -77,4 +77,4 @@ FOAMPilot/
 
 ## License
 
-FOAMGati is released under the GPLv3 License.
+FOAMChalak is released under the GPLv3 License.
