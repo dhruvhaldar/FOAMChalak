@@ -26,8 +26,8 @@
 1. **Clone the repository**:
 
 ```bash
-git clone https://github.com/dhruvhaldar/FOAMGati
-cd FOAMGati
+git clone https://github.com/dhruvhaldar/FOAMChalak
+cd FOAMChalak
 ```
 
 2. **Install dependencies**:
