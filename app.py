@@ -49,7 +49,7 @@ OPENFOAM_VERSION = CONFIG["OPENFOAM_VERSION"]
 docker_client = docker.from_env()
 
 # --- Load HTML template ---
-TEMPLATE_FILE = os.path.join("static", "foampilot_frontend.html")
+TEMPLATE_FILE = os.path.join("static", "foamchalak_frontend.html")
 with open(TEMPLATE_FILE, "r") as f:
     TEMPLATE = f.read()
 
@@ -77,7 +77,7 @@ def get_tutorials():
         return dirs
 
     except Exception as e:
-        logger.error(f"[FOAMPilot] Could not fetch tutorials: {e}")
+        logger.error(f"[FOAMChalak] Could not fetch tutorials: {e}")
         return []
 
 # --- Routes ---
