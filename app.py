@@ -96,6 +96,17 @@ def get_tutorials():
         logger.error(f"[FOAMPilot] Could not fetch tutorials: {e}")
         return []
 
+# --- Global storage for FoamRun logs ---
+foamrun_logs = {}  # { "<tutorial_name>": "<log content>" }
+def capture_foamrun_log(command, tutorial, case_dir):
+    """Capture log.FoamRun from host if Allrun was executed"""
+    if command.startswith("./Allrun"):
+                host_log_path = pathlib.Path(case_dir) / tutorial / "log.FoamRun"
+                if host_log_path.exists():
+                    foamrun_logs[tutorial] = host_log_path.read_text()
+                    logger.info(f"[FOAMChalak] Captured log.FoamRun for tutorial '{tutorial}'")
+                else:
+                    logger.warning(f"[FOAMChalak] log.FoamRun not found at {host_log_path}")
 
 # --- Routes ---
 @app.route("/")
@@ -179,7 +190,8 @@ def load_tutorial():
             stdout=True,
             stderr=True,
             volumes={CASE_ROOT: {"bind": container_run_path, "mode": "rw"}},
-            working_dir=container_run_path
+            working_dir=container_run_path,
+            remove=True
         )
 
         result = container.wait()
@@ -198,10 +210,16 @@ def load_tutorial():
 
     finally:
         if container:
-            try: container.kill()
-            except Exception: pass
-            try: container.remove()
-            except Exception: pass
+            try:
+                container.reload()
+                if container.status == "running":
+                    container.kill()
+            except Exception:
+                pass
+            try:
+                container.remove()
+            except Exception:
+                pass
 
 
 @app.route("/run", methods=["POST"])
@@ -235,7 +253,7 @@ def run_case():
             DOCKER_IMAGE,
             docker_cmd,
             detach=True,
-            tty=False,  # key change: disable tty to avoid per-char output
+            tty=False,
             volumes=volumes,
             working_dir=container_case_path
         )
@@ -247,15 +265,14 @@ def run_case():
                 # Docker sometimes sends multiple lines in one chunk
                 for subline in decoded.splitlines():
                     yield subline + "<br>"
+                    
+                capture_foamrun_log(command, tutorial, case_dir)
+        
         finally:
-            try:
-                container.kill()
-            except:
-                pass
             try:
                 container.remove()
             except:
-                pass
+                logger.error("[FOAMPilot] Could not remove container")
 
     return Response(stream_container_logs(), mimetype="text/html")
 
