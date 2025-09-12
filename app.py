@@ -5,6 +5,8 @@ import pathlib
 import json
 import docker
 import logging
+import threading
+import time
 from flask import Flask, request, jsonify, render_template_string, Response
 
 app = Flask(__name__)
@@ -98,15 +100,37 @@ def get_tutorials():
 
 # --- Global storage for FoamRun logs ---
 foamrun_logs = {}  # { "<tutorial_name>": "<log content>" }
-def capture_foamrun_log(command, tutorial, case_dir):
-    """Capture log.FoamRun from host if Allrun was executed"""
-    if command.startswith("./Allrun"):
-                host_log_path = pathlib.Path(case_dir) / tutorial / "log.FoamRun"
-                if host_log_path.exists():
-                    foamrun_logs[tutorial] = host_log_path.read_text()
-                    logger.info(f"[FOAMChalak] Captured log.FoamRun for tutorial '{tutorial}'")
-                else:
-                    logger.warning(f"[FOAMChalak] log.FoamRun not found at {host_log_path}")
+
+def monitor_foamrun_log(tutorial, case_dir):
+    """Watch for log.FoamRun, capture it in foamrun_logs and write it to a file."""
+    import pathlib
+    import time
+
+    host_log_path = pathlib.Path(case_dir) / tutorial / "log.FoamRun"
+    output_file = pathlib.Path(case_dir) / tutorial / "foamrun_logs.txt"
+
+    timeout = 300  # seconds max wait
+    interval = 1   # check every 1 second
+    elapsed = 0
+
+    while elapsed < timeout:
+        if host_log_path.exists():
+            log_content = host_log_path.read_text()
+            foamrun_logs[tutorial] = log_content
+
+            # Write to file
+            try:
+                output_file.write_text(log_content)
+                logger.info(f"[FOAMChalak] Captured log.FoamRun for tutorial '{tutorial}' and wrote to {output_file}")
+            except Exception as e:
+                logger.error(f"[FOAMChalak] Could not write foamrun_logs to file: {e}")
+
+            return
+
+        time.sleep(interval)
+        elapsed += interval
+
+    logger.warning(f"[FOAMChalak] Timeout: log.FoamRun not found for '{tutorial}'")
 
 # --- Routes ---
 @app.route("/")
@@ -226,8 +250,8 @@ def load_tutorial():
 def run_case():
     data = request.json
     tutorial = data.get("tutorial")
-    command = data.get("command")  # Must be provided by user
-    case_dir = data.get("caseDir")  # match frontend naming
+    command = data.get("command")
+    case_dir = data.get("caseDir")
 
     if not command:
         return {"error": "No command provided"}, 400
@@ -246,7 +270,14 @@ def run_case():
             host_path: {"bind": f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run", "mode": "rw"}
         }
 
-        # Docker command: go to case dir, make executable, run command
+        # Start the watcher thread before running container
+        watcher_thread = threading.Thread(
+            target=monitor_foamrun_log,
+            args=(tutorial, case_dir),
+            daemon=True
+        )
+        watcher_thread.start()
+
         docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && chmod +x {command} && ./{command}'"
 
         container = docker_client.containers.run(
@@ -262,13 +293,14 @@ def run_case():
             # Stream logs line by line
             for line in container.logs(stream=True):
                 decoded = line.decode(errors="ignore")
-                # Docker sometimes sends multiple lines in one chunk
                 for subline in decoded.splitlines():
                     yield subline + "<br>"
-                    
-                capture_foamrun_log(command, tutorial, case_dir)
-        
+
         finally:
+            try:
+                container.kill()
+            except:
+                pass
             try:
                 container.remove()
             except:
