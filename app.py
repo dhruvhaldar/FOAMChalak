@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # --- Logging ---
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("FOAMPilot")
+logger = logging.getLogger("FOAMChalak")
 
 # --- Config file ---
 CONFIG_FILE = "case_config.json"
@@ -97,13 +97,13 @@ def set_case():
     data = request.get_json()
     case_dir = data.get("caseDir")
     if not case_dir:
-        return jsonify({"output": "[FOAMPilot] [Error] No caseDir provided"})
+        return jsonify({"output": "[FOAMChalak] [Error] No caseDir provided"})
     case_dir = os.path.abspath(case_dir)
     os.makedirs(case_dir, exist_ok=True)
     CASE_ROOT = case_dir
     save_config({"CASE_ROOT": CASE_ROOT})
     return jsonify({
-        "output": f"INFO::[FOAMPilot] Case root set to: {CASE_ROOT}",
+        "output": f"INFO::[FOAMChalak] Case root set to: {CASE_ROOT}",
         "caseDir": CASE_ROOT
     })
 
@@ -127,7 +127,7 @@ def set_docker_config():
         "OPENFOAM_VERSION": OPENFOAM_VERSION
     })
     return jsonify({
-        "output": f"INFO::[FOAMPilot] Docker config updated",
+        "output": f"INFO::[FOAMChalak] Docker config updated",
         "dockerImage": DOCKER_IMAGE,
         "openfoamVersion": OPENFOAM_VERSION
     })
@@ -139,7 +139,7 @@ def load_tutorial():
     tutorial = data.get("tutorial")
 
     if not tutorial:
-        return jsonify({"output": "[FOAMPilot] [Error] No tutorial selected"})
+        return jsonify({"output": "[FOAMChalak] [Error] No tutorial selected"})
 
     bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
     container_case_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
@@ -166,14 +166,14 @@ def load_tutorial():
 
         if result["StatusCode"] == 0:
             output = (
-                f"INFO::[FOAMPilot] Tutorial loaded::{tutorial}\n"
+                f"INFO::[FOAMChalak] Tutorial loaded::{tutorial}\n"
                 f"Source: $FOAM_TUTORIALS/{tutorial}\n"
                 f"Copied to: {CASE_ROOT}/{tutorial}\n"
             )
             CASE_ROOT = os.path.join(CASE_ROOT, tutorial)
             save_config({"CASE_ROOT": CASE_ROOT})
         else:
-            output = f"[FOAMPilot] [Error] Failed to load tutorial {tutorial}\n{logs}"
+            output = f"[FOAMChalak] [Error] Failed to load tutorial {tutorial}\n{logs}"
 
         return jsonify({"output": output, "caseDir": CASE_ROOT})
 
@@ -192,7 +192,7 @@ def run():
     command = data.get("command")
 
     if not case_dir or not os.path.isdir(case_dir):
-        return jsonify({"output": "[FOAMPilot] [Error] Invalid case directory"})
+        return jsonify({"output": "[FOAMChalak] [Error] Invalid case directory"})
 
     container_case_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
     bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
@@ -214,18 +214,18 @@ def run():
         logs = container.logs().decode()
 
         if result["StatusCode"] == 0:
-            output = f"INFO::[FOAMPilot] Command finished successfully\n$ {command}\n" + logs
+            output = f"INFO::[FOAMChalak] Command finished successfully\n$ {command}\n" + logs
         else:
-            output = f"[FOAMPilot] [Error] Command failed\n$ {command}\n" + logs
+            output = f"[FOAMChalak] [Error] Command failed\n$ {command}\n" + logs
 
         return jsonify({"output": output})
 
     except docker.errors.ContainerError as e:
-        return jsonify({"output": f"[FOAMPilot] [Error] {e.stderr.decode()}"} )
+        return jsonify({"output": f"[FOAMChalak] [Error] {e.stderr.decode()}"} )
     except docker.errors.ImageNotFound:
-        return jsonify({"output": f"[FOAMPilot] [Error] Docker image not found: {DOCKER_IMAGE}"} )
+        return jsonify({"output": f"[FOAMChalak] [Error] Docker image not found: {DOCKER_IMAGE}"} )
     except docker.errors.APIError as e:
-        return jsonify({"output": f"[FOAMPilot] [Error] Docker API error: {str(e)}"} )
+        return jsonify({"output": f"[FOAMChalak] [Error] Docker API error: {str(e)}"} )
     finally:
         if container:
             try: container.kill()
