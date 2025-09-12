@@ -8,6 +8,8 @@
 
 **FOAMChalak** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
 
+Pronounced like `FOAMChaluck'. 
+
 ---
 
 ## Features
