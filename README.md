@@ -77,4 +77,4 @@ FOAMPilot/
 
 ## License
 
-FOAMPilot is released under the MIT License.
+FOAMPilot is released under the GPLv3 License.
