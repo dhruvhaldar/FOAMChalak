@@ -158,10 +158,14 @@ def load_tutorial():
         return jsonify({"output": "[FOAMChalak] [Error] No tutorial selected"})
 
     bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
-    container_case_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
+    container_run_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
+    container_case_path = posixpath.join(container_run_path, tutorial)
+
     docker_cmd = (
-        f"bash -c 'source {bashrc} && "
-        f"cp -r $FOAM_TUTORIALS/{tutorial} {container_case_path}/'"
+    f"bash -c 'source {bashrc} && "
+    f"mkdir -p {container_case_path} && "
+    f"cp -r $FOAM_TUTORIALS/{tutorial}/* {container_case_path} && "
+    f"chmod +x {container_case_path}/Allrun'"
     )
 
     container = None
@@ -173,8 +177,8 @@ def load_tutorial():
             tty=True,
             stdout=True,
             stderr=True,
-            volumes={CASE_ROOT: {"bind": container_case_path, "mode": "rw"}},
-            working_dir=container_case_path
+            volumes={CASE_ROOT: {"bind": container_run_path, "mode": "rw"}},
+            working_dir=container_run_path
         )
 
         result = container.wait()
@@ -186,12 +190,10 @@ def load_tutorial():
                 f"Source: $FOAM_TUTORIALS/{tutorial}\n"
                 f"Copied to: {CASE_ROOT}/{tutorial}\n"
             )
-            # Do NOT change CASE_ROOT here
         else:
             output = f"[FOAMChalak] [Error] Failed to load tutorial {tutorial}\n{logs}"
 
         return jsonify({"output": output, "caseDir": CASE_ROOT})
-
 
     finally:
         if container:
@@ -200,19 +202,40 @@ def load_tutorial():
             try: container.remove()
             except Exception: pass
 
+
 @app.route("/run", methods=["POST"])
 def run():
     global CASE_ROOT, DOCKER_IMAGE, OPENFOAM_VERSION
     data = request.get_json()
     case_dir = data.get("caseDir") or CASE_ROOT
+    tutorial = data.get("tutorial")  # optional: include tutorial subfolder
     command = data.get("command")
+
+    if not command:
+        return jsonify({"output": "[FOAMChalak] [Error] No command provided"})
 
     if not case_dir or not os.path.isdir(case_dir):
         return jsonify({"output": "[FOAMChalak] [Error] Invalid case directory"})
 
-    container_case_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
+    container_run_path = f"/home/foam/OpenFOAM/{OPENFOAM_VERSION}/run"
+    abs_case_dir = os.path.abspath(case_dir)
+
+    # Compute relative path inside container
+    try:
+        rel_case_path = posixpath.relpath(abs_case_dir, CASE_ROOT)
+    except ValueError:
+        rel_case_path = os.path.basename(abs_case_dir)
+
+    if tutorial:
+        rel_case_path = posixpath.join(rel_case_path, tutorial)
+
+    container_case_path = posixpath.join(container_run_path, rel_case_path)
+
+    logger.debug(f"[DEBUG] Running in container path: {container_case_path}")
+    logger.debug(f"[DEBUG] Command: {command}")
+
     bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
-    docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && {command}'"
+    docker_cmd = f"bash -c 'source {bashrc} && cd {container_case_path} && bash {command}'"
 
     container = None
     try:
@@ -223,25 +246,19 @@ def run():
             tty=True,
             stdout=True,
             stderr=True,
-            volumes={case_dir: {"bind": container_case_path, "mode": "rw"}}
+            volumes={CASE_ROOT: {"bind": container_run_path, "mode": "rw"}}
         )
 
         result = container.wait()
         logs = container.logs().decode()
 
         if result["StatusCode"] == 0:
-            output = f"INFO::[FOAMChalak] Command finished successfully\n$ {command}\n" + logs
+            output = f"INFO::[FOAMChalak] Command finished successfully\n$ cd {rel_case_path} && {command}\n{logs}"
         else:
-            output = f"[FOAMChalak] [Error] Command failed\n$ {command}\n" + logs
+            output = f"[FOAMChalak] [Error] Command failed\n$ cd {rel_case_path} && {command}\n{logs}"
 
         return jsonify({"output": output})
 
-    except docker.errors.ContainerError as e:
-        return jsonify({"output": f"[FOAMChalak] [Error] {e.stderr.decode()}"} )
-    except docker.errors.ImageNotFound:
-        return jsonify({"output": f"[FOAMChalak] [Error] Docker image not found: {DOCKER_IMAGE}"} )
-    except docker.errors.APIError as e:
-        return jsonify({"output": f"[FOAMChalak] [Error] Docker API error: {str(e)}"} )
     finally:
         if container:
             try: container.kill()

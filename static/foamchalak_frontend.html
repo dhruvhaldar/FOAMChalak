@@ -34,17 +34,26 @@
       </button>
     </div>
 
-    <!-- Docker Config -->
-    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-      <input type="text" id="dockerImage" name="dockerImage" placeholder="Docker image (e.g. haldardhruv/ubuntu_noble_openfoam:v12)" class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" />
-      <input type="text" id="openfoamVersion" name="openfoamVersion" placeholder="OpenFOAM version (e.g. 12)" class="border border-gray-300 rounded px-3 py-2 w-full sm:w-32" />
-      <button type="button" onclick="setDockerConfig(
-        document.getElementById('dockerImage').value,
-        document.getElementById('openfoamVersion').value
-      )" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full sm:w-auto">
-        Set Docker Config
-      </button>
-    </div>
+    <!-- Docker Config (collapsible) -->
+    <details class="border border-gray-300 rounded p-3">
+      <summary class="cursor-pointer font-semibold text-gray-700">
+        Docker Config (click to expand)
+      </summary>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+        <input type="text" id="dockerImage" name="dockerImage"
+          placeholder="Docker image (e.g. haldardhruv/ubuntu_noble_openfoam:v12)"
+          class="border border-gray-300 rounded px-3 py-2 flex-1 w-full sm:w-auto" />
+        <input type="text" id="openfoamVersion" name="openfoamVersion"
+          placeholder="OpenFOAM version (e.g. 12)"
+          class="border border-gray-300 rounded px-3 py-2 w-full sm:w-32" />
+        <button type="button" onclick="setDockerConfig(
+          document.getElementById('dockerImage').value,
+          document.getElementById('openfoamVersion').value
+        )" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded w-full sm:w-auto">
+          Set Docker Config
+        </button>
+      </div>
+    </details>
 
     <!-- Tutorial Selection -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -60,6 +69,9 @@
     <div class="my-4">
       <h3 class="text-xl font-semibold mb-2">Run OpenFOAM Commands</h3>
       <div class="flex flex-col sm:flex-row gap-2">
+        <button onclick="runCommand('./Allrun')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full sm:flex-1">
+          Allrun
+        </button>
         <button onclick="runCommand('blockMesh')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded w-full sm:flex-1">
           blockMesh
         </button>

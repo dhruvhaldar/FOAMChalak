@@ -110,10 +110,15 @@ function loadTutorial() {
 
 // --- Run OpenFOAM commands ---
 function runCommand(cmd) {
+  const selectedTutorial = document.getElementById("tutorialSelect").value;
   fetch("/run", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({caseDir: caseDir, command: cmd})
+    body: JSON.stringify({
+      caseDir: caseDir,
+      tutorial: selectedTutorial,
+      command: cmd
+    })
   })
   .then(r => r.json())
   .then(data => {
