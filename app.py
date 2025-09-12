@@ -4,6 +4,8 @@ import logging
 import json
 import platform
 import shutil
+import docker
+import sys
 from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
@@ -92,51 +94,136 @@ def to_wsl_path(path: str) -> str:
 
 
 def load_openfoam_env(openfoam_root: str):
-    """Load OpenFOAM environment from WSL/Linux and detect key paths."""
-    env_vars = {}
-    system = platform.system()
+    """Load OpenFOAM environment using Docker.
+    
+    Returns a minimal set of environment variables and fetches tutorials
+    from the Docker container.
+    """
+    env_vars = {
+        "FOAM_RUN": "/mnt/case",  # Will be mounted from host
+        "FOAM_TUTORIALS": "/opt/openfoam12/tutorials"  # Default in the container
+    }
+    
+    # Try to get tutorials from the container
     try:
-        bashrc = os.path.join(openfoam_root, "etc", "bashrc").replace("\\", "/")
-
-        if system == "Linux":
-            cmd = ["bash", "-c", f"source {bashrc} && env"]
-        elif system == "Windows":
-            cmd = ["wsl", "bash", "-c", f"source {bashrc} && env"]
-        else:
-            raise RuntimeError(f"Unsupported platform: {system}")
-
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            key, _, value = line.decode().partition("=")
-            if key and value:
-                env_vars[key.strip()] = value.strip()
-        proc.communicate()
-
-        # Auto-detect CASE_ROOT and FOAM_TUTORIALS if not already set
-        global CASE_ROOT
-        if "FOAM_RUN" in env_vars and not CASE_ROOT:
-            CASE_ROOT = env_vars["FOAM_RUN"]
-        global FOAM_TUTORIALS
-        if "FOAM_TUTORIALS" in env_vars:
-            FOAM_TUTORIALS = env_vars["FOAM_TUTORIALS"]
-
+        client = docker.from_env()
+        container = None
+        try:
+            # Run a command to list tutorials - using sh -c to properly handle the command
+            result = client.containers.run(
+                "haldardhruv/ubuntu_noble_openfoam:v12",
+                ["sh", "-c", "find /opt/openfoam12/tutorials -name system -type d | xargs -I {} dirname {}"],
+                remove=True,
+                stdout=True,
+                stderr=True
+            )
+            tutorials = result.decode().split('\n')
+            tutorials = [t.replace('/opt/openfoam12/tutorials/', '') 
+                        for t in tutorials if t.strip()]
+            env_vars["_TUTORIALS"] = sorted(tutorials)  # Sort the tutorials
+        except Exception as e:
+            logger.warning(f"Could not fetch tutorials from container: {e}")
+            # Provide some default tutorials in case of error
+            env_vars["_TUTORIALS"] = [
+                "incompressible/simpleFoam/airFoil2D",
+                "incompressible/simpleFoam/motorBike",
+                "incompressible/pimpleFoam/les/pitzDaily"
+            ]
     except Exception as e:
-        logger.error(f"[ERROR] Could not load OpenFOAM environment: {e}")
-
+        logger.warning(f"Docker not available for tutorial loading: {e}")
+        env_vars["_TUTORIALS"] = []
+    
     return env_vars
+
+
+def run_openfoam_docker(
+    solver: str = "simpleFoam",
+    case_dir: str = None,
+    image: str = "haldardhruv/ubuntu_noble_openfoam:v12",
+    openfoam_version: str = "12"
+):
+    """
+    Run an OpenFOAM solver inside a Docker container.
+    
+    Parameters
+    ----------
+    solver : str
+        OpenFOAM solver to run (e.g., simpleFoam, pisoFoam).
+    case_dir : str
+        Path to the case directory on the host system.
+    image : str
+        Docker image name containing OpenFOAM.
+    openfoam_version : str
+        OpenFOAM version string (default: "12").
+    
+    Returns
+    -------
+    tuple
+        (success: bool, output: str)
+    """
+    try:
+        client = docker.from_env()
+        case_dir = os.path.abspath(case_dir or CASE_ROOT)
+        container_case_path = f"/home/foam/OpenFOAM/{openfoam_version}/run"
+
+        command = (
+            "bash -c "
+            f"'source /opt/openfoam{openfoam_version}/etc/bashrc "
+            f"&& cd {container_case_path} "
+            f"&& {solver}'"
+        )
+
+        container = None
+        try:
+            # Create and start container
+            container = client.containers.run(
+                image,
+                command,
+                detach=True,
+                tty=True,
+                stdout=True,
+                stderr=True,
+                volumes={
+                    case_dir: {
+                        "bind": container_case_path,
+                        "mode": "rw"
+                    }
+                },
+                working_dir=container_case_path
+            )
+
+            # Wait for completion and capture logs
+            result = container.wait()
+            logs = container.logs().decode()
+
+            if result["StatusCode"] == 0:
+                return True, f"✅ Solver finished successfully\n{logs}"
+            else:
+                return False, f"❌ Solver failed\n{logs}"
+
+        except docker.errors.ImageNotFound:
+            return False, f"❌ Docker image not found: {image}"
+        except docker.errors.APIError as e:
+            return False, f"❌ Docker API error: {str(e)}"
+        finally:
+            if container:
+                try:
+                    container.kill()
+                except Exception:
+                    pass
+                try:
+                    container.remove()
+                except Exception:
+                    pass
+                    
+    except Exception as e:
+        return False, f"❌ Error running Docker: {str(e)}"
 
 
 OPENFOAM_ENV = load_openfoam_env(OPENFOAM_ROOT)
 
-FOAM_TUTORIALS = OPENFOAM_ENV.get("FOAM_TUTORIALS", "")
-TUTORIAL_LIST = []
-if FOAM_TUTORIALS and os.path.isdir(FOAM_TUTORIALS):
-    for root, dirs, files in os.walk(FOAM_TUTORIALS):
-        if "system" in dirs and "constant" in dirs:
-            relpath = os.path.relpath(root, FOAM_TUTORIALS)
-            TUTORIAL_LIST.append(relpath)
-    TUTORIAL_LIST.sort()
-
+# Get tutorials from environment or use empty list
+TUTORIAL_LIST = OPENFOAM_ENV.get("_TUTORIALS", [])
 TEMPLATE_FILE = os.path.join("static", "foampilot_frontend.html")
 with open(TEMPLATE_FILE, "r") as f:
     TEMPLATE = f.read()
@@ -202,50 +289,69 @@ def load_tutorial():
     if not tutorial:
         return jsonify({"output": "[FOAMPilot] [Error] No tutorial selected", "caseDir": ""})
 
-    src = os.path.join(FOAM_TUTORIALS, tutorial)
-    dest_root = CASE_ROOT
-    os.makedirs(dest_root, exist_ok=True)
-
-    dest = os.path.join(dest_root, tutorial.replace("/", "_"))
-    if not os.path.exists(dest):
-        shutil.copytree(src, dest)
-
-    dest_wsl = to_wsl_path(dest)
-
-    return jsonify({
-        "output": f"INFO::[FOAMPilot] Tutorial loaded::{tutorial}\nSource: {src}\nCopied to: {dest_wsl}",
-        "caseDir": dest_wsl
-    })
+    try:
+        # Create a temporary directory for the tutorial
+        tutorial_name = os.path.basename(tutorial)
+        dest_dir = os.path.join(CASE_ROOT, tutorial_name)
+        
+        # Use Docker to copy the tutorial
+        client = docker.from_env()
+        container = None
+        try:
+            # Create a container with the tutorial directory mounted
+            container = client.containers.run(
+                "haldardhruv/ubuntu_noble_openfoam:v12",
+                f"cp -r /opt/openfoam12/tutorials/{tutorial} /mnt/case/",
+                volumes={
+                    os.path.abspath(CASE_ROOT): {
+                        "bind": "/mnt/case",
+                        "mode": "rw"
+                    }
+                },
+                remove=True,
+                stdout=True,
+                stderr=True
+            )
+            
+            return jsonify({
+                "output": f"INFO::[FOAMPilot] Tutorial loaded: {tutorial}\nCopied to: {dest_dir}",
+                "caseDir": dest_dir
+            })
+            
+        except Exception as e:
+            return jsonify({"output": f"[FOAMPilot] [Error] Failed to load tutorial: {str(e)}"})
+            
+    except Exception as e:
+        return jsonify({"output": f"[FOAMPilot] [Error] {str(e)}"})
 
 
 @app.route("/run", methods=["POST"])
 def run():
     data = request.get_json()
-    case_dir = data.get("caseDir") or CASE_ROOT
-    command = data.get("command")
-
-    if not case_dir or not os.path.isdir(case_dir):
-        return jsonify({"output": "[FOAMPilot] [Error] Invalid case directory"})
-
-    case_dir_wsl = to_wsl_path(case_dir)
-
-    try:
-        prep_msg = f"INFO::[FOAMPilot] Changing directory to: {case_dir_wsl}\n$ {command}\n"
-
-        if platform.system() == "Windows":
-            full_cmd = f"wsl bash -c 'cd {case_dir_wsl} && {command}'"
-        else:
-            full_cmd = command
-
-        proc = subprocess.run(
-            full_cmd,
-            cwd=case_dir if platform.system() == "Linux" else None,
-            shell=True,
-            capture_output=True,
-            text=True,
-            env={**os.environ, **OPENFOAM_ENV}
+    command = data.get("command", "").strip()
+    
+    if not command:
+        return jsonify({"output": "[FOAMPilot] [Error] No command provided"})
+    
+    # Check if it's an OpenFOAM solver command
+    if command.endswith("Foam"):
+        success, output = run_openfoam_docker(
+            solver=command,
+            case_dir=CASE_ROOT
         )
-        output = prep_msg + proc.stdout + proc.stderr
+        return jsonify({"output": output})
+    
+    # Fallback to subprocess for non-OpenFOAM commands
+    try:
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=CASE_ROOT
+        )
+        stdout, stderr = proc.communicate()
+        output = stdout.decode() + "\n" + stderr.decode()
         return jsonify({"output": output})
     except Exception as e:
         return jsonify({"output": f"[FOAMPilot] [Error] {str(e)}"})
