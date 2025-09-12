@@ -64,12 +64,12 @@ Live output is shown in the console panel.
 
 ## Project Structure
 ```
-FOAMPilot/
+FOAMChalak/
 ├── app.py # Main Flask application
 ├── case_config.json # Stores the last used CASE_ROOT
 ├── static/
-│ ├── foampilot_frontend.html # HTML template
-│ └── js/foampilot_frontend.js # JavaScript logic
+│ ├── foamchalak_frontend.html # HTML template
+│ └── js/foamchalak_frontend.js # JavaScript logic
 ├── my-py-env/ # Optional: local Python virtual environment
 ├── requirements.txt # Python dependencies
 └── README.md # This file
