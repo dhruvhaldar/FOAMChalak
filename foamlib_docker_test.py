@@ -118,6 +118,126 @@ def cleanup_old_docker_images() -> bool:
         print(f"⚠️  Could not clean up Docker images: {e}")
         return False
 
+def inspect_docker_image(image_name: str):
+    """Inspect the Docker image structure to find OpenFOAM installation"""
+    client = docker.from_env()
+    try:
+        print(f"🔍 Inspecting Docker image: {image_name}")
+        result = client.containers.run(
+            image_name,
+            "bash -c 'ls -la /opt/ /usr/lib/ /home/foam/ 2>/dev/null | grep -i foam || echo No OpenFOAM directories found'",
+            remove=True,
+            stdout=True,
+            stderr=True
+        )
+        print(f"📁 OpenFOAM-related directories:\n{result.decode().strip()}")
+        
+    except Exception as e:
+        print(f"Error inspecting image: {e}")
+
+def debug_docker_image(image_name: str):
+    """Get detailed information about the Docker image"""
+    client = docker.from_env()
+    print(f"🔍 Debugging Docker image: {image_name}")
+    
+    # Check what's in the common OpenFOAM locations
+    check_commands = [
+        "ls -la /opt/",
+        "ls -la /usr/lib/",
+        "ls -la /home/foam/",
+        "find / -name \"*openfoam*\" -type d 2>/dev/null | head -10",
+        "find / -name \"bashrc\" -path \"*/etc/*\" 2>/dev/null",
+        "which foamInstallationTest 2>/dev/null || echo 'No foamInstallationTest'",
+        "which simpleFoam 2>/dev/null || echo 'No simpleFoam'",
+        "which blockMesh 2>/dev/null || echo 'No blockMesh'"
+    ]
+    
+    for cmd in check_commands:
+        try:
+            print(f"\n📋 Running: {cmd}")
+            result = client.containers.run(
+                image_name,
+                f"bash -c '{cmd}'",
+                remove=True,
+                stdout=True,
+                stderr=True
+            )
+            print(f"📊 Output:\n{result.decode().strip()}")
+        except Exception as e:
+            print(f"❌ Error running command '{cmd}': {e}")
+
+def find_openfoam_bashrc(image_name: str, openfoam_version: str) -> str:
+    """Find the correct OpenFOAM bashrc path in the Docker image"""
+    client = docker.from_env()
+    
+    # Try different possible OpenFOAM installation paths
+    possible_bashrc_paths = [
+        f"/opt/openfoam{openfoam_version}/etc/bashrc",
+        f"/usr/lib/openfoam/openfoam{openfoam_version}/etc/bashrc",
+        f"/home/foam/OpenFOAM/OpenFOAM-{openfoam_version}/etc/bashrc",
+        f"/opt/openfoam/etc/bashrc",
+        f"/usr/lib/openfoam/etc/bashrc",
+        "/opt/OpenFOAM/OpenFOAM-v2012/etc/bashrc"
+    ]
+    
+    # Test each path individually to find the first valid one
+    for path in possible_bashrc_paths:
+        try:
+            print(f"🔍 Testing path: {path}")
+            result = client.containers.run(
+                image_name,
+                f"bash -c '[ -f {path} ] && echo FOUND || echo NOT_FOUND'",
+                remove=True,
+                stdout=True,
+                stderr=True
+            )
+            output = result.decode().strip()
+            if "FOUND" in output:
+                print(f"✅ Found OpenFOAM bashrc at: {path}")
+                return path
+            else:
+                print(f"❌ Path not found: {path}")
+        except Exception as e:
+            print(f"⚠️  Error testing path {path}: {e}")
+    
+    # If none of the predefined paths work, search the filesystem
+    print("🔍 Searching filesystem for OpenFOAM bashrc...")
+    try:
+        result = client.containers.run(
+            image_name,
+            "bash -c 'find / -name \"bashrc\" -path \"*/etc/bashrc\" 2>/dev/null | head -5'",
+            remove=True,
+            stdout=True,
+            stderr=True
+        )
+        found_paths = result.decode().strip().split('\n')
+        for path in found_paths:
+            if path.strip():
+                print(f"✅ Found potential bashrc at: {path}")
+                return path.strip()
+    except Exception as e:
+        print(f"❌ Error searching for bashrc: {e}")
+    
+    # Last resort: check if OpenFOAM tools are available directly
+    print("🔍 Checking if OpenFOAM tools are available directly...")
+    try:
+        result = client.containers.run(
+            image_name,
+            "bash -c 'which simpleFoam || which blockMesh || echo NO_OPENFOAM'",
+            remove=True,
+            stdout=True,
+            stderr=True
+        )
+        foam_output = result.decode().strip()
+        if foam_output != "NO_OPENFOAM":
+            print(f"✅ OpenFOAM tools found directly: {foam_output}")
+            # Return empty string to indicate direct tool usage
+            return ""
+    except Exception as e:
+        print(f"❌ Error checking for OpenFOAM tools: {e}")
+    
+    return None
+
 def run_openfoam_in_docker(
     image: str = "haldardhruv/ubuntu_noble_openfoam:v2412",
     solver: str = "foamRun -solver incompressibleFluid",
@@ -144,12 +264,35 @@ def run_openfoam_in_docker(
 
     container_case_path = f"/home/foam/OpenFOAM/{openfoam_version}/run"
 
-    command = (
-        "bash -c "
-        f"'source /opt/openfoam{openfoam_version}/etc/bashrc "
-        f"&& cd {container_case_path} "
-        f"&& {solver}'"
-    )
+    # First, inspect the image to understand its structure
+    inspect_docker_image(image)
+    
+    # Debug the image to see what's actually there
+    debug_docker_image(image)
+    
+    # Find the correct bashrc path
+    bashrc_path = find_openfoam_bashrc(image, openfoam_version)
+    
+    if bashrc_path == "":
+        # OpenFOAM tools are available directly without sourcing
+        print("ℹ️  OpenFOAM tools available directly, no need to source bashrc")
+        command = (
+            "bash -c "
+            f"'cd {container_case_path} "
+            f"&& {solver}'"
+        )
+    elif bashrc_path:
+        # Use the found bashrc path
+        print(f"✅ Using OpenFOAM bashrc at: {bashrc_path}")
+        command = (
+            "bash -c "
+            f"'source {bashrc_path} "
+            f"&& cd {container_case_path} "
+            f"&& {solver}'"
+        )
+    else:
+        print("❌ Could not find OpenFOAM installation in the Docker image")
+        return False
 
     print(f"Running command: {command}")
     print(f"Mounting: {case_dir} -> {container_case_path}")
