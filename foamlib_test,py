@@ -3,7 +3,7 @@ from pathlib import Path
 from foamlib import FoamCase
 
 # Clone and run a case
-my_case = FoamCase(Path(os.environ["FOAM_TUTORIALS"]) / "incompressible/simpleFoam/pitzDaily").clone("myCase")
+my_case = FoamCase(Path(os.environ["FOAM_TUTORIALS"]) / "incompressible/simpleFoam/pitzDaily").clone("run_folder/incompressible/simpleFoam/pitzDaily")
 my_case.run()
 
 # Access results
