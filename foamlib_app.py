@@ -26,26 +26,31 @@ try:
     docker_client = docker.from_env()
     docker_client.ping()
 except Exception as e:
-    logger.error(f"Docker not available: {e}")
+    logger.warning(f"Docker not available: {e}")
     docker_client = None
 
-# Ensure required directories exist
-Path("runs").mkdir(exist_ok=True)
-Path("tutorials").mkdir(exist_ok=True)
+# Configuration file path
+CONFIG_FILE = "config.json"
 
-# Load or create config
 def load_config():
-    try:
-        if os.path.exists("config.json"):
-            with open("config.json", "r") as f:
-                return {**DEFAULT_CONFIG, **json.load(f)}
-    except Exception as e:
-        logger.error(f"Error loading config: {e}")
+    """Load configuration from file or return defaults."""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                # Ensure all default keys exist
+                for key, value in DEFAULT_CONFIG.items():
+                    if key not in config:
+                        config[key] = value
+                return config
+        except Exception as e:
+            logger.error(f"Error loading config: {e}")
     return DEFAULT_CONFIG.copy()
 
-def save_config():
+def save_config(config):
+    """Save configuration to file."""
     try:
-        with open("config.json", "w") as f:
+        with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
     except Exception as e:
         logger.error(f"Error saving config: {e}")
@@ -56,58 +61,51 @@ config = load_config()
 # --- Helper Functions ---
 
 def get_tutorial_case_dir(tutorial_name):
-    """Get the path to a tutorial case directory"""
+    """Get the path to a tutorial case directory."""
     return os.path.join("tutorials", tutorial_name)
 
 def create_run_directory():
-    """Create a new run directory with timestamp"""
+    """Create a new run directory with timestamp."""
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     run_dir = os.path.join("runs", f"run_{timestamp}")
     os.makedirs(run_dir, exist_ok=True)
     return run_dir
 
 def run_openfoam_command(case_dir, command):
-    """Run an OpenFOAM command in a Docker container"""
+    """Run an OpenFOAM command in a Docker container."""
     if not docker_client:
         yield "Error: Docker is not available\n"
         return
-    
+
     try:
-        # Prepare the command
-        bashrc_path = "/usr/lib/openfoam/openfoam2412/etc/bashrc"
-        full_command = f'source {bashrc_path} && cd /case && {command}'
-        
-        # Run the container
+        # Mount the case directory
+        volumes = {
+            os.path.abspath(case_dir): {
+                'bind': '/case',
+                'mode': 'rw'
+            }
+        }
+
+        # Run the command in the container
         container = docker_client.containers.run(
             config["docker_image"],
-            command=["bash", "-c", full_command],
-            volumes={
-                os.path.abspath(case_dir): {"bind": "/case", "mode": "rw"}
-            },
-            environment={
-                "FOAM_USER_RUN": "/tmp",
-                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
-            },
+            f"bash -c 'source /opt/openfoam{config['openfoam_version']}/etc/bashrc && cd /case && {command}'",
+            volumes=volumes,
+            working_dir='/case',
             detach=True,
-            remove=False,
             tty=True,
-            user="root",
-            mem_limit='4g',
-            memswap_limit='4g'
+            remove=True
         )
-        
+
         # Stream the output
         for line in container.logs(stream=True, follow=True):
             yield line.decode('utf-8')
-            
-        # Clean up
-        container.remove(force=True)
-        
+
     except Exception as e:
         yield f"Error running command: {str(e)}\n"
 
 def get_available_tutorials():
-    """Get list of available tutorials"""
+    """Get list of available tutorials."""
     tutorials = []
     tutorials_dir = os.path.join(os.path.dirname(__file__), "tutorials")
     if os.path.exists(tutorials_dir):
@@ -234,9 +232,9 @@ HTML_TEMPLATE = """
     console.log('Initializing FOAMLib...');
     
     // Global variables with default values
-    let caseDir = "{{ config.case_dir }}" || '';
-    let dockerImage = "{{ config.docker_image }}" || 'haldardhruv/ubuntu_noble_openfoam:v2412';
-    let openfoamVersion = "{{ config.openfoam_version }}" || '2412';
+    let caseDir = "{{ config.case_dir|default('', true) }}" || '';
+    let dockerImage = "{{ config.docker_image|default('haldardhruv/ubuntu_noble_openfoam:v2412', true) }}" || 'haldardhruv/ubuntu_noble_openfoam:v2412';
+    let openfoamVersion = "{{ config.openfoam_version|default('2412', true) }}" || '2412';
     
     // Helper function to append output
     function appendOutput(message, type = 'stdout') {
@@ -525,10 +523,13 @@ HTML_TEMPLATE = """
   </script>
 </body>
 </html>
+"""
+
+# Routes
 
 @app.route('/')
 def index():
-    """Render the main page"""
+    """Render the main page."""
     tutorials = get_available_tutorials()
     return render_template_string(HTML_TEMPLATE, 
                                config=config,
@@ -536,12 +537,12 @@ def index():
 
 @app.route('/get_case_root')
 def get_case_root():
-    """Get the current case directory"""
+    """Get the current case directory."""
     return jsonify({"caseDir": config.get("case_dir", "")})
 
 @app.route('/get_docker_config')
 def get_docker_config():
-    """Get the current Docker configuration"""
+    """Get the current Docker configuration."""
     return jsonify({
         "dockerImage": config.get("docker_image", ""),
         "openfoamVersion": config.get("openfoam_version", "")
@@ -549,46 +550,56 @@ def get_docker_config():
 
 @app.route('/set_case', methods=['POST'])
 def set_case():
-    """Set the current case directory"""
+    """Set the current case directory."""
     data = request.get_json()
     case_dir = data.get('caseDir', '').strip()
     
     if not case_dir:
         return jsonify({
             "status": "error",
-            "message": "No case directory provided"
+            "message": "No case directory specified"
         }), 400
     
-    # Update config
+    if not os.path.exists(case_dir):
+        return jsonify({
+            "status": "error",
+            "message": f"Directory does not exist: {case_dir}"
+        }), 400
+    
     config["case_dir"] = case_dir
-    save_config()
+    save_config(config)
     
     return jsonify({
         "status": "success",
         "caseDir": case_dir,
-        "message": f"Case directory set to: {case_dir}"
+        "message": "Case directory updated"
     })
 
 @app.route('/set_docker_config', methods=['POST'])
 def set_docker_config():
-    """Update Docker configuration"""
+    """Update Docker configuration."""
     data = request.get_json()
     
     # Update config
-    config["docker_image"] = data.get("dockerImage", config["docker_image"])
-    config["openfoam_version"] = data.get("openfoamVersion", config["openfoam_version"])
-    save_config()
+    if 'dockerImage' in data:
+        config["docker_image"] = data['dockerImage']
+    if 'openfoamVersion' in data:
+        config["openfoam_version"] = data['openfoamVersion']
+    
+    save_config(config)
     
     return jsonify({
         "status": "success",
-        "dockerImage": config["docker_image"],
-        "openfoamVersion": config["openfoam_version"],
-        "message": "Docker configuration updated"
+        "message": "Docker configuration updated",
+        "config": {
+            "dockerImage": config["docker_image"],
+            "openfoamVersion": config["openfoam_version"]
+        }
     })
 
 @app.route('/load_tutorial', methods=['POST'])
 def load_tutorial():
-    """Load a tutorial case"""
+    """Load a tutorial case."""
     data = request.get_json()
     tutorial_name = data.get('tutorial')
     
@@ -598,24 +609,30 @@ def load_tutorial():
             "message": "No tutorial specified"
         }), 400
     
-    # Create a new run directory
-    run_dir = create_run_directory()
-    
-    # Copy the tutorial to the run directory
-    tutorial_dir = get_tutorial_case_dir(tutorial_name)
-    if not os.path.exists(tutorial_dir):
-        return jsonify({
-            "status": "error",
-            "message": f"Tutorial not found: {tutorial_name}"
-        }), 404
-    
-    # Copy files to the run directory
     try:
-        shutil.copytree(tutorial_dir, run_dir, dirs_exist_ok=True)
+        # Create a new run directory
+        run_dir = create_run_directory()
         
-        # Update the current case directory
+        # Copy tutorial files to the run directory
+        tutorial_dir = get_tutorial_case_dir(tutorial_name)
+        if not os.path.exists(tutorial_dir):
+            return jsonify({
+                "status": "error",
+                "message": f"Tutorial not found: {tutorial_name}"
+            }), 404
+        
+        # Copy all files from tutorial to run directory
+        for item in os.listdir(tutorial_dir):
+            s = os.path.join(tutorial_dir, item)
+            d = os.path.join(run_dir, item)
+            if os.path.isdir(s):
+                shutil.copytree(s, d, dirs_exist_ok=True)
+            else:
+                shutil.copy2(s, d)
+        
+        # Update config
         config["case_dir"] = run_dir
-        save_config()
+        save_config(config)
         
         return jsonify({
             "status": "success",
@@ -630,7 +647,7 @@ def load_tutorial():
 
 @app.route('/run', methods=['POST'])
 def run():
-    """Run an OpenFOAM command"""
+    """Run an OpenFOAM command."""
     data = request.get_json()
     command = data.get('command')
     case_dir = data.get('caseDir', config.get('case_dir'))
