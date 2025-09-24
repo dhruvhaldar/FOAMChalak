@@ -1,42 +1,257 @@
 import os
-import posixpath
-import platform
-import pathlib
 import json
-import docker
-import logging
-import threading
 import time
-from flask import Flask, request, jsonify, render_template_string, Response
+import logging
+import shutil
+import docker
+from pathlib import Path
+from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# --- Logging ---
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("FOAMChalak")
 
-# --- Config file ---
-CONFIG_FILE = "case_config.json"
+# Default configuration
+DEFAULT_CONFIG = {
+    "case_dir": "",
+    "docker_image": "haldardhruv/ubuntu_noble_openfoam:v2412",
+    "openfoam_version": "2412"
+}
 
+# Initialize Docker client
+try:
+    docker_client = docker.from_env()
+    docker_client.ping()
+except Exception as e:
+    logger.error(f"Docker not available: {e}")
+    docker_client = None
+
+# Ensure required directories exist
+Path("runs").mkdir(exist_ok=True)
+Path("tutorials").mkdir(exist_ok=True)
+
+# Load or create config
 def load_config():
-    """Load configuration from case_config.json with sensible defaults."""
-    defaults = {
-        "CASE_ROOT": os.path.abspath("tutorial_cases"),
-        "DOCKER_IMAGE": "haldardhruv/ubuntu_noble_openfoam:v12",
-        "OPENFOAM_VERSION": "12"
-    }
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r") as f:
-                data = json.load(f)
-                return {**defaults, **data}
-        except Exception as e:
-            logger.warning(f"[WARN] Could not load config file: {e}")
-    return defaults
+    try:
+        if os.path.exists("config.json"):
+            with open("config.json", "r") as f:
+                return {**DEFAULT_CONFIG, **json.load(f)}
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+    return DEFAULT_CONFIG.copy()
 
-def save_config(updates: dict):
-    """Save configuration back to case_config.json."""
-    config = load_config()
+def save_config(config):
+    try:
+        with open("config.json", "w") as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+
+# Load initial config
+config = load_config()
+
+# --- Helper Functions ---
+
+def get_tutorial_case_dir(tutorial_name):
+    """Get the path to a tutorial case directory"""
+    return os.path.join(
+        os.path.abspath("tutorials"),
+        tutorial_name
+    )
+
+def create_run_directory():
+    """Create a new run directory with timestamp"""
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    run_dir = os.path.join("runs", f"run_{timestamp}")
+    os.makedirs(run_dir, exist_ok=True)
+    return run_dir
+
+def run_openfoam_command(case_dir, command):
+    """Run an OpenFOAM command in a Docker container"""
+    if not docker_client:
+        yield "Error: Docker is not available\n"
+        return
+    
+    try:
+        # Prepare the command
+        bashrc_path = "/usr/lib/openfoam/openfoam2412/etc/bashrc"
+        full_command = f'source {bashrc_path} && cd /case && {command}'
+        
+        # Run the container
+        container = docker_client.containers.run(
+            config["docker_image"],
+            command=["bash", "-c", full_command],
+            volumes={
+                os.path.abspath(case_dir): {"bind": "/case", "mode": "rw"}
+            },
+            environment={
+                "FOAM_USER_RUN": "/tmp",
+                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
+            },
+            detach=True,
+            remove=False,
+            tty=True,
+            user="root",
+            mem_limit='4g',
+            memswap_limit='4g'
+        )
+        
+        # Stream the output
+        for line in container.logs(stream=True, follow=True):
+            yield line.decode('utf-8')
+            
+        # Clean up
+        container.remove(force=True)
+        
+    except Exception as e:
+        yield f"Error running command: {str(e)}\n"
+
+# --- API Endpoints ---
+
+@app.route('/')
+def index():
+    """Render the main page"""
+    # Get available tutorials
+    tutorials_dir = os.path.join(os.path.dirname(__file__), "tutorials")
+    tutorials = [d for d in os.listdir(tutorials_dir) 
+                if os.path.isdir(os.path.join(tutorials_dir, d))]
+    
+    # Create HTML options for the dropdown
+    options = "".join(
+        f'<option value="{t}">{t}</option>' 
+        for t in sorted(tutorials)
+    )
+    
+    return render_template_string(
+        open("static/foamchalak_frontend.html").read(),
+        options=options
+    )
+
+@app.route('/get_case_root')
+def get_case_root():
+    """Get the current case directory"""
+    return jsonify({"caseDir": config.get("case_dir", "")})
+
+@app.route('/get_docker_config')
+def get_docker_config():
+    """Get the current Docker configuration"""
+    return jsonify({
+        "dockerImage": config.get("docker_image", ""),
+        "openfoamVersion": config.get("openfoam_version", "")
+    })
+
+@app.route('/set_case', methods=['POST'])
+def set_case():
+    """Set the current case directory"""
+    data = request.get_json()
+    case_dir = data.get('caseDir', '').strip()
+    
+    if not case_dir:
+        return jsonify({
+            "status": "error",
+            "message": "No case directory provided"
+        }), 400
+    
+    # Update config
+    config["case_dir"] = case_dir
+    save_config(config)
+    
+    return jsonify({
+        "status": "success",
+        "caseDir": case_dir,
+        "output": f"Case directory set to: {case_dir}"
+    })
+
+@app.route('/set_docker_config', methods=['POST'])
+def set_docker_config():
+    """Update Docker configuration"""
+    data = request.get_json()
+    
+    # Update config
+    config["docker_image"] = data.get("dockerImage", config["docker_image"])
+    config["openfoam_version"] = data.get("openfoamVersion", config["openfoam_version"])
+    save_config(config)
+    
+    return jsonify({
+        "status": "success",
+        "dockerImage": config["docker_image"],
+        "openfoamVersion": config["openfoam_version"]
+    })
+
+@app.route('/load_tutorial', methods=['POST'])
+def load_tutorial():
+    """Load a tutorial case"""
+    data = request.get_json()
+    tutorial_name = data.get('tutorial')
+    
+    if not tutorial_name:
+        return jsonify({
+            "status": "error",
+            "message": "No tutorial specified"
+        }), 400
+    
+    # Create a new run directory
+    run_dir = create_run_directory()
+    
+    # Copy the tutorial to the run directory
+    tutorial_dir = get_tutorial_case_dir(tutorial_name)
+    if not os.path.exists(tutorial_dir):
+        return jsonify({
+            "status": "error",
+            "message": f"Tutorial not found: {tutorial_name}"
+        }), 404
+    
+    # Copy files to the run directory
+    try:
+        shutil.copytree(tutorial_dir, run_dir, dirs_exist_ok=True)
+        output = f"Tutorial loaded: {tutorial_name}\n"
+        output += f"Source: {tutorial_dir}\n"
+        output += f"Copied to: {run_dir}"
+        
+        # Update the current case directory
+        config["case_dir"] = run_dir
+        save_config(config)
+        
+        return jsonify({
+            "status": "success",
+            "output": output
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to load tutorial: {str(e)}"
+        }), 500
+
+@app.route('/run', methods=['POST'])
+def run():
+    """Run an OpenFOAM command"""
+    data = request.get_json()
+    command = data.get('command')
+    case_dir = data.get('caseDir', config.get('case_dir'))
+    
+    if not command:
+        return jsonify({
+            "status": "error",
+            "message": "No command specified"
+        }), 400
+    
+    if not case_dir or not os.path.exists(case_dir):
+        return jsonify({
+            "status": "error",
+            "message": f"Case directory does not exist: {case_dir}"
+        }), 400
+    
+    # Return a streaming response
+    return Response(
+        stream_with_context(run_openfoam_command(case_dir, command)),
+        mimetype='text/plain'
+    )
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
     config.update(updates)
     try:
         with open(CONFIG_FILE, "w") as f:
