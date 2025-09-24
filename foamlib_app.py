@@ -148,7 +148,7 @@ HTML_TEMPLATE = """
       <input type="text" id="caseDir" value="{{ config.case_dir }}" 
              class="border border-gray-300 rounded px-3 py-2 flex-1 w-full" 
              placeholder="Case directory path" />
-      <button onclick="setCase()" 
+      <button id="setCaseBtn" 
               class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full sm:w-auto">
         Set Case Directory
       </button>
@@ -169,7 +169,7 @@ HTML_TEMPLATE = """
                  class="w-full border border-gray-300 rounded px-3 py-2" />
         </div>
       </div>
-      <button onclick="setDockerConfig()" 
+      <button id="setDockerConfigBtn" 
               class="mt-3 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">
         Update Docker Config
       </button>
@@ -184,7 +184,7 @@ HTML_TEMPLATE = """
           <option value="{{ tutorial }}">{{ tutorial }}</option>
           {% endfor %}
         </select>
-        <button onclick="loadTutorial()" 
+        <button id="loadTutorialBtn" 
                 class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto">
           Load Tutorial
         </button>
@@ -215,7 +215,7 @@ HTML_TEMPLATE = """
     <div class="border border-gray-200 rounded-lg p-4">
       <div class="flex justify-between items-center mb-2">
         <h3 class="font-semibold text-lg">Output</h3>
-        <button onclick="clearOutput()" 
+        <button id="clearOutputBtn" 
                 class="text-sm text-gray-500 hover:text-gray-700">
           Clear
         </button>
@@ -232,9 +232,12 @@ HTML_TEMPLATE = """
     console.log('Initializing FOAMLib...');
     
     // Global variables with default values
-    let caseDir = "{{ config.case_dir|default('', true) }}" || '';
-    let dockerImage = "{{ config.docker_image|default('haldardhruv/ubuntu_noble_openfoam:v2412', true) }}" || 'haldardhruv/ubuntu_noble_openfoam:v2412';
-    let openfoamVersion = "{{ config.openfoam_version|default('2412', true) }}" || '2412';
+    let caseDir = '{{ config.case_dir|tojson|safe }}' || '';
+    if (caseDir === 'null') caseDir = '';
+    let dockerImage = '{{ config.docker_image|tojson|safe }}' || 'haldardhruv/ubuntu_noble_openfoam:v2412';
+    if (dockerImage === 'null') dockerImage = 'haldardhruv/ubuntu_noble_openfoam:v2412';
+    let openfoamVersion = '{{ config.openfoam_version|tojson|safe }}' || '2412';
+    if (openfoamVersion === 'null') openfoamVersion = '2412';
     
     // Helper function to append output
     function appendOutput(message, type = 'stdout') {
@@ -466,35 +469,23 @@ HTML_TEMPLATE = """
       if (dockerImageInput) dockerImageInput.value = dockerImage || '';
       if (openfoamVersionInput) openfoamVersionInput.value = openfoamVersion || '';
       
-      // Make functions globally available
-      window.setCase = setCase;
-      window.setDockerConfig = setDockerConfig;
-      window.loadTutorial = loadTutorial;
-      window.clearOutput = clearOutput;
+      // Set up button event listeners
+      const setCaseBtn = document.getElementById('setCaseBtn');
+      const setDockerBtn = document.getElementById('setDockerConfigBtn');
+      const loadTutorialBtn = document.getElementById('loadTutorialBtn');
+      const clearBtn = document.getElementById('clearOutputBtn');
+      
+      if (setCaseBtn) setCaseBtn.addEventListener('click', setCase);
+      if (setDockerBtn) setDockerBtn.addEventListener('click', setDockerConfig);
+      if (loadTutorialBtn) loadTutorialBtn.addEventListener('click', loadTutorial);
+      if (clearBtn) clearBtn.addEventListener('click', clearOutput);
+      
+      // Make runCommand globally available for command buttons
       window.runCommand = runCommand;
       
       // Initialize buttons
       try {
-        // Set Case button
-        const setCaseBtn = document.querySelector('button[onclick*="setCase"]');
-        if (setCaseBtn) {
-          setCaseBtn.addEventListener('click', setCase);
-          console.log('Set Case button initialized');
-        }
-        
-        // Set Docker Config button
-        const setDockerBtn = document.querySelector('button[onclick*="setDockerConfig"]');
-        if (setDockerBtn) {
-          setDockerBtn.addEventListener('click', setDockerConfig);
-          console.log('Set Docker Config button initialized');
-        }
-        
-        // Load Tutorial button
-        const loadTutorialBtn = document.querySelector('button[onclick*="loadTutorial"]');
-        if (loadTutorialBtn) {
-          loadTutorialBtn.addEventListener('click', loadTutorial);
-          console.log('Load Tutorial button initialized');
-        }
+        // Command buttons are already initialized
         
         // Command buttons
         const commandBtns = document.querySelectorAll('.command-btn');
@@ -508,12 +499,7 @@ HTML_TEMPLATE = """
           });
         });
         
-        // Clear output button
-        const clearBtn = document.querySelector('button[onclick*="clearOutput"]');
-        if (clearBtn) {
-          clearBtn.addEventListener('click', clearOutput);
-          console.log('Clear Output button initialized');
-        }
+        // Clear output button is already initialized
         
         console.log('All event listeners initialized');
       } catch (error) {
