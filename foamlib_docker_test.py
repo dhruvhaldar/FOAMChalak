@@ -116,26 +116,20 @@ def run_openfoam_command(
     container_case_path = "/home/foam/case"
     
     try:
-        # Set permissions
-        try:
-            os.chmod(case_dir, 0o777)  # rwxrwxrwx
-            for root, dirs, files in os.walk(case_dir):
-                for d in dirs:
-                    os.chmod(os.path.join(root, d), 0o777)
-                for f in files:
-                    os.chmod(os.path.join(root, f), 0o666)  # rw-rw-rw-
-        except Exception as e:
-            print(f"⚠️  Warning: Could not set permissions for {case_dir}: {e}")
-            print("The application might not work correctly without proper permissions.")
+        # Ensure the case directory exists and is accessible
+        os.makedirs(case_dir, exist_ok=True, mode=0o755)
         
-        # Run container
+        # Run container with proper user permissions
+        # We'll let the container handle its own file permissions
         container = client.containers.run(
             image,
             command=f"bash -c 'source {bashrc_path} && cd {container_case_path} && {command}'",
             volumes={os.path.abspath(case_dir): {"bind": container_case_path, "mode": "rw"}},
             environment={
                 "FOAM_USER_RUN": "/tmp",
-                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
+                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412",
+                "FOAM_SETTINGS": "-fileHandler uncollated",
+                "FOAM_SIGFPE": "false"
             },
             detach=True,
             remove=False,
@@ -143,15 +137,21 @@ def run_openfoam_command(
             user="root",
             working_dir=container_case_path,
             mem_limit='4g',
-            memswap_limit='4g'
+            memswap_limit='4g',
+            # Run as current user to avoid permission issues
+            user=f"{os.getuid()}:{os.getgid()}"
         )
         
-        # Stream output
-        for line in container.logs(stream=True, follow=True):
-            print(line.decode().strip(), end='')
-        
-        result = container.wait()
-        return result['StatusCode'] == 0
+        # Stream output with better error handling
+        try:
+            for line in container.logs(stream=True, follow=True):
+                print(line.decode('utf-8', errors='replace').strip(), end='\n')
+            
+            result = container.wait()
+            return result['StatusCode'] == 0
+        except Exception as e:
+            print(f"❌ Error reading container logs: {e}")
+            return False
         
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -195,53 +195,81 @@ def setup_tutorial_case() -> str:
     
     print("Extracting tutorial files...")
     
-    # Create a temporary directory
-    import tempfile
-    import shutil
+    # Create a temporary directory with a fixed location for better permission handling
+    temp_dir = os.path.join(os.path.expanduser('~'), '.local', 'share', 'foamchalak', 'temp_tutorial')
+    os.makedirs(temp_dir, exist_ok=True, mode=0o755)
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        try:
-            client = docker.from_env()
-            
-            # Run a container to extract the tutorial files
-            container = client.containers.run(
-                "haldardhruv/ubuntu_noble_openfoam:v2412",
-                command=["bash", "-c", f"""
-                    mkdir -p /mnt/tutorial && 
-                    cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /mnt/tutorial/ && 
-                    chmod -R 755 /mnt/tutorial
-                """],
-                volumes={
-                    temp_dir: {"bind": "/mnt/tutorial", "mode": "rw"}
-                },
-                remove=True,
-                user="root"
-            )
-            
-            # Copy files from temp directory to local tutorial directory
-            for item in os.listdir(temp_dir):
-                src = os.path.join(temp_dir, item)
-                dst = os.path.join(local_tutorial_dir, item)
+    try:
+        client = docker.from_env()
+        
+        # Clean up any existing files in temp directory
+        for item in os.listdir(temp_dir):
+            item_path = os.path.join(temp_dir, item)
+            try:
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                else:
+                    os.unlink(item_path)
+            except Exception as e:
+                print(f"⚠️ Warning: Could not remove {item_path}: {e}")
+        
+        # Run a container to extract the tutorial files
+        container = client.containers.run(
+            "haldardhruv/ubuntu_noble_openfoam:v2412",
+            command=["bash", "-c", """
+                mkdir -p /mnt/tutorial && 
+                cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /mnt/tutorial/ && 
+                chmod -R 755 /mnt/tutorial
+            """],
+            volumes={
+                temp_dir: {"bind": "/mnt/tutorial", "mode": "rw"}
+            },
+            remove=True,
+            user="root"
+        )
+        
+        # Ensure local tutorial directory exists and is writable
+        os.makedirs(local_tutorial_dir, exist_ok=True, mode=0o755)
+        
+        # Copy files from temp directory to local tutorial directory
+        for item in os.listdir(temp_dir):
+            src = os.path.join(temp_dir, item)
+            dst = os.path.join(local_tutorial_dir, item)
+            try:
                 if os.path.isdir(src):
-                    shutil.copytree(src, dst, dirs_exist_ok=True)
+                    if os.path.exists(dst):
+                        shutil.rmtree(dst)
+                    shutil.copytree(src, dst)
                 else:
                     shutil.copy2(src, dst)
-            
-            # Set permissions on the copied files
-            for root, dirs, files in os.walk(local_tutorial_dir):
-                for d in dirs:
+            except Exception as e:
+                print(f"⚠️ Warning: Could not copy {src} to {dst}: {e}")
+        
+        # Set permissions on the copied files
+        for root, dirs, files in os.walk(local_tutorial_dir):
+            for d in dirs:
+                try:
                     os.chmod(os.path.join(root, d), 0o755)
-                for f in files:
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not set permissions on directory {d}: {e}")
+            for f in files:
+                try:
                     os.chmod(os.path.join(root, f), 0o644)
-            
-            print(f"✅ Successfully extracted tutorial to: {local_tutorial_dir}")
-            return local_tutorial_dir
-            
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not set permissions on file {f}: {e}")
+        
+        print(f"✅ Successfully extracted tutorial to: {local_tutorial_dir}")
+        return local_tutorial_dir
+        
+    except Exception as e:
+        print(f"❌ Failed to set up tutorial case: {e}")
+        return ""
+    finally:
+        # Clean up the temporary directory
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception as e:
-            print(f"❌ Error setting up tutorial: {e}")
-            import traceback
-            traceback.print_exc()
-            return ""
+            print(f"⚠️ Warning: Could not remove temporary directory {temp_dir}: {e}")
 
 def create_run_directory() -> str:
     """Create a new run directory with timestamp in the user's home directory"""
