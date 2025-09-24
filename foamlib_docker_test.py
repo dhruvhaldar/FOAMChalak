@@ -145,90 +145,123 @@ def run_openfoam_command(
         except:
             pass
 
+def get_tutorial_case_dir() -> str:
+    """Get the path to the tutorial case directory"""
+    return os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 
+        "tutorials",
+        "incompressible",
+        "simpleFoam",
+        "pitzDaily"
+    )
+
+def setup_tutorial_case() -> bool:
+    """Set up the tutorial case files if they don't exist"""
+    tutorial_dir = get_tutorial_case_dir()
+    
+    # Check if tutorial files already exist
+    if os.path.exists(os.path.join(tutorial_dir, "system")) and \
+       os.path.exists(os.path.join(tutorial_dir, "0")) and \
+       os.path.exists(os.path.join(tutorial_dir, "constant")):
+        print(f"✅ Using existing tutorial files in: {tutorial_dir}")
+        return True
+    
+    print("Extracting tutorial files...")
+    # Create all parent directories first
+    os.makedirs(tutorial_dir, exist_ok=True, mode=0o755)
+    
+    client = docker.from_env()
+    
+    try:
+        # Run a container with the tutorial directory mounted
+        container = client.containers.run(
+            "haldardhruv/ubuntu_noble_openfoam:v2412",
+            command=["bash", "-c", """
+                mkdir -p /mnt/tutorial && 
+                cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /mnt/tutorial/ && 
+                chmod -R 755 /mnt/tutorial
+            """],
+            volumes={
+                tutorial_dir: {"bind": "/mnt/tutorial", "mode": "rw"}
+            },
+            remove=True,
+            user="root"
+        )
+        
+        # Verify the files were copied
+        if os.path.exists(os.path.join(tutorial_dir, "system")) and \
+           os.path.exists(os.path.join(tutorial_dir, "0")) and \
+           os.path.exists(os.path.join(tutorial_dir, "constant")):
+            print(f"✅ Successfully extracted tutorial to: {tutorial_dir}")
+            return True
+        else:
+            print("❌ Failed to verify tutorial files were copied")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Failed to extract tutorial: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def create_run_directory() -> str:
+    """Create a new run directory with timestamp"""
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    run_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "runs",
+        f"run_{timestamp}"
+    )
+    
+    # Copy tutorial files to the new run directory
+    tutorial_dir = get_tutorial_case_dir()
+    shutil.copytree(tutorial_dir, run_dir, dirs_exist_ok=True)
+    
+    print(f"✅ Created run directory: {run_dir}")
+    return run_dir
+
 def main():
     """Main function to run the OpenFOAM case"""
-    # Set up case directory
-    case_dir = os.path.join(os.getcwd(), "run_folder", "incompressible", "simpleFoam", "pitzDaily")
-    os.makedirs(case_dir, exist_ok=True)
+    # Set up tutorial files if they don't exist
+    if not setup_tutorial_case():
+        print("❌ Failed to set up tutorial case")
+        return
     
-    # Extract tutorial if needed
-    if not os.path.exists(os.path.join(case_dir, "system")) or not os.path.exists(os.path.join(case_dir, "0")):
-        print("Extracting tutorial...")
-        os.makedirs(case_dir, exist_ok=True)
-        client = docker.from_env()
-        try:
-            # First, copy the tutorial files to a temporary directory
-            container = client.containers.run(
-                "haldardhruv/ubuntu_noble_openfoam:v2412",
-                "bash -c 'mkdir -p /tmp/tutorial && cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/* /tmp/tutorial/ && ls -la /tmp/tutorial/'",
-                detach=True,
-                remove=False,
-                tty=True,
-                user="root"
-            )
-            
-            # Wait for the container to finish
-            container.wait()
-            
-            # Copy the files from the container to the host
-            os.makedirs(case_dir, exist_ok=True)
-            
-            # Create a temporary container to copy files from
-            container = client.containers.create(
-                "haldardhruv/ubuntu_noble_openfoam:v2412",
-                command=["sleep", "infinity"],
-                volumes={
-                    os.path.abspath(case_dir): {"bind": "/host_case", "mode": "rw"}
-                },
-                user="root"
-            )
-            container.start()
-            
-            # Copy the tutorial files to the host
-            exit_code, output = container.exec_run(
-                f"cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /host_case/",
-                workdir="/",
-                user="root"
-            )
-            
-            if exit_code != 0:
-                print(f"❌ Failed to copy tutorial files: {output.decode()}")
-                return False
-                
-            print(f"✅ Extracted tutorial to: {case_dir}")
-            
-            # Clean up
-            container.stop()
-            container.remove()
-            
-        except Exception as e:
-            print(f"❌ Failed to extract tutorial: {e}")
+    # Create a new run directory with timestamp
+    case_dir = create_run_directory()
+    
+    try:
+        # Run blockMesh
+        print("\n🔄 Running blockMesh...")
+        if not run_openfoam_command(
+            image="haldardhruv/ubuntu_noble_openfoam:v2412",
+            command="blockMesh",
+            case_dir=case_dir,
+            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+        ):
+            print("❌ blockMesh failed")
             return
-    
-    # Run blockMesh
-    print("\n🔄 Running blockMesh...")
-    if not run_openfoam_command(
-        image="haldardhruv/ubuntu_noble_openfoam:v2412",
-        command="blockMesh",
-        case_dir=case_dir,
-        bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-    ):
-        print("❌ blockMesh failed")
-        return
-    
-    # Run simpleFoam
-    print("\n🔄 Running simpleFoam...")
-    if not run_openfoam_command(
-        image="haldardhruv/ubuntu_noble_openfoam:v2412",
-        command="simpleFoam",
-        case_dir=case_dir,
-        bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-    ):
-        print("❌ simpleFoam failed")
-        return
-    
-    print("\n✅ OpenFOAM simulation completed successfully!")
-    print(f"Results in: {case_dir}")
+        
+        # Run simpleFoam
+        print("\n🔄 Running simpleFoam...")
+        if not run_openfoam_command(
+            image="haldardhruv/ubuntu_noble_openfoam:v2412",
+            command="simpleFoam",
+            case_dir=case_dir,
+            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+        ):
+            print("❌ simpleFoam failed")
+            return
+        
+        print("\n✅ OpenFOAM simulation completed successfully!")
+        print(f"Results in: {case_dir}")
+        
+    except KeyboardInterrupt:
+        print("\n⚠️  Simulation interrupted by user")
+        print(f"Partial results are available in: {case_dir}")
+    except Exception as e:
+        print(f"\n❌ An error occurred: {e}")
+        print(f"Check the output in: {case_dir}")
 
 if __name__ == "__main__":
     main()
