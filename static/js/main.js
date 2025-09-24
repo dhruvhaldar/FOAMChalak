@@ -408,6 +408,85 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateRunTimer() {
         if (runStartTime) {
+            // Initialize plot if it doesn't exist
+            if (!window.residualPlot) {
+                const plotDiv = document.createElement('div');
+                plotDiv.id = 'residual-plot';
+                plotDiv.style.width = '100%';
+                plotDiv.style.height = '400px';
+                plotDiv.style.marginTop = '20px';
+                
+                const outputDiv = document.getElementById('output');
+                if (outputDiv) {
+                    outputDiv.appendChild(plotDiv);
+                }
+                
+                window.residualData = {
+                    time: [],
+                    Ux: [], Uy: [], p: [], k: [], epsilon: []
+                };
+                
+                window.residualPlot = Plotly.newPlot('residual-plot', [
+                    { name: 'Ux', y: [], mode: 'lines+markers', line: {color: 'blue'} },
+                    { name: 'Uy', y: [], mode: 'lines+markers', line: {color: 'red'} },
+                    { name: 'p', y: [], mode: 'lines+markers', line: {color: 'green'} },
+                    { name: 'k', y: [], mode: 'lines+markers', line: {color: 'purple'} },
+                    { name: 'epsilon', y: [], mode: 'lines+markers', line: {color: 'orange'} }
+                ], {
+                    title: 'Residuals vs Iteration',
+                    xaxis: { title: 'Iteration' },
+                    yaxis: { type: 'log', title: 'Residual' },
+                    showlegend: true,
+                    margin: { t: 30, l: 50, r: 30, b: 50 },
+                    legend: { orientation: 'h', y: 1.1 }
+                });
+            }
+            
+            // Parse residuals from the output
+            const residualRegex = /Solving for (\w+), Initial residual = ([\d.]+), Final residual = ([\d.]+)/g;
+            let match;
+            const residuals = {};
+            
+            while ((match = residualRegex.exec(output)) !== null) {
+                const [_, variable, initial, final] = match;
+                if (!residuals[variable]) {
+                    residuals[variable] = parseFloat(initial);
+                }
+            }
+            
+            // Update plot data
+            const iteration = window.residualData.time.length + 1;
+            window.residualData.time.push(iteration);
+            
+            ['Ux', 'Uy', 'p', 'k', 'epsilon'].forEach(varName => {
+                if (residuals[varName] !== undefined) {
+                    window.residualData[varName].push(residuals[varName]);
+                } else if (window.residualData[varName].length > 0) {
+                    // If no new value, keep the last value for continuity
+                    window.residualData[varName].push(
+                        window.residualData[varName][window.residualData[varName].length - 1]
+                    );
+                } else {
+                    window.residualData[varName].push(1); // Initial guess
+                }
+            });
+            
+            // Update the plot
+            const traces = ['Ux', 'Uy', 'p', 'k', 'epsilon'].map((varName, i) => ({
+                y: window.residualData[varName],
+                name: varName
+            }));
+            
+            Plotly.react('residual-plot', traces, {
+                title: 'Residuals vs Iteration',
+                xaxis: { title: 'Iteration' },
+                yaxis: { type: 'log', title: 'Residual' },
+                showlegend: true,
+                margin: { t: 30, l: 50, r: 30, b: 50 },
+                legend: { orientation: 'h', y: 1.1 }
+            });
+            
+            // Update status with elapsed time
             const elapsed = Math.floor((Date.now() - runStartTime) / 1000);
             const hours = Math.floor(elapsed / 3600);
             const minutes = Math.floor((elapsed % 3600) / 60);
@@ -420,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ].join(':');
             
             if (statusText) {
-                statusText.textContent = `Running (${timeStr})`;
+                statusText.textContent = `Running (${timeStr}) - Iteration ${iteration}`;
             }
         }
     }
