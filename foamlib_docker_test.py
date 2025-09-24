@@ -1,31 +1,74 @@
 import os
-from pathlib import Path
-import docker
 import sys
 import time
+import docker
 import shutil
 import subprocess
-from foamlib import FoamCase
-import docker
 
-def run_case_in_docker(case_path: str):
-    """Run the OpenFOAM case using Docker"""
-    client = docker.from_env()
+def check_disk_space(min_space_gb: float = 5.0) -> bool:
+    """Check if there's enough disk space for Docker image"""
+    try:
+        total, used, free = shutil.disk_usage(".")
+        free_gb = free / (1024**3)
+        print(f"📊 Disk space available: {free_gb:.2f} GB")
+        
+        if free_gb < min_space_gb:
+            print(f"❌ Insufficient disk space. Need at least {min_space_gb} GB.")
+            return False
+        return True
+    except Exception as e:
+        print(f"⚠️  Could not check disk space: {e}")
+        return True
+
+def get_docker_image_size(image_name: str) -> float:
+    """Get the size of a Docker image in GB"""
+    image_sizes = {
+        "haldardhruv/ubuntu_noble_openfoam:v2412": 2.5,
+        "openfoam/openfoam10-paraview56": 3.0,
+        "openfoam/openfoam9": 2.0,
+        "openfoam/openfoam8": 1.8,
+    }
+    return image_sizes.get(image_name, 3.0)
+
+def pull_docker_image(image_name: str) -> bool:
+    """Pull Docker image if not present locally"""
+    estimated_size = get_docker_image_size(image_name)
+    required_space = estimated_size * 1.5
     
-    # Try different possible OpenFOAM installation paths
-    possible_bashrc_paths = [
-        f"/opt/openfoam{openfoam_version}/etc/bashrc",
-        f"/usr/lib/openfoam/openfoam{openfoam_version}/etc/bashrc",
-        f"/home/foam/OpenFOAM/OpenFOAM-{openfoam_version}/etc/bashrc",
-        f"/opt/openfoam/etc/bashrc",
-        f"/usr/lib/openfoam/etc/bashrc",
-        "/opt/OpenFOAM/OpenFOAM-v2012/etc/bashrc"
+    print(f"📦 Estimated image size: {estimated_size:.1f} GB")
+    print(f"💾 Required space (with buffer): {required_space:.1f} GB")
+    
+    if not check_disk_space(required_space):
+        print("❌ Not enough disk space")
+        return False
+    
+    client = docker.from_env()
+    try:
+        client.images.get(image_name)
+        print(f"✅ Image exists: {image_name}")
+        return True
+    except docker.errors.ImageNotFound:
+        print(f"⏳ Pulling image: {image_name}")
+        try:
+            client.images.pull(image_name)
+            print(f"✅ Pulled image: {image_name}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to pull image: {e}")
+            return False
+
+def find_openfoam_bashrc(image_name: str) -> str:
+    """Find OpenFOAM bashrc in Docker image"""
+    client = docker.from_env()
+    common_paths = [
+        "/usr/lib/openfoam/openfoam2412/etc/bashrc",
+        "/opt/openfoam2412/etc/bashrc",
+        "/opt/OpenFOAM/OpenFOAM-v2412/etc/bashrc",
+        "/usr/lib64/openfoam/openfoam2412/etc/bashrc",
     ]
     
-    # Test each path individually to find the first valid one
-    for path in possible_bashrc_paths:
+    for path in common_paths:
         try:
-            print(f"🔍 Testing path: {path}")
             result = client.containers.run(
                 image_name,
                 f"bash -c '[ -f {path} ] && echo FOUND || echo NOT_FOUND'",
@@ -33,325 +76,159 @@ def run_case_in_docker(case_path: str):
                 stdout=True,
                 stderr=True
             )
-            output = result.decode().strip()
-            if "FOUND" in output:
+            if b"FOUND" in result:
                 print(f"✅ Found OpenFOAM bashrc at: {path}")
                 return path
-            else:
-                print(f"❌ Path not found: {path}")
         except Exception as e:
-            print(f"⚠️  Error testing path {path}: {e}")
+            continue
     
-    # If none of the predefined paths work, search the filesystem
-    print("🔍 Searching filesystem for OpenFOAM bashrc...")
-    try:
-        result = client.containers.run(
-            image_name,
-            "bash -c 'find / -name \"bashrc\" -path \"*/etc/bashrc\" 2>/dev/null | head -5'",
-            remove=True,
-            stdout=True,
-            stderr=True
-        )
-        found_paths = result.decode().strip().split('\n')
-        for path in found_paths:
-            if path.strip():
-                print(f"✅ Found potential bashrc at: {path}")
-                return path.strip()
-    except Exception as e:
-        print(f"❌ Error searching for bashrc: {e}")
-    
-    # Last resort: check if OpenFOAM tools are available directly
-    print("🔍 Checking if OpenFOAM tools are available directly...")
-    try:
-        result = client.containers.run(
-            image_name,
-            "bash -c 'which simpleFoam || which blockMesh || echo NO_OPENFOAM'",
-            remove=True,
-            stdout=True,
-            stderr=True
-        )
-        foam_output = result.decode().strip()
-        if foam_output != "NO_OPENFOAM":
-            print(f"✅ OpenFOAM tools found directly: {foam_output}")
-            # Return empty string to indicate direct tool usage
-            return ""
-    except Exception as e:
-        print(f"❌ Error checking for OpenFOAM tools: {e}")
-    
-    return None
+    print("❌ Could not find OpenFOAM bashrc")
+    return ""
 
-def run_openfoam_in_docker(
-    image: str = "haldardhruv/ubuntu_noble_openfoam:v2412",
-    solver: str = "foamRun -solver incompressibleFluid",
-    case_dir: str = None,
-    openfoam_version: str = "2412",
-    bashrc_path: str = None
-):
-    """
-    Run an OpenFOAM solver in a Docker container.
-    
-    Args:
-        image: Docker image to use
-        solver: Solver command to run
-        case_dir: Local directory containing the case files
-        openfoam_version: Version of OpenFOAM (e.g., "2412")
-        bashrc_path: Path to the OpenFOAM bashrc file in the container
-    
-    Returns:
-        bool: True if the solver ran successfully, False otherwise
-    """
-    # Set up Docker client
-    client = docker.from_env()
-
-    # Set up paths and environment
-    container_case_path = "/home/foam/case"  # Using a simpler path in the container
-    max_wait_time = 3600  # Maximum time to wait for container to complete (1 hour)
-
-    # Check if the image exists locally, pull if not
+def run_openfoam_command(
+    image: str,
+    command: str,
+    case_dir: str,
+    bashrc_path: str = ""
+) -> bool:
+    """Run OpenFOAM command in Docker container"""
     if not pull_docker_image(image):
         return False
-
-    # Debug the Docker image to find OpenFOAM installation
-    debug_docker_image(image)
-
-    # Find the OpenFOAM bashrc file
-    if bashrc_path is None:
-        bashrc_path = find_openfoam_bashrc(image, openfoam_version)
     
-    if bashrc_path is None:
-        print("❌ Could not find OpenFOAM bashrc file")
-        return False
-    else:
-        print(f"✅ Using OpenFOAM bashrc at: {bashrc_path}")
-
-    # Prepare the command to run in the container
-    # We'll use a temporary directory in the container to avoid permission issues
-    command = [
-        '/bin/bash', '-c',
-        f'set -x && \
-        source {bashrc_path} && \
-        echo "=== Debug: Contents of {container_case_path} ===" && \
-        ls -la {container_case_path} || true && \
-        echo "=== Debug: Contents of {container_case_path}/system ===" && \
-        ls -la {container_case_path}/system || true && \
-        mkdir -p /tmp/case && \
-        if [ -d "{container_case_path}" ] && [ "$(ls -A {container_case_path})" ]; then \
-            cp -r {container_case_path}/* /tmp/case/; \
-        fi && \
-        cd /tmp/case && \
-        echo "=== Debug: Contents of /tmp/case ===" && \
-        ls -la && \
-        {solver} && \
-        mkdir -p {container_case_path} && \
-        cp -r /tmp/case/* {container_case_path}/ || \
-        (echo "Command failed with status $?" && exit 1)'
-    ]
-
-    print(f"Running command: {command}")
-    print(f"Mounting: {case_dir} -> {container_case_path}")
-    print("⏳ Starting Docker container...")
-
-    container = None
+    if not bashrc_path:
+        bashrc_path = find_openfoam_bashrc(image)
+        if not bashrc_path:
+            return False
+    
+    client = docker.from_env()
+    container_case_path = "/home/foam/case"
+    
     try:
-        # Ensure the output directory is writable by the container
-        if case_dir:
-            # Use sudo to change permissions
-            subprocess.run(['sudo', 'chmod', '-R', '777', case_dir], check=True)
-            # Set ownership to current user
-            import pwd, grp
-            uid = pwd.getpwuid(os.getuid()).pw_uid
-            gid = grp.getgrgid(os.getgid()).gr_gid
-            subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
+        # Fix permissions
+        subprocess.run(['sudo', 'chmod', '-R', '777', case_dir], check=True)
+        uid = os.getuid()
+        gid = os.getgid()
+        subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
         
-        # Mount the case directory to a temporary location and use a volume for the working directory
-        volumes = {
-            case_dir: {"bind": container_case_path, "mode": "rw"},
-            "/tmp/case": {"bind": "/tmp/case", "mode": "rw"}
-        }
-        
-        container_working_dir = "/tmp/case"
-        environment = {
-            "FOAM_USER_RUN": "/tmp",
-            "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
-        }
-        
-        # Run as root to avoid permission issues with mounted volumes
+        # Run container
         container = client.containers.run(
             image,
-            command=command,
-            volumes=volumes,
-            working_dir=container_working_dir,
-            environment=environment,
+            command=f"bash -c 'source {bashrc_path} && cd {container_case_path} && {command}'",
+            volumes={os.path.abspath(case_dir): {"bind": container_case_path, "mode": "rw"}},
+            environment={
+                "FOAM_USER_RUN": "/tmp",
+                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
+            },
             detach=True,
             remove=False,
             tty=True,
-            stdin_open=True,
-            name=f"openfoam_{int(time.time())}",
-            user="root",  # Run as root to avoid permission issues
-            mem_limit='4g',  # Limit memory usage
-            memswap_limit='4g'  # Limit swap usage
+            user="root",
+            working_dir=container_case_path,
+            mem_limit='4g',
+            memswap_limit='4g'
         )
-
-        start_time = time.time()
         
-        while True:
-            try:
-                result = container.wait(timeout=30)  # Check every 30 seconds
-                break
-            except docker.errors.ReadTimeout:
-                # Container still running, check if we've exceeded max time
-                if time.time() - start_time > max_wait_time:
-                    print("❌ Timeout waiting for container to complete")
-                    return False
-                continue
+        # Stream output
+        for line in container.logs(stream=True, follow=True):
+            print(line.decode().strip(), end='')
         
-        # Get container logs
-        logs = container.logs().decode('utf-8')
-        print(logs)
-        
-        if result['StatusCode'] != 0:
-            print(f"❌ Solver failed with status code {result['StatusCode']}")
-            return False
-        
-        # Fix permissions on output files
-        if case_dir:
-            import pwd, grp
-            uid = pwd.getpwuid(os.getuid()).pw_uid
-            gid = grp.getgrgid(os.getgid()).gr_gid
-            subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
-            subprocess.run(['sudo', 'chmod', '-R', 'u+rwX,go+rX', case_dir], check=True)
-            
-        return True
-        
-    except docker.errors.ContainerError as e:
-        print(f"❌ Container error: {e}")
-        if container:
-            logs = container.logs().decode('utf-8')
-            print(logs)
-        return False
+        result = container.wait()
+        return result['StatusCode'] == 0
         
     except Exception as e:
-        print(f"❌ Unexpected error: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Error: {e}")
         return False
-        
     finally:
-        if container:
-            try:
+        try:
+            if 'container' in locals():
                 container.remove(force=True)
-                print("✅ Container cleaned up")
-            except Exception as e:
-                print(f"⚠️  Warning: Could not remove container: {e}")
+        except:
+            pass
 
 def main():
-    try:
-        # Create parent directories first to avoid FileExistsError
-        run_folder = Path("run_folder/incompressible/simpleFoam/pitzDaily")
-        run_folder.parent.mkdir(parents=True, exist_ok=True)
-        
-        container_name = "temp_openfoam_container"
-        
+    """Main function to run the OpenFOAM case"""
+    # Set up case directory
+    case_dir = os.path.join(os.getcwd(), "run_folder", "incompressible", "simpleFoam", "pitzDaily")
+    os.makedirs(case_dir, exist_ok=True)
+    
+    # Extract tutorial if needed
+    if not os.path.exists(os.path.join(case_dir, "system")) or not os.path.exists(os.path.join(case_dir, "0")):
+        print("Extracting tutorial...")
+        os.makedirs(case_dir, exist_ok=True)
+        client = docker.from_env()
         try:
-            # Create a local copy of the tutorial using Docker
-            print("Extracting tutorial from Docker container...")
+            # First, copy the tutorial files to a temporary directory
+            container = client.containers.run(
+                "haldardhruv/ubuntu_noble_openfoam:v2412",
+                "bash -c 'mkdir -p /tmp/tutorial && cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/* /tmp/tutorial/ && ls -la /tmp/tutorial/'",
+                detach=True,
+                remove=False,
+                tty=True,
+                user="root"
+            )
             
-            # Remove container if it exists
-            subprocess.run(["docker", "rm", "-f", container_name], 
-                         stderr=subprocess.DEVNULL, 
-                         check=False)
+            # Wait for the container to finish
+            container.wait()
             
-            # Create a temporary container
-            subprocess.run([
-                "docker", "create", "--name", container_name,
-                "haldardhruv/ubuntu_noble_openfoam:v2412"
-            ], check=True)
+            # Copy the files from the container to the host
+            os.makedirs(case_dir, exist_ok=True)
             
-            # Extract the tutorial files
-            subprocess.run([
-                "docker", "cp", 
-                f"{container_name}:/usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/.",
-                str(run_folder)
-            ], check=True)
+            # Create a temporary container to copy files from
+            container = client.containers.create(
+                "haldardhruv/ubuntu_noble_openfoam:v2412",
+                command=["sleep", "infinity"],
+                volumes={
+                    os.path.abspath(case_dir): {"bind": "/host_case", "mode": "rw"}
+                },
+                user="root"
+            )
+            container.start()
             
-            print(f"Extracted tutorial to: {run_folder}")
+            # Copy the tutorial files to the host
+            exit_code, output = container.exec_run(
+                f"cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /host_case/",
+                workdir="/",
+                user="root"
+            )
             
-        except subprocess.CalledProcessError as e:
-            print(f"Error extracting tutorial: {e}")
-            raise
+            if exit_code != 0:
+                print(f"❌ Failed to copy tutorial files: {output.decode()}")
+                return False
+                
+            print(f"✅ Extracted tutorial to: {case_dir}")
             
-        finally:
-            # Clean up the temporary container
-            subprocess.run(["docker", "rm", "-f", container_name], 
-                         stderr=subprocess.DEVNULL,
-                         check=False)
-        
-        my_case = FoamCase(str(run_folder))
-        print(f"Case cloned to: {my_case.path}")
-
-        # First run blockMesh to generate the mesh
-        print("🔄 Running blockMesh...")
-        blockmesh_success = run_openfoam_in_docker(
-            image="haldardhruv/ubuntu_noble_openfoam:v2412",
-            solver="blockMesh",
-            case_dir=str(my_case.path),
-            openfoam_version="2412",
-            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-        )
-        
-        if not blockmesh_success:
-            print("❌ blockMesh failed. Cannot proceed with the simulation.")
-            return
-        
-        # Now run simpleFoam
-        print("🔄 Running simpleFoam...")
-        success = run_openfoam_in_docker(
-            image="haldardhruv/ubuntu_noble_openfoam:v2412",
-            solver="simpleFoam",
-            case_dir=str(my_case.path),
-            openfoam_version="2412",
-            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-        )
-
-        if success:
-            try:
-                # Access results
-                if len(my_case) > 0:
-                    latest_time = my_case[-1]
-                    
-                    if "p" in latest_time:
-                        pressure = latest_time["p"].internal_field
-                        if hasattr(pressure, '__iter__') and not isinstance(pressure, str):
-                            print(f"Max pressure: {max(pressure)}")
-                        else:
-                            print(f"Pressure: {pressure}")
-                    
-                    if "U" in latest_time:
-                        velocity = latest_time["U"].internal_field
-                        if hasattr(velocity, '__iter__') and len(velocity) > 0:
-                            print(f"Velocity at first cell: {velocity[0]}")
-                        else:
-                            print(f"Velocity: {velocity}")
-                else:
-                    print("No time directories found - simulation may not have run successfully")
-                    
-            except Exception as e:
-                print(f"Error accessing results: {e}")
-                import traceback
-                traceback.print_exc()
-
-        # Clean up
-        try:
-            my_case.clean()
-            print("Case cleaned up successfully")
+            # Clean up
+            container.stop()
+            container.remove()
+            
         except Exception as e:
-            print(f"❌ Error: {e}")
-            sys.exit(1)
-            
-    except FileExistsError as e:
-        print(f"Directory {run_folder} already exists. Using existing directory.")
-        my_case = FoamCase(run_folder)
-        # Continue with the rest of your code using the existing case
+            print(f"❌ Failed to extract tutorial: {e}")
+            return
+    
+    # Run blockMesh
+    print("\n🔄 Running blockMesh...")
+    if not run_openfoam_command(
+        image="haldardhruv/ubuntu_noble_openfoam:v2412",
+        command="blockMesh",
+        case_dir=case_dir,
+        bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+    ):
+        print("❌ blockMesh failed")
+        return
+    
+    # Run simpleFoam
+    print("\n🔄 Running simpleFoam...")
+    if not run_openfoam_command(
+        image="haldardhruv/ubuntu_noble_openfoam:v2412",
+        command="simpleFoam",
+        case_dir=case_dir,
+        bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+    ):
+        print("❌ simpleFoam failed")
+        return
+    
+    print("\n✅ OpenFOAM simulation completed successfully!")
+    print(f"Results in: {case_dir}")
 
 if __name__ == "__main__":
     main()
