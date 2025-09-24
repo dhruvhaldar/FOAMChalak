@@ -246,56 +246,65 @@ def run_openfoam_in_docker(
     openfoam_version: str = "2412",
     bashrc_path: str = None
 ):
-    # First, ensure the Docker image is available
-    if not pull_docker_image(image):
-        print("❌ Cannot proceed without Docker image")
-        
-        # Try to clean up space and retry
-        print("🔄 Attempting to clean up space and retry...")
-        if cleanup_old_docker_images():
-            # Retry after cleanup
-            if pull_docker_image(image):
-                print("✅ Successfully pulled image after cleanup!")
-            else:
-                return False
-        else:
-            return False
+    """
+    Run an OpenFOAM solver in a Docker container.
     
+    Args:
+        image: Docker image to use
+        solver: Solver command to run
+        case_dir: Local directory containing the case files
+        openfoam_version: Version of OpenFOAM (e.g., "2412")
+        bashrc_path: Path to the OpenFOAM bashrc file in the container
+    
+    Returns:
+        bool: True if the solver ran successfully, False otherwise
+    """
+    # Set up Docker client
     client = docker.from_env()
-    case_dir = str(case_dir) if case_dir else os.getcwd()
 
-    container_case_path = f"/home/foam/OpenFOAM/{openfoam_version}/run"
+    # Set up paths and environment
+    container_case_path = "/home/foam/case"  # Using a simpler path in the container
+    max_wait_time = 3600  # Maximum time to wait for container to complete (1 hour)
 
-    # First, inspect the image to understand its structure
-    inspect_docker_image(image)
-    
-    # Debug the image to see what's actually there
+    # Check if the image exists locally, pull if not
+    if not pull_docker_image(image):
+        return False
+
+    # Debug the Docker image to find OpenFOAM installation
     debug_docker_image(image)
-    
-    # Find the correct bashrc path if not provided
+
+    # Find the OpenFOAM bashrc file
     if bashrc_path is None:
         bashrc_path = find_openfoam_bashrc(image, openfoam_version)
     
-    if bashrc_path == "":
-        # OpenFOAM tools are available directly without sourcing
-        print("ℹ️  OpenFOAM tools available directly, no need to source bashrc")
-        command = (
-            "bash -c "
-            f"'cd {container_case_path} "
-            f"&& {solver}'"
-        )
-    elif bashrc_path:
-        # Use the found bashrc path
-        print(f"✅ Using OpenFOAM bashrc at: {bashrc_path}")
-        command = (
-            "bash -c "
-            f"'source {bashrc_path} "
-            f"&& cd {container_case_path} "
-            f"&& {solver}'"
-        )
-    else:
-        print("❌ Could not find OpenFOAM installation in the Docker image")
+    if bashrc_path is None:
+        print("❌ Could not find OpenFOAM bashrc file")
         return False
+    else:
+        print(f"✅ Using OpenFOAM bashrc at: {bashrc_path}")
+
+    # Prepare the command to run in the container
+    # We'll use a temporary directory in the container to avoid permission issues
+    command = [
+        '/bin/bash', '-c',
+        f'set -x && \
+        source {bashrc_path} && \
+        echo "=== Debug: Contents of {container_case_path} ===" && \
+        ls -la {container_case_path} || true && \
+        echo "=== Debug: Contents of {container_case_path}/system ===" && \
+        ls -la {container_case_path}/system || true && \
+        mkdir -p /tmp/case && \
+        if [ -d "{container_case_path}" ] && [ "$(ls -A {container_case_path})" ]; then \
+            cp -r {container_case_path}/* /tmp/case/; \
+        fi && \
+        cd /tmp/case && \
+        echo "=== Debug: Contents of /tmp/case ===" && \
+        ls -la && \
+        {solver} && \
+        mkdir -p {container_case_path} && \
+        cp -r /tmp/case/* {container_case_path}/ || \
+        (echo "Command failed with status $?" && exit 1)'
+    ]
 
     print(f"Running command: {command}")
     print(f"Mounting: {case_dir} -> {container_case_path}")
@@ -303,19 +312,45 @@ def run_openfoam_in_docker(
 
     container = None
     try:
-        # Create and start container with timeout handling
+        # Ensure the output directory is writable by the container
+        if case_dir:
+            # Use sudo to change permissions
+            subprocess.run(['sudo', 'chmod', '-R', '777', case_dir], check=True)
+            # Set ownership to current user
+            import pwd, grp
+            uid = pwd.getpwuid(os.getuid()).pw_uid
+            gid = grp.getgrgid(os.getgid()).gr_gid
+            subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
+        
+        # Mount the case directory to a temporary location and use a volume for the working directory
+        volumes = {
+            case_dir: {"bind": container_case_path, "mode": "rw"},
+            "/tmp/case": {"bind": "/tmp/case", "mode": "rw"}
+        }
+        
+        container_working_dir = "/tmp/case"
+        environment = {
+            "FOAM_USER_RUN": "/tmp",
+            "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412"
+        }
+        
+        # Run as root to avoid permission issues with mounted volumes
         container = client.containers.run(
             image,
-            command,
+            command=command,
+            volumes=volumes,
+            working_dir=container_working_dir,
+            environment=environment,
             detach=True,
+            remove=False,
             tty=True,
-            stdout=True,
-            stderr=True,
-            volumes={case_dir: {"bind": container_case_path, "mode": "rw"}}
+            stdin_open=True,
+            name=f"openfoam_{int(time.time())}",
+            user="root",  # Run as root to avoid permission issues
+            mem_limit='4g',  # Limit memory usage
+            memswap_limit='4g'  # Limit swap usage
         )
 
-        # Wait for completion with timeout
-        max_wait_time = 3600  # 1 hour timeout
         start_time = time.time()
         
         while True:
@@ -326,31 +361,40 @@ def run_openfoam_in_docker(
                 # Container still running, check if we've exceeded max time
                 if time.time() - start_time > max_wait_time:
                     print("❌ Timeout waiting for container to complete")
-                    container.kill()
                     return False
-                print("⏳ Container still running...")
                 continue
-
-        logs = container.logs().decode()
-
-        if result["StatusCode"] == 0:
-            print("✅ Solver finished successfully")
-            print(logs[-2000:])  # Show last 2000 characters of logs
-            return True
-        else:
-            print("❌ Solver failed")
-            print(logs[-2000:], file=sys.stderr)  # Show last 2000 characters of logs
+        
+        # Get container logs
+        logs = container.logs().decode('utf-8')
+        print(logs)
+        
+        if result['StatusCode'] != 0:
+            print(f"❌ Solver failed with status code {result['StatusCode']}")
             return False
-
-    except docker.errors.ImageNotFound:
-        print(f"❌ Docker image not found: {image}", file=sys.stderr)
+        
+        # Fix permissions on output files
+        if case_dir:
+            import pwd, grp
+            uid = pwd.getpwuid(os.getuid()).pw_uid
+            gid = grp.getgrgid(os.getgid()).gr_gid
+            subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
+            subprocess.run(['sudo', 'chmod', '-R', 'u+rwX,go+rX', case_dir], check=True)
+            
+        return True
+        
+    except docker.errors.ContainerError as e:
+        print(f"❌ Container error: {e}")
+        if container:
+            logs = container.logs().decode('utf-8')
+            print(logs)
         return False
-    except docker.errors.APIError as e:
-        print(f"❌ Docker API error: {e}", file=sys.stderr)
-        return False
+        
     except Exception as e:
         print(f"❌ Unexpected error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         return False
+        
     finally:
         if container:
             try:
