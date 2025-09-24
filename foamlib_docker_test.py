@@ -4,6 +4,7 @@ import docker
 import sys
 import time
 import shutil
+import subprocess
 from foamlib import FoamCase
 
 def check_disk_space(min_space_gb: float = 5.0) -> bool:
@@ -242,7 +243,8 @@ def run_openfoam_in_docker(
     image: str = "haldardhruv/ubuntu_noble_openfoam:v2412",
     solver: str = "foamRun -solver incompressibleFluid",
     case_dir: str = None,
-    openfoam_version: str = "2412"
+    openfoam_version: str = "2412",
+    bashrc_path: str = None
 ):
     # First, ensure the Docker image is available
     if not pull_docker_image(image):
@@ -270,8 +272,9 @@ def run_openfoam_in_docker(
     # Debug the image to see what's actually there
     debug_docker_image(image)
     
-    # Find the correct bashrc path
-    bashrc_path = find_openfoam_bashrc(image, openfoam_version)
+    # Find the correct bashrc path if not provided
+    if bashrc_path is None:
+        bashrc_path = find_openfoam_bashrc(image, openfoam_version)
     
     if bashrc_path == "":
         # OpenFOAM tools are available directly without sourcing
@@ -356,61 +359,114 @@ def run_openfoam_in_docker(
             except Exception as e:
                 print(f"⚠️  Warning: Could not remove container: {e}")
 
-# Create parent directories first to avoid FileExistsError
-run_folder = Path("run_folder/incompressible/simpleFoam/pitzDaily")
-run_folder.parent.mkdir(parents=True, exist_ok=True)
-
-try:
-    # Clone and set up the case
-    tutorial_path = Path(os.environ["FOAM_TUTORIALS"]) / "incompressible/simpleFoam/pitzDaily"
-    print(f"Cloning from: {tutorial_path}")
-    
-    my_case = FoamCase(tutorial_path).clone(str(run_folder))
-    print(f"Case cloned to: {my_case.path}")
-
-    # Run the case using Docker with v2412 image
-    success = run_openfoam_in_docker(
-        image="haldardhruv/ubuntu_noble_openfoam:v2412",
-        solver="foamRun -solver incompressibleFluid",
-        case_dir=str(my_case.path),
-        openfoam_version="2412"
-    )
-
-    if success:
-        try:
-            # Access results
-            if len(my_case) > 0:
-                latest_time = my_case[-1]
-                
-                if "p" in latest_time:
-                    pressure = latest_time["p"].internal_field
-                    if hasattr(pressure, '__iter__') and not isinstance(pressure, str):
-                        print(f"Max pressure: {max(pressure)}")
-                    else:
-                        print(f"Pressure: {pressure}")
-                
-                if "U" in latest_time:
-                    velocity = latest_time["U"].internal_field
-                    if hasattr(velocity, '__iter__') and len(velocity) > 0:
-                        print(f"Velocity at first cell: {velocity[0]}")
-                    else:
-                        print(f"Velocity: {velocity}")
-            else:
-                print("No time directories found - simulation may not have run successfully")
-                
-        except Exception as e:
-            print(f"Error accessing results: {e}")
-            import traceback
-            traceback.print_exc()
-
-    # Clean up
+def main():
     try:
-        my_case.clean()
-        print("Case cleaned up successfully")
-    except Exception as e:
-        print(f"Error during cleanup: {e}")
+        # Create parent directories first to avoid FileExistsError
+        run_folder = Path("run_folder/incompressible/simpleFoam/pitzDaily")
+        run_folder.parent.mkdir(parents=True, exist_ok=True)
+        
+        container_name = "temp_openfoam_container"
+        
+        try:
+            # Create a local copy of the tutorial using Docker
+            print("Extracting tutorial from Docker container...")
+            
+            # Remove container if it exists
+            subprocess.run(["docker", "rm", "-f", container_name], 
+                         stderr=subprocess.DEVNULL, 
+                         check=False)
+            
+            # Create a temporary container
+            subprocess.run([
+                "docker", "create", "--name", container_name,
+                "haldardhruv/ubuntu_noble_openfoam:v2412"
+            ], check=True)
+            
+            # Extract the tutorial files
+            subprocess.run([
+                "docker", "cp", 
+                f"{container_name}:/usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/.",
+                str(run_folder)
+            ], check=True)
+            
+            print(f"Extracted tutorial to: {run_folder}")
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Error extracting tutorial: {e}")
+            raise
+            
+        finally:
+            # Clean up the temporary container
+            subprocess.run(["docker", "rm", "-f", container_name], 
+                         stderr=subprocess.DEVNULL,
+                         check=False)
+        
+        my_case = FoamCase(str(run_folder))
+        print(f"Case cloned to: {my_case.path}")
 
-except FileExistsError:
-    print(f"Directory {run_folder} already exists. Using existing directory.")
-    my_case = FoamCase(run_folder)
-    # Continue with the rest of your code using the existing case
+        # First run blockMesh to generate the mesh
+        print("🔄 Running blockMesh...")
+        blockmesh_success = run_openfoam_in_docker(
+            image="haldardhruv/ubuntu_noble_openfoam:v2412",
+            solver="blockMesh",
+            case_dir=str(my_case.path),
+            openfoam_version="2412",
+            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+        )
+        
+        if not blockmesh_success:
+            print("❌ blockMesh failed. Cannot proceed with the simulation.")
+            return
+        
+        # Now run simpleFoam
+        print("🔄 Running simpleFoam...")
+        success = run_openfoam_in_docker(
+            image="haldardhruv/ubuntu_noble_openfoam:v2412",
+            solver="simpleFoam",
+            case_dir=str(my_case.path),
+            openfoam_version="2412",
+            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
+        )
+
+        if success:
+            try:
+                # Access results
+                if len(my_case) > 0:
+                    latest_time = my_case[-1]
+                    
+                    if "p" in latest_time:
+                        pressure = latest_time["p"].internal_field
+                        if hasattr(pressure, '__iter__') and not isinstance(pressure, str):
+                            print(f"Max pressure: {max(pressure)}")
+                        else:
+                            print(f"Pressure: {pressure}")
+                    
+                    if "U" in latest_time:
+                        velocity = latest_time["U"].internal_field
+                        if hasattr(velocity, '__iter__') and len(velocity) > 0:
+                            print(f"Velocity at first cell: {velocity[0]}")
+                        else:
+                            print(f"Velocity: {velocity}")
+                else:
+                    print("No time directories found - simulation may not have run successfully")
+                    
+            except Exception as e:
+                print(f"Error accessing results: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Clean up
+        try:
+            my_case.clean()
+            print("Case cleaned up successfully")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            sys.exit(1)
+            
+    except FileExistsError as e:
+        print(f"Directory {run_folder} already exists. Using existing directory.")
+        my_case = FoamCase(run_folder)
+        # Continue with the rest of your code using the existing case
+
+if __name__ == "__main__":
+    main()
