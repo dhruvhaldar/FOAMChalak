@@ -38,13 +38,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let outputLines = 0;
 
     // Initialize the application
-    function init() {
+    async function init() {
         // Set up event listeners
         setupEventListeners();
         
         // Initial UI updates
-        checkDockerStatus();
-        checkDiskSpace();
+        try {
+            await Promise.all([
+                checkDockerStatus(),
+                checkDiskSpace()
+            ]);
+        } catch (error) {
+            console.error('Error during initialization:', error);
+        }
         updateLastRunTime();
     }
 
@@ -122,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.run_id === currentRunId) {
             stopRunTimer();
             isRunning = false;
-            updateUIState(false);
+            setUIState(false);
             
             const status = data.exit_code === 0 ? 'success' : 'error';
             const message = data.exit_code === 0 
@@ -407,104 +413,250 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateRunTimer() {
-        if (runStartTime) {
-            // Initialize plot if it doesn't exist
-            if (!window.residualPlot) {
-                const plotDiv = document.createElement('div');
-                plotDiv.id = 'residual-plot';
-                plotDiv.style.width = '100%';
-                plotDiv.style.height = '400px';
-                plotDiv.style.marginTop = '20px';
-                
-                const outputDiv = document.getElementById('output');
-                if (outputDiv) {
-                    outputDiv.appendChild(plotDiv);
+        if (!runStartTime) return;
+
+        // Initialize plot if it doesn't exist
+        if (!window.plotInitialized) {
+            initializePlot();
+        }
+        
+        // Update elapsed time and iteration
+        updateElapsedTime();
+        
+        // Update plot data if we have new residuals
+        if (window.hasNewResiduals) {
+            updateResiduals();
+        }
+    }
+    
+    function initializePlot() {
+        window.plotInitialized = true;
+        
+        // Create container for the plot
+        const plotDiv = document.createElement('div');
+        plotDiv.id = 'residual-plot';
+        plotDiv.style.width = '100%';
+        plotDiv.style.height = '400px';
+        plotDiv.style.marginTop = '20px';
+        
+        const outputDiv = document.getElementById('output');
+        if (outputDiv) {
+            outputDiv.prepend(plotDiv);
+        }
+        
+        // Initialize data storage if it doesn't exist
+        if (!window.residualData) {
+            window.residualData = {
+                time: [],
+                Ux: [], Uy: [], p: [], k: [], epsilon: []
+            };
+        }
+        
+        // Initialize the plot
+        initPlot();
+    }
+    
+    function initPlot() {
+        if (typeof Plotly === 'undefined') {
+            console.log('Waiting for Plotly to load...');
+            setTimeout(initPlot, 100);
+            return;
+        }
+        
+        try {
+            const traces = [
+                { name: 'Ux', y: [], mode: 'lines+markers', line: {color: 'blue'} },
+                { name: 'Uy', y: [], mode: 'lines+markers', line: {color: 'red'} },
+                { name: 'p', y: [], mode: 'lines+markers', line: {color: 'green'} },
+                { name: 'k', y: [], mode: 'lines+markers', line: {color: 'purple'} },
+                { name: 'epsilon', y: [], mode: 'lines+markers', line: {color: 'orange'} }
+            ];
+            
+            const layout = {
+                title: 'Residuals vs Iteration',
+                xaxis: { 
+                    title: 'Iteration',
+                    autorange: true
+                },
+                yaxis: { 
+                    type: 'log', 
+                    title: 'Residual',
+                    autorange: true
+                },
+                showlegend: true,
+                margin: { t: 30, l: 50, r: 30, b: 50 },
+                legend: {
+                    orientation: 'h',
+                    y: 1.1,
+                    x: 0.5,
+                    xanchor: 'center',
+                    traceorder: 'normal',
+                    font: {
+                        family: 'sans-serif',
+                        size: 12,
+                        color: '#000'
+                    },
+                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                    bordercolor: '#ddd',
+                    borderwidth: 1
                 }
-                
-                window.residualData = {
-                    time: [],
-                    Ux: [], Uy: [], p: [], k: [], epsilon: []
-                };
-                
-                window.residualPlot = Plotly.newPlot('residual-plot', [
-                    { name: 'Ux', y: [], mode: 'lines+markers', line: {color: 'blue'} },
-                    { name: 'Uy', y: [], mode: 'lines+markers', line: {color: 'red'} },
-                    { name: 'p', y: [], mode: 'lines+markers', line: {color: 'green'} },
-                    { name: 'k', y: [], mode: 'lines+markers', line: {color: 'purple'} },
-                    { name: 'epsilon', y: [], mode: 'lines+markers', line: {color: 'orange'} }
-                ], {
-                    title: 'Residuals vs Iteration',
-                    xaxis: { title: 'Iteration' },
-                    yaxis: { type: 'log', title: 'Residual' },
-                    showlegend: true,
-                    margin: { t: 30, l: 50, r: 30, b: 50 },
-                    legend: { orientation: 'h', y: 1.1 }
-                });
-            }
+            };
             
-            // Parse residuals from the output
-            const residualRegex = /Solving for (\w+), Initial residual = ([\d.]+), Final residual = ([\d.]+)/g;
-            let match;
-            const residuals = {};
+            // Create new plot
+            window.residualPlot = Plotly.newPlot('residual-plot', traces, layout);
+            console.log('Plotly plot initialized');
             
-            while ((match = residualRegex.exec(output)) !== null) {
-                const [_, variable, initial, final] = match;
-                if (!residuals[variable]) {
-                    residuals[variable] = parseFloat(initial);
+            // Auto-resize the plot to fit its container
+            setTimeout(() => {
+                if (window.residualPlot) {
+                    Plotly.Plots.resize('residual-plot');
                 }
-            }
+            }, 100);
             
-            // Update plot data
-            const iteration = window.residualData.time.length + 1;
-            window.residualData.time.push(iteration);
+        } catch (error) {
+            console.error('Error initializing plot:', error);
+        }
+    }
+    
+    function updateElapsedTime() {
+        if (!runStartTime) return;
+        
+        const elapsed = Math.floor((Date.now() - runStartTime) / 1000);
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
+        const seconds = elapsed % 60;
+        const timeStr = [
+            hours.toString().padStart(2, '0'),
+            minutes.toString().padStart(2, '0'),
+            seconds.toString().padStart(2, '0')
+        ].join(':');
+        
+        const statusText = document.getElementById('status-text');
+        if (statusText) {
+            statusText.textContent = `Running (${timeStr}) - Iteration ${iteration}`;
+        }
+    }
+    
+    function updateResiduals() {
+        if (!window.hasNewResiduals || !window.residualData) return;
+        
+        try {
+            // Get current iteration count
+            const currentIteration = window.residualData.time.length > 0 
+                ? Math.max(...window.residualData.time) + 1 
+                : 0;
             
-            ['Ux', 'Uy', 'p', 'k', 'epsilon'].forEach(varName => {
-                if (residuals[varName] !== undefined) {
-                    window.residualData[varName].push(residuals[varName]);
-                } else if (window.residualData[varName].length > 0) {
-                    // If no new value, keep the last value for continuity
-                    window.residualData[varName].push(
-                        window.residualData[varName][window.residualData[varName].length - 1]
-                    );
-                } else {
-                    window.residualData[varName].push(1); // Initial guess
+            // Update time data
+            window.residualData.time.push(currentIteration);
+            
+            // Update plot with new data
+            updatePlot();
+            
+            // Reset the flag
+            window.hasNewResiduals = false;
+            
+        } catch (error) {
+            console.error('Error updating residuals:', error);
+        }
+    }
+    
+    function updatePlot() {
+        if (typeof Plotly === 'undefined' || !window.residualPlot || !window.residualData) {
+            return;
+        }
+        
+        try {
+            const traces = [];
+            const colorMap = {
+                'Ux': 'blue', 'Uy': 'red', 'p': 'green', 
+                'k': 'purple', 'epsilon': 'orange'
+            };
+            
+            // Create trace for each variable
+            Object.entries(window.residualData).forEach(([varName, values]) => {
+                if (varName !== 'time' && Array.isArray(values) && values.length > 0) {
+                    traces.push({
+                        x: Array.from({length: values.length}, (_, i) => i + 1),
+                        y: values,
+                        name: varName,
+                        mode: 'lines+markers',
+                        line: { color: colorMap[varName] || '#666' }
+                    });
                 }
             });
             
             // Update the plot
-            const traces = ['Ux', 'Uy', 'p', 'k', 'epsilon'].map((varName, i) => ({
-                y: window.residualData[varName],
-                name: varName
-            }));
-            
             Plotly.react('residual-plot', traces, {
                 title: 'Residuals vs Iteration',
-                xaxis: { title: 'Iteration' },
-                yaxis: { type: 'log', title: 'Residual' },
+                xaxis: { 
+                    title: 'Iteration',
+                    autorange: true
+                },
+                yaxis: { 
+                    type: 'log', 
+                    title: 'Residual',
+                    autorange: true
+                },
                 showlegend: true,
                 margin: { t: 30, l: 50, r: 30, b: 50 },
-                legend: { orientation: 'h', y: 1.1 }
+                legend: {
+                    orientation: 'h',
+                    y: 1.1,
+                    x: 0.5,
+                    xanchor: 'center'
+                }
             });
             
-            // Update status with elapsed time
-            const elapsed = Math.floor((Date.now() - runStartTime) / 1000);
-            const hours = Math.floor(elapsed / 3600);
-            const minutes = Math.floor((elapsed % 3600) / 60);
-            const seconds = elapsed % 60;
-            
-            const timeStr = [
-                hours.toString().padStart(2, '0'),
-                minutes.toString().padStart(2, '0'),
-                seconds.toString().padStart(2, '0')
-            ].join(':');
-            
-            if (statusText) {
-                statusText.textContent = `Running (${timeStr}) - Iteration ${iteration}`;
-            }
+        } catch (error) {
+            console.error('Error updating plot:', error);
         }
     }
-
+    
     // Helper Functions
+    async function checkDockerStatus() {
+        try {
+            const response = await fetch('/api/check_docker');
+            const data = await response.json();
+            
+            if (data.running) {
+                updateSystemStatus('connected', 'Docker is running');
+                showToast('Docker is running', 'success');
+            } else {
+                updateSystemStatus('error', 'Docker is not running');
+                showToast('Docker is not running', 'error');
+            }
+        } catch (error) {
+            console.error('Error checking Docker status:', error);
+            updateSystemStatus('error', 'Failed to check Docker status');
+            showToast('Failed to check Docker status', 'error');
+        }
+    }
+    
+    async function checkDiskSpace() {
+        try {
+            const response = await fetch('/api/check_disk_space');
+            const data = await response.json();
+            
+            if (data.available_gb < 5) {
+                showToast(`Warning: Low disk space (${data.available_gb.toFixed(2)}GB available)`, 'warning');
+            }
+            
+            // Update disk space indicator if it exists
+            const diskSpaceElement = document.getElementById('disk-space');
+            if (diskSpaceElement) {
+                diskSpaceElement.textContent = `${data.available_gb.toFixed(2)}GB available`;
+                diskSpaceElement.className = `text-xs ${data.available_gb < 5 ? 'text-yellow-500' : 'text-gray-500'}`;
+            }
+            
+            return data.available_gb;
+            
+        } catch (error) {
+            console.error('Error checking disk space:', error);
+            showToast('Failed to check disk space', 'error');
+            return null;
+        }
+    }
+    
     function updateLastRunTime() {
         if (lastRun) {
             lastRun.textContent = new Date().toLocaleString();
@@ -664,6 +816,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // Helper function to fetch error logs
     async function fetchErrorLogs(logFilePath, container) {
         if (!logFilePath) return;
         
@@ -682,3 +836,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start the application
     init();
 });
+

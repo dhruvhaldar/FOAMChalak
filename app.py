@@ -6,6 +6,9 @@ import subprocess
 import threading
 import json
 import time
+import shutil
+import psutil
+import docker
 from datetime import datetime
 
 app = Flask(__name__)
@@ -32,8 +35,13 @@ def run_simulation():
         python_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python')
         script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'foamlib_docker_test.py')
         
-        # Create a temporary directory for this run
-        run_dir = os.path.join(os.path.expanduser('~'), '.local', 'share', 'foamchalak', 'runs', f'run_{int(time.time())}')
+        # Create a base directory for runs if it doesn't exist
+        base_runs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runs')
+        os.makedirs(base_runs_dir, exist_ok=True, mode=0o755)
+        
+        # Create a timestamped run directory
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        run_dir = os.path.join(base_runs_dir, f'run_{timestamp}')
         os.makedirs(run_dir, exist_ok=True, mode=0o755)
         
         # Set environment variables
@@ -89,15 +97,61 @@ def run_simulation():
 def stop_simulation():
     global current_process
     
-    if current_process and current_process.poll() is None:
-        current_process.terminate()
-        try:
-            current_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            current_process.kill()
-        return jsonify({'status': 'success', 'message': 'Simulation stopped'})
+    if current_process is None or current_process.poll() is not None:
+        return jsonify({'status': 'error', 'message': 'No simulation is currently running'}), 400
     
-    return jsonify({'status': 'error', 'message': 'No simulation is running'}), 400
+    try:
+        # Terminate the process group
+        os.killpg(os.getpgid(current_process.pid), 9)
+        current_process = None
+        return jsonify({'status': 'success', 'message': 'Simulation stopped'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/check_docker', methods=['GET'])
+def check_docker():
+    """Check if Docker is running and return its status."""
+    try:
+        client = docker.from_env()
+        client.ping()
+        return jsonify({
+            'status': 'success',
+            'running': True,
+            'version': client.version()['Version']
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'success',  # Still success because we got a response
+            'running': False,
+            'error': str(e)
+        })
+
+@app.route('/api/check_disk_space', methods=['GET'])
+def check_disk_space():
+    """Check available disk space and return in GB."""
+    try:
+        # Get disk usage statistics for the root partition
+        disk_usage = psutil.disk_usage('/')
+        
+        # Convert bytes to GB
+        total_gb = disk_usage.total / (1024 ** 3)
+        used_gb = disk_usage.used / (1024 ** 3)
+        free_gb = disk_usage.free / (1024 ** 3)
+        percent_used = disk_usage.percent
+        
+        return jsonify({
+            'status': 'success',
+            'total_gb': round(total_gb, 2),
+            'used_gb': round(used_gb, 2),
+            'free_gb': round(free_gb, 2),
+            'available_gb': round(disk_usage.free / (1024 ** 3), 2),
+            'percent_used': round(percent_used, 2)
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/simulation_status', methods=['GET'])
 def simulation_status():
