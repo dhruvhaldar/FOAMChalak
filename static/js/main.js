@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkDockerStatus(),
                 checkDiskSpace()
             ]);
+            
+            // Initialize simulation progress display
+            initializeSimulationProgress();
         } catch (error) {
             console.error('Error during initialization:', error);
         }
@@ -76,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.on('reconnect_error', handleReconnectError);
         socket.on('output', handleSocketOutput);
         socket.on('simulation_complete', handleSimulationComplete);
+        socket.on('step_update', handleStepUpdate);
         socket.on('error', handleSocketError);
 
         // Page visibility change
@@ -86,6 +90,69 @@ document.addEventListener('DOMContentLoaded', function() {
         outputObserver.observe(outputDiv, { childList: true });
     }
 
+        // Simulation steps state
+    const simulationSteps = [
+        { name: 'blockMesh', label: 'Block Mesh Generation', status: 'pending' },
+        { name: 'checkMesh', label: 'Mesh Validation', status: 'pending' },
+        { name: 'potentialFoam', label: 'Initial Flow Field', status: 'pending' },
+        { name: 'simpleFoam', label: 'Solver Execution', status: 'pending' },
+        { name: 'postProcessing', label: 'Post-Processing', status: 'pending' }
+    ];
+    
+    // Initialize simulation steps display
+    function initializeSimulationProgress() {
+        renderSimulationSteps();
+    }
+    
+    // Render simulation steps in the UI
+    function renderSimulationSteps() {
+        const container = document.getElementById('simulationSteps');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        simulationSteps.forEach(step => {
+            const stepEl = document.createElement('div');
+            stepEl.className = 'flex items-center';
+            stepEl.innerHTML = `
+                <span class="flex-shrink-0 w-3 h-3 rounded-full mr-2 ${
+                    step.status === 'completed' ? 'bg-green-500' : 
+                    step.status === 'running' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-200'
+                }"></span>
+                <span class="text-sm ${
+                    step.status === 'completed' ? 'text-green-700' : 
+                    step.status === 'running' ? 'text-yellow-700 font-medium' : 'text-gray-500'
+                }">${step.label}</span>
+            `;
+            container.appendChild(stepEl);
+        });
+        
+        updateProgressBar();
+    }
+    
+    // Update the progress bar based on completed steps
+    function updateProgressBar() {
+        const completedSteps = simulationSteps.filter(step => step.status === 'completed').length;
+        const totalSteps = simulationSteps.length;
+        const progress = Math.round((completedSteps / totalSteps) * 100);
+        
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+            progressBar.className = `h-2.5 rounded-full ${
+                progress === 100 ? 'bg-green-500' : 'bg-primary-600'
+            }`;
+        }
+        
+        const progressStatus = document.getElementById('progressStatus');
+        if (progressStatus) {
+            progressStatus.textContent = progress === 100 ? 'Completed' : `${progress}%`;
+            progressStatus.className = `px-2 py-1 text-xs font-medium rounded-full ${
+                progress === 100 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+            }`;
+        }
+    }
+    
     // Socket.IO event handlers
     function handleSocketConnect() {
         console.log('Connected to WebSocket');
@@ -121,6 +188,55 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentRunId && data.run_id === currentRunId) {
             appendOutput(data.data, data.timestamp);
             updateLineCount(1);
+        }
+    }
+    
+    // Handle step updates from the server
+    function handleStepUpdate(data) {
+        const { step, status } = data;
+        const stepIndex = simulationSteps.findIndex(s => s.name === step);
+        
+        if (stepIndex !== -1) {
+            // Update the step status
+            simulationSteps[stepIndex].status = status;
+            
+            // If a step is starting, make sure previous steps are marked as completed
+            if (status === 'running' && stepIndex > 0) {
+                // Mark all previous steps as completed if they're not already
+                for (let i = 0; i < stepIndex; i++) {
+                    if (simulationSteps[i].status === 'pending') {
+                        simulationSteps[i].status = 'completed';
+                    }
+                }
+            }
+            
+            // Update the UI
+            renderSimulationSteps();
+            
+            // Update status text
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                const currentStep = simulationSteps[stepIndex];
+                if (status === 'running') {
+                    statusText.textContent = `Running ${currentStep.label}...`;
+                    statusText.className = 'text-sm text-blue-700';
+                } else if (status === 'completed') {
+                    statusText.textContent = `Completed ${currentStep.label}`;
+                    statusText.className = 'text-sm text-green-700';
+                    
+                    // If this was the last step, show completion message
+                    if (stepIndex === simulationSteps.length - 1) {
+                        statusText.textContent = 'Simulation completed successfully';
+                        showToast('Simulation completed successfully', 'success');
+                    }
+                }
+            }
+            
+            // Show toast for step completion
+            if (status === 'completed') {
+                const currentStep = simulationSteps[stepIndex];
+                showToast(`Completed: ${currentStep.label}`, 'success', 'check-circle');
+            }
         }
     }
 
@@ -164,9 +280,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function handleOutputMutation() {
-        if (autoScrollEnabled) {
-            outputDiv.scrollTop = outputDiv.scrollHeight;
+    function handleOutputMutation(mutations) {
+        // Check if we should auto-scroll (if auto-scroll is enabled and user hasn't scrolled up)
+        const wasScrolledToBottom = outputDiv.scrollHeight - outputDiv.clientHeight <= outputDiv.scrollTop + 50; // 50px threshold
+        
+        if (autoScrollEnabled && wasScrolledToBottom) {
+            // Use requestAnimationFrame for smoother scrolling
+            requestAnimationFrame(() => {
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            });
         }
     }
 
@@ -321,6 +443,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function appendOutput(text, timestamp = null, type = 'info') {
         if (!text) return;
         
+        // Store current scroll position and height before adding new content
+        const wasScrolledToBottom = outputDiv.scrollHeight - outputDiv.clientHeight <= outputDiv.scrollTop + 1;
+        
         const lines = text.split('\n');
         
         lines.forEach((lineText, index) => {
@@ -350,6 +475,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         updateLineCount(0);
+        
+        // Auto-scroll if enabled and was previously scrolled to bottom or if auto-scroll is forced
+        if (autoScrollEnabled && wasScrolledToBottom) {
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
     }
 
     function clearOutput() {

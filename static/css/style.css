@@ -15,10 +15,16 @@ body {
     border-radius: 0.5rem;
     height: 500px;
     overflow-y: auto;
+    overflow-x: hidden;
     white-space: pre-wrap;
     word-break: break-word;
     margin-bottom: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Output line styles */
@@ -27,16 +33,25 @@ body {
     line-height: 1.5;
     padding: 0.125rem 0.25rem;
     border-radius: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    min-height: 1.5em; /* Ensure consistent line height */
 }
 
 .output-line .timestamp {
     color: #94a3b8;
     margin-right: 0.5rem;
     font-size: 0.8em;
+    user-select: none;
 }
 
 .output-line .content {
     white-space: pre-wrap;
+    word-break: break-word;
+    display: inline-block;
+    vertical-align: top;
+    max-width: 100%;
 }
 
 /* Error messages */

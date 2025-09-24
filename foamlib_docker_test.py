@@ -379,38 +379,97 @@ def create_run_directory() -> str:
     run_dir = os.environ.get('FOAMCHALAK_RUN_DIR')
     if run_dir and os.path.isdir(run_dir):
         print(f"✅ Using existing run directory: {run_dir}")
-        # Verify essential files were copied
-        print("🔍 Verifying essential files...")
-        system_dir = os.path.join(run_dir, "system")
-        system_files = ["blockMeshDict", "controlDict", "fvSchemes", "fvSolution"]
-        missing_files = []
         
-        print("\n=== Verifying required files ===")
-        for f in system_files:
-            file_path = os.path.join(system_dir, f)
-            exists = os.path.exists(file_path)
-            print(f"{file_path}: {'✅' if exists else '❌'}")
-            if not exists:
-                missing_files.append(file_path)
+        # Get tutorial directory
+        tutorial_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tutorials', 'pitzDaily')
         
-        if missing_files:
-            print(f"\n❌ Error: Missing {len(missing_files)} required files:")
-            for f in missing_files:
-                print(f"  - {f}")
-            
-            print("\n=== Directory Structure ===")
-            print(f"Run directory: {run_dir}")
-            print(f"System directory: {system_dir} (exists: {os.path.exists(system_dir)})")
+        # Copy all files from tutorial directory to run directory
+        print(f"📂 Copying files from tutorial directory: {tutorial_dir}")
+        try:
+            # Create system and constant directories if they don't exist
+            system_dir = os.path.join(run_dir, "system")
             constant_dir = os.path.join(run_dir, "constant")
-            print(f"Constant directory: {constant_dir} (exists: {os.path.exists(constant_dir)})")
+            zero_dir = os.path.join(run_dir, "0")
             
-            if os.path.exists(system_dir):
-                print("\nSystem directory contents:")
-                for f in os.listdir(system_dir):
+            os.makedirs(system_dir, exist_ok=True, mode=0o755)
+            os.makedirs(constant_dir, exist_ok=True, mode=0o755)
+            os.makedirs(zero_dir, exist_ok=True, mode=0o755)
+            
+            # Copy system files
+            if os.path.exists(os.path.join(tutorial_dir, "system")):
+                for item in os.listdir(os.path.join(tutorial_dir, "system")):
+                    src = os.path.join(tutorial_dir, "system", item)
+                    dst = os.path.join(system_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Copy constant files
+            if os.path.exists(os.path.join(tutorial_dir, "constant")):
+                for item in os.listdir(os.path.join(tutorial_dir, "constant")):
+                    src = os.path.join(tutorial_dir, "constant", item)
+                    dst = os.path.join(constant_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Copy 0 directory files
+            if os.path.exists(os.path.join(tutorial_dir, "0")):
+                for item in os.listdir(os.path.join(tutorial_dir, "0")):
+                    src = os.path.join(tutorial_dir, "0", item)
+                    dst = os.path.join(zero_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Verify essential files were copied
+            print("🔍 Verifying essential files...")
+            system_files = ["blockMeshDict", "controlDict", "fvSchemes", "fvSolution"]
+            missing_files = []
+            
+            print("\n=== Verifying required files ===")
+            for f in system_files:
+                file_path = os.path.join(system_dir, f)
+                exists = os.path.exists(file_path)
+                print(f"{file_path}: {'✅' if exists else '❌'}")
+                if not exists:
+                    missing_files.append(file_path)
+            
+            if missing_files:
+                print(f"\n❌ Error: Missing {len(missing_files)} required files:")
+                for f in missing_files:
                     print(f"  - {f}")
-            print("================================\n")
+                
+                print("\n=== Directory Structure ===")
+                print(f"Run directory: {run_dir}")
+                print(f"System directory: {system_dir} (exists: {os.path.exists(system_dir)})")
+                print(f"Constant directory: {constant_dir} (exists: {os.path.exists(constant_dir)})")
+                
+                if os.path.exists(system_dir):
+                    print("\nSystem directory contents:")
+                    for f in os.listdir(system_dir):
+                        print(f"  - {f}")
+                print("================================\n")
+                
+                # Clean up the incomplete run directory
+                shutil.rmtree(run_dir, ignore_errors=True)
+                return ""
+                
+            print("\n✅ All required files were copied successfully")
             
-            # Clean up the incomplete run directory
+        except Exception as e:
+            print(f"❌ Error copying tutorial files: {e}")
+            import traceback
+            traceback.print_exc()
             shutil.rmtree(run_dir, ignore_errors=True)
             return ""
             
@@ -959,14 +1018,42 @@ def main():
             print("❌ blockMesh failed")
             return 1
         
-        # Run simpleFoam
+        # Run checkMesh to verify the mesh
+        print("\n🔍 Running checkMesh...")
+        if not run_openfoam_command(image, "checkMesh", case_dir, bashrc_path):
+            print("⚠️  checkMesh reported issues with the mesh")
+            # Continue execution even if checkMesh reports issues
+        
+        # Run potentialFoam to initialize the flow field
+        print("\n🌊 Running potentialFoam for initial flow field...")
+        if not run_openfoam_command(image, "potentialFoam", case_dir, bashrc_path):
+            print("❌ potentialFoam failed")
+            return 1
+        
+        # Run simpleFoam for the main simulation
         print("\n🚀 Running simpleFoam...")
         if not run_openfoam_command(image, "simpleFoam", case_dir, bashrc_path):
             print("❌ simpleFoam failed")
             return 1
         
+        # Run post-processing tools
+        print("\n📊 Running post-processing...")
+        
+        # Run sample to extract data
+        print("  - Running sample...")
+        if os.path.exists(os.path.join(case_dir, "system/sampleDict")):
+            if not run_openfoam_command(image, "sample -dict system/sampleDict", case_dir, bashrc_path):
+                print("⚠️  sample failed, but continuing...")
+        
+        # Run postProcess for basic field data
+        print("  - Running postProcess for field data...")
+        if not run_openfoam_command(image, "postProcess -func 'mag(U)'", case_dir, bashrc_path):
+            print("⚠️  postProcess failed, but continuing...")
+        
         print("\n✅ Simulation completed successfully!")
         print(f"📂 Results are available in: {case_dir}")
+        print("\n💡 You can visualize the results using ParaView or other OpenFOAM post-processing tools.")
+        print(f"   The case directory contains all the simulation data: {case_dir}")
         return 0
 
     except KeyboardInterrupt:

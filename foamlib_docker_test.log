@@ -335,3 +335,142 @@
 2025-09-25 00:29:05,923 - DEBUG - http://localhost:None "GET /v1.51/containers/9fb6c91d113920845660f319d4af02857ff3600eec34c57c190d1343350cee45/json HTTP/1.1" 200 None
 2025-09-25 00:29:05,927 - DEBUG - http://localhost:None "POST /v1.51/containers/9fb6c91d113920845660f319d4af02857ff3600eec34c57c190d1343350cee45/wait HTTP/1.1" 200 None
 2025-09-25 00:29:05,934 - DEBUG - http://localhost:None "DELETE /v1.51/containers/9fb6c91d113920845660f319d4af02857ff3600eec34c57c190d1343350cee45?v=False&link=False&force=True HTTP/1.1" 204 0
+2025-09-25 00:45:57,041 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:57,043 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,043 - DEBUG - No config file found
+2025-09-25 00:45:57,043 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,043 - DEBUG - No config file found
+2025-09-25 00:45:57,060 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:57,151 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:57,156 - DEBUG - http://localhost:None "GET /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35/json HTTP/1.1" 200 None
+2025-09-25 00:45:57,387 - DEBUG - http://localhost:None "POST /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35/start HTTP/1.1" 204 0
+2025-09-25 00:45:57,391 - DEBUG - http://localhost:None "GET /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35/logs?stderr=0&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:57,395 - DEBUG - http://localhost:None "GET /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35/json HTTP/1.1" 200 None
+2025-09-25 00:45:57,399 - DEBUG - http://localhost:None "POST /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35/wait HTTP/1.1" 200 None
+2025-09-25 00:45:57,568 - DEBUG - http://localhost:None "DELETE /v1.51/containers/ef74e9f3b6ac7d555fbbdf04d7a9347ca4bb0fcc20270717d2e1ac3107d26e35?v=False&link=False&force=False HTTP/1.1" 204 0
+2025-09-25 00:45:57,574 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,574 - DEBUG - No config file found
+2025-09-25 00:45:57,574 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,574 - DEBUG - No config file found
+2025-09-25 00:45:57,583 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:57,610 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:57,613 - DEBUG - http://localhost:None "GET /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a/json HTTP/1.1" 200 None
+2025-09-25 00:45:57,813 - DEBUG - http://localhost:None "POST /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a/start HTTP/1.1" 204 0
+2025-09-25 00:45:57,816 - DEBUG - http://localhost:None "GET /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a/logs?stderr=0&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:57,821 - DEBUG - http://localhost:None "GET /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a/json HTTP/1.1" 200 None
+2025-09-25 00:45:57,827 - DEBUG - http://localhost:None "POST /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a/wait HTTP/1.1" 200 None
+2025-09-25 00:45:57,969 - DEBUG - http://localhost:None "DELETE /v1.51/containers/6a70bd6e2b723ffcc485db1951257e5d248dc6a7da39e467c810fd1dc164c02a?v=False&link=False&force=False HTTP/1.1" 204 0
+2025-09-25 00:45:57,976 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:57,976 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,976 - DEBUG - No config file found
+2025-09-25 00:45:57,977 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,977 - DEBUG - No config file found
+2025-09-25 00:45:57,986 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:57,989 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:45:57,990 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,990 - DEBUG - No config file found
+2025-09-25 00:45:57,990 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:57,990 - DEBUG - No config file found
+2025-09-25 00:45:58,001 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:58,036 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:58,038 - DEBUG - http://localhost:None "GET /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,229 - DEBUG - http://localhost:None "POST /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0/start HTTP/1.1" 204 0
+2025-09-25 00:45:58,232 - DEBUG - http://localhost:None "GET /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:58,235 - DEBUG - http://localhost:None "GET /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,239 - DEBUG - http://localhost:None "POST /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0/wait HTTP/1.1" 200 None
+2025-09-25 00:45:58,375 - DEBUG - http://localhost:None "DELETE /v1.51/containers/d575dbe8dc26898fc62e1a8f95167b0d8f487d0b7d29a4cedc2e5b4372f5f1d0?v=False&link=False&force=False HTTP/1.1" 204 0
+2025-09-25 00:45:58,377 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:58,377 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,377 - DEBUG - No config file found
+2025-09-25 00:45:58,377 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,377 - DEBUG - No config file found
+2025-09-25 00:45:58,388 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:58,392 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,392 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,393 - DEBUG - No config file found
+2025-09-25 00:45:58,393 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,393 - DEBUG - No config file found
+2025-09-25 00:45:58,402 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:58,433 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:58,436 - DEBUG - http://localhost:None "GET /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,668 - DEBUG - http://localhost:None "POST /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6/start HTTP/1.1" 204 0
+2025-09-25 00:45:58,672 - DEBUG - http://localhost:None "GET /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:58,794 - DEBUG - http://localhost:None "GET /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,808 - DEBUG - http://localhost:None "POST /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6/wait HTTP/1.1" 200 None
+2025-09-25 00:45:58,820 - DEBUG - http://localhost:None "DELETE /v1.51/containers/5d684f76063e930aa88032bf4e3b28ab21fc159fbaad55206b8fd8da6416a0e6?v=False&link=False&force=True HTTP/1.1" 204 0
+2025-09-25 00:45:58,823 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:58,823 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,824 - DEBUG - No config file found
+2025-09-25 00:45:58,825 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,825 - DEBUG - No config file found
+2025-09-25 00:45:58,838 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:58,844 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:45:58,846 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,847 - DEBUG - No config file found
+2025-09-25 00:45:58,848 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:58,848 - DEBUG - No config file found
+2025-09-25 00:45:58,861 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:58,903 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:58,912 - DEBUG - http://localhost:None "GET /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,229 - DEBUG - http://localhost:None "POST /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4/start HTTP/1.1" 204 0
+2025-09-25 00:45:59,242 - DEBUG - http://localhost:None "GET /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:59,392 - DEBUG - http://localhost:None "GET /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,395 - DEBUG - http://localhost:None "POST /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4/wait HTTP/1.1" 200 None
+2025-09-25 00:45:59,403 - DEBUG - http://localhost:None "DELETE /v1.51/containers/1ecd139bc54af5f5cbe4209eab3a0fc8449fb3495b6a084bfd1c347c822910c4?v=False&link=False&force=True HTTP/1.1" 204 0
+2025-09-25 00:45:59,404 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:59,405 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,405 - DEBUG - No config file found
+2025-09-25 00:45:59,405 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,405 - DEBUG - No config file found
+2025-09-25 00:45:59,414 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:59,417 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,417 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,418 - DEBUG - No config file found
+2025-09-25 00:45:59,418 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,418 - DEBUG - No config file found
+2025-09-25 00:45:59,427 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:59,456 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:59,461 - DEBUG - http://localhost:None "GET /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,650 - DEBUG - http://localhost:None "POST /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9/start HTTP/1.1" 204 0
+2025-09-25 00:45:59,653 - DEBUG - http://localhost:None "GET /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:45:59,773 - DEBUG - http://localhost:None "GET /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,777 - DEBUG - http://localhost:None "POST /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9/wait HTTP/1.1" 200 None
+2025-09-25 00:45:59,785 - DEBUG - http://localhost:None "DELETE /v1.51/containers/dcc5df0b5813d9b30a3c929d1cba0497a668e8bf877c45d041585784ff4490a9?v=False&link=False&force=True HTTP/1.1" 204 0
+2025-09-25 00:45:59,787 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:45:59,788 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,788 - DEBUG - No config file found
+2025-09-25 00:45:59,788 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,788 - DEBUG - No config file found
+2025-09-25 00:45:59,800 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:59,805 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:45:59,806 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,806 - DEBUG - No config file found
+2025-09-25 00:45:59,806 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:45:59,807 - DEBUG - No config file found
+2025-09-25 00:45:59,821 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:45:59,855 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:45:59,859 - DEBUG - http://localhost:None "GET /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88/json HTTP/1.1" 200 None
+2025-09-25 00:46:00,067 - DEBUG - http://localhost:None "POST /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88/start HTTP/1.1" 204 0
+2025-09-25 00:46:00,075 - DEBUG - http://localhost:None "GET /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:46:00,221 - DEBUG - http://localhost:None "GET /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88/json HTTP/1.1" 200 None
+2025-09-25 00:46:00,227 - DEBUG - http://localhost:None "POST /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88/wait HTTP/1.1" 200 None
+2025-09-25 00:46:00,235 - DEBUG - http://localhost:None "DELETE /v1.51/containers/cdd47267745fa14febc0b0b8e55222c25abe2ef2df4c9cbfa0147b4107bb0d88?v=False&link=False&force=True HTTP/1.1" 204 0
+2025-09-25 00:46:00,238 - INFO - 📊 Disk space available: 429.01 GB
+2025-09-25 00:46:00,238 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:46:00,238 - DEBUG - No config file found
+2025-09-25 00:46:00,239 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:46:00,239 - DEBUG - No config file found
+2025-09-25 00:46:00,250 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:46:00,254 - DEBUG - http://localhost:None "GET /v1.51/images/haldardhruv/ubuntu_noble_openfoam:v2412/json HTTP/1.1" 200 None
+2025-09-25 00:46:00,255 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:46:00,255 - DEBUG - No config file found
+2025-09-25 00:46:00,255 - DEBUG - Trying paths: ['/home/dhruvh/.docker/config.json', '/home/dhruvh/.dockercfg']
+2025-09-25 00:46:00,255 - DEBUG - No config file found
+2025-09-25 00:46:00,266 - DEBUG - http://localhost:None "GET /version HTTP/1.1" 200 810
+2025-09-25 00:46:00,295 - DEBUG - http://localhost:None "POST /v1.51/containers/create HTTP/1.1" 201 88
+2025-09-25 00:46:00,298 - DEBUG - http://localhost:None "GET /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf/json HTTP/1.1" 200 None
+2025-09-25 00:46:00,499 - DEBUG - http://localhost:None "POST /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf/start HTTP/1.1" 204 0
+2025-09-25 00:46:00,503 - DEBUG - http://localhost:None "GET /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf/logs?stderr=1&stdout=1&timestamps=0&follow=1&tail=all HTTP/1.1" 200 None
+2025-09-25 00:46:00,651 - DEBUG - http://localhost:None "GET /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf/json HTTP/1.1" 200 None
+2025-09-25 00:46:00,655 - DEBUG - http://localhost:None "POST /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf/wait HTTP/1.1" 200 None
+2025-09-25 00:46:00,670 - DEBUG - http://localhost:None "DELETE /v1.51/containers/17cd1973d6ab9d6a9bb3f7db53a691e073c0eea7d0cf6178395441de63bce5bf?v=False&link=False&force=True HTTP/1.1" 204 0
