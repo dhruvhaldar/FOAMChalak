@@ -4,6 +4,8 @@ import time
 import docker
 import shutil
 import subprocess
+import tempfile
+from typing import Optional, Union
 
 def check_disk_space(min_space_gb: float = 5.0) -> bool:
     """Check if there's enough disk space for Docker image"""
@@ -91,7 +93,17 @@ def run_openfoam_command(
     case_dir: str,
     bashrc_path: str = ""
 ) -> bool:
-    """Run OpenFOAM command in Docker container"""
+    """Run an OpenFOAM command in a Docker container
+    
+    Args:
+        image: Docker image to use
+        command: OpenFOAM command to run
+        case_dir: Case directory path
+        bashrc_path: Path to OpenFOAM bashrc file
+        
+    Returns:
+        bool: True if command succeeded, False otherwise
+    """
     if not pull_docker_image(image):
         return False
     
@@ -104,11 +116,17 @@ def run_openfoam_command(
     container_case_path = "/home/foam/case"
     
     try:
-        # Fix permissions
-        subprocess.run(['sudo', 'chmod', '-R', '777', case_dir], check=True)
-        uid = os.getuid()
-        gid = os.getgid()
-        subprocess.run(['sudo', 'chown', '-R', f'{uid}:{gid}', case_dir], check=True)
+        # Set permissions
+        try:
+            os.chmod(case_dir, 0o777)  # rwxrwxrwx
+            for root, dirs, files in os.walk(case_dir):
+                for d in dirs:
+                    os.chmod(os.path.join(root, d), 0o777)
+                for f in files:
+                    os.chmod(os.path.join(root, f), 0o666)  # rw-rw-rw-
+        except Exception as e:
+            print(f"⚠️  Warning: Could not set permissions for {case_dir}: {e}")
+            print("The application might not work correctly without proper permissions.")
         
         # Run container
         container = client.containers.run(
@@ -155,112 +173,180 @@ def get_tutorial_case_dir() -> str:
         "pitzDaily"
     )
 
-def setup_tutorial_case() -> bool:
-    """Set up the tutorial case files if they don't exist"""
-    tutorial_dir = get_tutorial_case_dir()
+def setup_tutorial_case() -> str:
+    """Set up the tutorial case files if they don't exist
     
-    # Check if tutorial files already exist
-    if os.path.exists(os.path.join(tutorial_dir, "system")) and \
-       os.path.exists(os.path.join(tutorial_dir, "0")) and \
-       os.path.exists(os.path.join(tutorial_dir, "constant")):
-        print(f"✅ Using existing tutorial files in: {tutorial_dir}")
-        return True
+    Returns:
+        str: Path to the tutorial directory if successful, empty string otherwise
+    """
+    # Use a local directory in the user's home folder
+    home_dir = os.path.expanduser('~')
+    local_tutorial_dir = os.path.join(home_dir, '.local', 'share', 'foamchalak', 'tutorials', 'pitzDaily')
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(local_tutorial_dir, exist_ok=True, mode=0o755)
+    
+    # Check if tutorial files already exist in the local directory
+    if os.path.exists(os.path.join(local_tutorial_dir, "system")) and \
+       os.path.exists(os.path.join(local_tutorial_dir, "0")) and \
+       os.path.exists(os.path.join(local_tutorial_dir, "constant")):
+        print(f"✅ Using existing tutorial files in: {local_tutorial_dir}")
+        return local_tutorial_dir
     
     print("Extracting tutorial files...")
-    # Create all parent directories first
-    os.makedirs(tutorial_dir, exist_ok=True, mode=0o755)
     
-    client = docker.from_env()
+    # Create a temporary directory
+    import tempfile
+    import shutil
     
-    try:
-        # Run a container with the tutorial directory mounted
-        container = client.containers.run(
-            "haldardhruv/ubuntu_noble_openfoam:v2412",
-            command=["bash", "-c", """
-                mkdir -p /mnt/tutorial && 
-                cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /mnt/tutorial/ && 
-                chmod -R 755 /mnt/tutorial
-            """],
-            volumes={
-                tutorial_dir: {"bind": "/mnt/tutorial", "mode": "rw"}
-            },
-            remove=True,
-            user="root"
-        )
-        
-        # Verify the files were copied
-        if os.path.exists(os.path.join(tutorial_dir, "system")) and \
-           os.path.exists(os.path.join(tutorial_dir, "0")) and \
-           os.path.exists(os.path.join(tutorial_dir, "constant")):
-            print(f"✅ Successfully extracted tutorial to: {tutorial_dir}")
-            return True
-        else:
-            print("❌ Failed to verify tutorial files were copied")
-            return False
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            client = docker.from_env()
             
-    except Exception as e:
-        print(f"❌ Failed to extract tutorial: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+            # Run a container to extract the tutorial files
+            container = client.containers.run(
+                "haldardhruv/ubuntu_noble_openfoam:v2412",
+                command=["bash", "-c", f"""
+                    mkdir -p /mnt/tutorial && 
+                    cp -r /usr/lib/openfoam/openfoam2412/tutorials/incompressible/simpleFoam/pitzDaily/. /mnt/tutorial/ && 
+                    chmod -R 755 /mnt/tutorial
+                """],
+                volumes={
+                    temp_dir: {"bind": "/mnt/tutorial", "mode": "rw"}
+                },
+                remove=True,
+                user="root"
+            )
+            
+            # Copy files from temp directory to local tutorial directory
+            for item in os.listdir(temp_dir):
+                src = os.path.join(temp_dir, item)
+                dst = os.path.join(local_tutorial_dir, item)
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src, dst)
+            
+            # Set permissions on the copied files
+            for root, dirs, files in os.walk(local_tutorial_dir):
+                for d in dirs:
+                    os.chmod(os.path.join(root, d), 0o755)
+                for f in files:
+                    os.chmod(os.path.join(root, f), 0o644)
+            
+            print(f"✅ Successfully extracted tutorial to: {local_tutorial_dir}")
+            return local_tutorial_dir
+            
+        except Exception as e:
+            print(f"❌ Error setting up tutorial: {e}")
+            import traceback
+            traceback.print_exc()
+            return ""
 
 def create_run_directory() -> str:
-    """Create a new run directory with timestamp"""
+    """Create a new run directory with timestamp in the user's home directory"""
+    home_dir = os.path.expanduser('~')
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    run_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "runs",
-        f"run_{timestamp}"
-    )
     
-    # Copy tutorial files to the new run directory
-    tutorial_dir = get_tutorial_case_dir()
-    shutil.copytree(tutorial_dir, run_dir, dirs_exist_ok=True)
+    # Create runs directory in user's home folder
+    runs_dir = os.path.join(home_dir, '.local', 'share', 'foamchalak', 'runs')
+    os.makedirs(runs_dir, exist_ok=True, mode=0o755)
     
-    print(f"✅ Created run directory: {run_dir}")
-    return run_dir
+    # Create timestamped run directory
+    run_dir = os.path.join(runs_dir, f"run_{timestamp}")
+    os.makedirs(run_dir, exist_ok=True, mode=0o755)
+    
+    # Get the tutorial directory
+    tutorial_dir = setup_tutorial_case()
+    if not tutorial_dir:
+        print("❌ Failed to set up tutorial files")
+        return ""
+    
+    # Copy tutorial files to the run directory
+    try:
+        for item in os.listdir(tutorial_dir):
+            src = os.path.join(tutorial_dir, item)
+            dst = os.path.join(run_dir, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, dst)
+        
+        # Set permissions on the copied files
+        for root, dirs, files in os.walk(run_dir):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), 0o755)
+            for f in files:
+                os.chmod(os.path.join(root, f), 0o644)
+        
+        print(f"✅ Created run directory: {run_dir}")
+        return run_dir
+        
+    except Exception as e:
+        print(f"❌ Error creating run directory: {e}")
+        import traceback
+        traceback.print_exc()
+        return ""
 
 def main():
     """Main function to run the OpenFOAM case"""
-    # Set up tutorial files if they don't exist
-    if not setup_tutorial_case():
-        print("❌ Failed to set up tutorial case")
-        return
-    
-    # Create a new run directory with timestamp
-    case_dir = create_run_directory()
-    
     try:
+        # Set up tutorial files if they don't exist
+        tutorial_dir = setup_tutorial_case()
+        if not tutorial_dir:
+            print("❌ Failed to set up tutorial case")
+            return 1
+        
+        print(f"📂 Using tutorial directory: {tutorial_dir}")
+        
+        # Create a new run directory with timestamp
+        case_dir = create_run_directory()
+        if not case_dir:
+            print("❌ Failed to create run directory")
+            return 1
+        
+        print(f"📂 Using case directory: {case_dir}")
+        
+        # Check Docker and pull image if needed
+        image = "haldardhruv/ubuntu_noble_openfoam:v2412"
+        print(f"🐳 Checking Docker image: {image}")
+        if not pull_docker_image(image):
+            print("❌ Failed to pull Docker image")
+            return 1
+        
+        # Find OpenFOAM bashrc
+        print("🔍 Locating OpenFOAM environment...")
+        bashrc_path = find_openfoam_bashrc(image)
+        if not bashrc_path:
+            print("❌ Could not find OpenFOAM bashrc")
+            return 1
+        
+        print(f"✅ Found OpenFOAM environment at: {bashrc_path}")
+        
         # Run blockMesh
-        print("\n🔄 Running blockMesh...")
-        if not run_openfoam_command(
-            image="haldardhruv/ubuntu_noble_openfoam:v2412",
-            command="blockMesh",
-            case_dir=case_dir,
-            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-        ):
+        print("\n🚀 Running blockMesh...")
+        if not run_openfoam_command(image, "blockMesh", case_dir, bashrc_path):
             print("❌ blockMesh failed")
-            return
+            return 1
         
         # Run simpleFoam
-        print("\n🔄 Running simpleFoam...")
-        if not run_openfoam_command(
-            image="haldardhruv/ubuntu_noble_openfoam:v2412",
-            command="simpleFoam",
-            case_dir=case_dir,
-            bashrc_path="/usr/lib/openfoam/openfoam2412/etc/bashrc"
-        ):
+        print("\n🚀 Running simpleFoam...")
+        if not run_openfoam_command(image, "simpleFoam", case_dir, bashrc_path):
             print("❌ simpleFoam failed")
-            return
+            return 1
         
-        print("\n✅ OpenFOAM simulation completed successfully!")
-        print(f"Results in: {case_dir}")
+        print("\n✅ Simulation completed successfully!")
+        print(f"📂 Results are available in: {case_dir}")
+        return 0
         
     except KeyboardInterrupt:
-        print("\n⚠️  Simulation interrupted by user")
-        print(f"Partial results are available in: {case_dir}")
+        print("\n🛑 Simulation was interrupted by user")
+        return 130
     except Exception as e:
-        print(f"\n❌ An error occurred: {e}")
+        print(f"\n❌ An unexpected error occurred: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
         print(f"Check the output in: {case_dir}")
 
 if __name__ == "__main__":

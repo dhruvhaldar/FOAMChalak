@@ -1,27 +1,34 @@
 [![Python](https://img.shields.io/badge/Python-3.8%2B-f5d7e3)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-cyan)](https://flask.palletsprojects.com/)
-[![Tailwind](https://img.shields.io/badge/Tailwind-3.1.6-white)](https://tailwindcss.com/)
-[![OpenFOAM](https://img.shields.io/badge/OpenFOAM-2506-green)](https://openfoam.org/)
+[![Tailwind](https://img.shields.io/badge/Tailwind-3.3.0-white)](https://tailwindcss.com/)
+[![OpenFOAM](https://img.shields.io/badge/OpenFOAM-v2412-green)](https://openfoam.org/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/licenses/GPL-3.0)
 
 # FOAMचालक
 
-**FOAMChalak** is a lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser.
+**FOAMChalak** is a modern web-based GUI for managing and running **OpenFOAM** simulations. It provides a user-friendly interface to run OpenFOAM commands, monitor simulations in real-time, and view outputs directly in your browser.
 
-Pronounced `FOAMChaluck`. 
+Pronounced `FOAMChaluck`.
 
 ---
 
 ## Features
 
-- Web interface for OpenFOAM case management.
-- Persistently store the **CASE_ROOT** across sessions.
-- Load and copy tutorials from the OpenFOAM tutorials directory.
-- Run common OpenFOAM commands (`blockMesh`, `simpleFoam`, `pimpleFoam`) with live output.
-- Color-coded console output for stdout, stderr, info, and tutorial messages.
-- Fully compatible with OpenFOAM 2506 (adjustable for other versions).
+- 🚀 Modern, responsive web interface built with Flask and Tailwind CSS
+- 🐳 Docker container management for OpenFOAM environments
+- 📊 Real-time simulation output streaming
+- ⚡ WebSocket-based communication for live updates
+- 📂 File browser for case directory navigation
+- 🎨 Clean, intuitive UI with status indicators
+- 🔄 Background process management
+- 📱 Mobile-responsive design
 
----
+## Supported OpenFOAM Versions
+
+- Ubuntu Noble with OpenFOAM v2412 (default)
+- OpenFOAM 10 with ParaView 5.6
+- OpenFOAM 9
+- OpenFOAM 8
 
 ## Installation
 
@@ -32,50 +39,57 @@ git clone https://github.com/dhruvhaldar/FOAMChalak
 cd FOAMChalak
 ```
 
-2. **Install dependencies**:
+2. **Create and activate a virtual environment (recommended)**:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+
+3. **Install dependencies**:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
-1. **Run the server**:
+
+1. **Run the application**:
 ```bash
 python app.py
 ```
+
 2. **Access the web interface**:
-Open your browser and navigate to `http://localhost:5000`.
+Open your browser and navigate to [http://localhost:5000](http://localhost:5000)
 
-3. **Set a case directory**:
-Enter a path for your simulation cases.
-Click `Set Case Dir`.
-
-4. **Set OpenFOAM root directory**:
-Enter a path for your OpenFOAM root directory.
-Click `Set OpenFOAM Root`.
-
-5. **Load a tutorial**:
-Select a tutorial from the dropdown.
-Click `Load Tutorial`.
-The tutorial will be copied to your selected case directory.
-
-6. **Run OpenFOAM commands**:
-Use the buttons (blockMesh, simpleFoam, pimpleFoam) to execute commands.
-Live output is shown in the console panel.
-
----
+3. **Using the interface**:
+   - Select a Docker image from the dropdown
+   - Set your case directory (or use the default tutorial)
+   - Click "Run Simulation" to start
+   - Monitor the output in real-time
+   - Use "Stop" to terminate the simulation if needed
 
 ## Project Structure
+
 ```
 FOAMChalak/
-├── app.py # Main Flask application
-├── case_config.json # Stores the last used CASE_ROOT
-├── static/
-│ ├── foamchalak_frontend.html # HTML template
-│ └── js/foamchalak_frontend.js # JavaScript logic
-├── my-py-env/ # Optional: local Python virtual environment
-├── requirements.txt # Python dependencies
-└── README.md # This file
+├── app.py                 # Main Flask application
+├── foamlib_docker_test.py # Core OpenFOAM Docker functionality
+├── requirements.txt       # Python dependencies
+├── static/                # Static files
+│   ├── css/              # CSS files
+│   └── js/               # JavaScript files
+│       └── main.js       # Frontend logic
+├── templates/            # HTML templates
+│   ├── base.html         # Base template
+│   └── index.html        # Main interface
+└── README.md             # This file
 ```
+
+## Development
+
+To modify the frontend:
+1. Edit files in the `templates/` and `static/` directories
+2. The app will automatically reload when Python files change
+3. For production, you may want to build and minify the static assets
 
 ## License
 

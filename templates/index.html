@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold text-gray-800">Simulation Control Panel</h2>
+        <div class="flex space-x-4">
+            <button id="runBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center">
+                <i class="fas fa-play mr-2"></i> Run Simulation
+            </button>
+            <button id="stopBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center" disabled>
+                <i class="fas fa-stop mr-2"></i> Stop
+            </button>
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <div class="flex items-center mb-2">
+                    </div>
+                    <div class="ml-5">
+                        <h3 class="text-lg font-medium text-white">OpenFOAM Web Interface</h3>
+                        <p class="mt-1 text-sm text-primary-100">Run and manage OpenFOAM simulations in your browser</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-4 bg-white">
+                <div class="text-sm text-gray-600">
+                    <p>Easily run OpenFOAM simulations using Docker containers with this intuitive web interface.</p>
+                    <p class="mt-2">Select your configuration and click "Run Simulation" to get started.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Docker Configuration -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900">
+                    <i class="fab fa-docker text-primary-600 mr-2"></i>
+                    Docker Configuration
+                </h2>
+                <div class="mt-6 space-y-6">
+                    <div>
+                        <label for="dockerImage" class="block text-sm font-medium text-gray-700">Docker Image</label>
+                        <div class="mt-1 relative">
+                            <select id="dockerImage" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                                <option value="haldardhruv/ubuntu_noble_openfoam:v2412" selected>haldardhruv/ubuntu_noble_openfoam:v2412</option>
+                                <option value="openfoam/openfoam10-paraview56">openfoam/openfoam10-paraview56</option>
+                                <option value="openfoam/openfoam9-paraview54">openfoam/openfoam9-paraview54</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">Select the OpenFOAM Docker image to use</p>
+                    </div>
+                    
+                    <div>
+                        <label for="caseDir" class="block text-sm font-medium text-gray-700">Case Directory</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" id="caseDir" value="tutorials/incompressible/simpleFoam/pitzDaily" class="focus:ring-primary-500 focus:border-primary-500 flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300">
+                            <button id="browseBtn" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 text-sm transition-colors duration-150">
+                                <i class="fas fa-folder-open mr-1"></i> Browse
+                            </button>
+                            <input type="file" id="fileInput" webkitdirectory directory multiple class="hidden">
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">Path to the OpenFOAM case directory</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Simulation Controls -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-play-circle text-primary-600 mr-2"></i>
+                    Simulation Controls
+                </h2>
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <button id="runBtn" class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                        <i class="fas fa-play mr-2"></i> Run Simulation
+                    </button>
+                    <button id="stopBtn" disabled class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
+                        <i class="fas fa-stop mr-2"></i> Stop
+                    </button>
+                </div>
+                
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Quick Actions</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="clearOutputBtn" class="flex flex-col items-center justify-center p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors duration-150" title="Clear Output">
+                            <i class="fas fa-eraser text-lg mb-1"></i>
+                            <span class="text-xs">Clear</span>
+                        </button>
+                        <button id="copyOutputBtn" class="flex flex-col items-center justify-center p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors duration-150" title="Copy Output">
+                            <i class="far fa-copy text-lg mb-1"></i>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                        <button id="downloadOutputBtn" class="flex flex-col items-center justify-center p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors duration-150" title="Download Output">
+                            <i class="fas fa-download text-lg mb-1"></i>
+                            <span class="text-xs">Save</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Status -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-server text-primary-600 mr-2"></i>
+                    System Status
+                </h2>
+                <div class="mt-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-2 w-2 rounded-full bg-gray-400" id="statusDot"></div>
+                            <span class="ml-2 text-sm font-medium text-gray-700">Status:</span>
+                        </div>
+                        <span id="statusText" class="text-sm text-gray-900">Idle</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fab fa-docker text-gray-400"></i>
+                            <span class="ml-2 text-sm font-medium text-gray-700">Docker:</span>
+                        </div>
+                        <span id="dockerStatus" class="text-sm text-gray-900">Checking...</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-hdd text-gray-400"></i>
+                            <span class="ml-2 text-sm font-medium text-gray-700">Disk Space:</span>
+                        </div>
+                        <span id="diskSpace" class="text-sm text-gray-900">Checking...</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="far fa-clock text-gray-400"></i>
+                            <span class="ml-2 text-sm font-medium text-gray-700">Last Run:</span>
+                        </div>
+                        <span id="lastRun" class="text-sm text-gray-900">Never</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column - Output -->
+    <div class="lg:col-span-2">
+        <div class="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-terminal text-primary-600 mr-2"></i>
+                        Simulation Output
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <span id="lineCount" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">0 lines</span>
+                        <div class="h-4 w-px bg-gray-200"></div>
+                        <button id="autoScrollBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none" title="Auto-scroll">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="output" class="flex-1 overflow-auto"></div>
+            <div id="runDetails" class="hidden"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
