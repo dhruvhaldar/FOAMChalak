@@ -119,12 +119,27 @@ def run_openfoam_command(
         # Ensure the case directory exists and is accessible
         os.makedirs(case_dir, exist_ok=True, mode=0o755)
         
-        # Run container with proper user permissions
-        # We'll let the container handle its own file permissions
+        # Create a temporary directory for the container's home
+        temp_home = os.path.join(os.path.dirname(case_dir), 'temp_home')
+        os.makedirs(temp_home, exist_ok=True, mode=0o755)
+        
+        # Set up container with proper permissions
         container = client.containers.run(
             image,
-            command=f"bash -c 'source {bashrc_path} && cd {container_case_path} && {command}'",
-            volumes={os.path.abspath(case_dir): {"bind": container_case_path, "mode": "rw"}},
+            command=[
+                "/bin/bash", "-c", 
+                f'chown -R {os.getuid()}:{os.getgid()} {container_case_path} && \
+                chmod -R 755 {container_case_path} && \
+                mkdir -p /home/foam && \
+                chown -R {os.getuid()}:{os.getgid()} /home/foam && \
+                source {bashrc_path} && \
+                cd {container_case_path} && \
+                {command} || exit 1'
+            ],
+            volumes={
+                os.path.abspath(case_dir): {"bind": container_case_path, "mode": "rw"},
+                temp_home: {"bind": "/home/foam", "mode": "rw"}
+            },
             environment={
                 "FOAM_USER_RUN": "/tmp",
                 "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412",
@@ -134,7 +149,6 @@ def run_openfoam_command(
             detach=True,
             remove=False,
             tty=True,
-            user="root",
             working_dir=container_case_path,
             mem_limit='4g',
             memswap_limit='4g',
@@ -144,8 +158,11 @@ def run_openfoam_command(
         
         # Stream output with better error handling
         try:
-            for line in container.logs(stream=True, follow=True):
-                print(line.decode('utf-8', errors='replace').strip(), end='\n')
+            # Get the logs as a single string
+            logs = container.logs(stdout=True, stderr=True, stream=False, follow=True)
+            # Decode and print complete lines
+            for line in logs.decode('utf-8', errors='replace').splitlines():
+                print(f"[14:02:14]{line}")
             
             result = container.wait()
             return result['StatusCode'] == 0
@@ -160,8 +177,24 @@ def run_openfoam_command(
         try:
             if 'container' in locals():
                 container.remove(force=True)
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ Warning: Could not remove container: {e}")
+        try:
+            if 'temp_home' in locals() and os.path.exists(temp_home):
+                shutil.rmtree(temp_home, ignore_errors=True)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not remove temporary home directory: {e}")
+        # Ensure case directory has correct permissions
+        if os.path.exists(case_dir):
+            try:
+                os.chmod(case_dir, 0o755)
+                for root, dirs, files in os.walk(case_dir):
+                    for d in dirs:
+                        os.chmod(os.path.join(root, d), 0o755)
+                    for f in files:
+                        os.chmod(os.path.join(root, f), 0o644)
+            except Exception as e:
+                print(f"⚠️ Warning: Could not set permissions for {case_dir}: {e}")
 
 def get_tutorial_case_dir() -> str:
     """Get the path to the tutorial case directory"""
