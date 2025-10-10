@@ -105,17 +105,7 @@ def run_openfoam_command(
     case_dir: str,
     bashrc_path: str = ""
 ) -> bool:
-    """Run an OpenFOAM command in a Docker container
-    
-    Args:
-        image: Docker image to use
-        command: OpenFOAM command to run
-        case_dir: Case directory path
-        bashrc_path: Path to OpenFOAM bashrc file
-        
-    Returns:
-        bool: True if command succeeded, False otherwise
-    """
+    """Run an OpenFOAM command in a Docker container"""
     if not pull_docker_image(image):
         return False
     
@@ -128,118 +118,209 @@ def run_openfoam_command(
     container_case_path = "/home/foam/case"
     
     try:
-        # Ensure the case directory exists and is accessible with correct permissions
-        os.makedirs(case_dir, exist_ok=True, mode=0o755)
+        # Create temp directory
+        temp_home = tempfile.mkdtemp(prefix='foam_home_')
+        os.chmod(temp_home, 0o755)
         
-        # Create a temporary directory for the container's home
-        temp_home = os.path.join(os.path.dirname(case_dir), 'temp_home')
-        os.makedirs(temp_home, exist_ok=True, mode=0o755)
-        
-        # Set environment variables
-        env_vars = os.environ.copy()
-        env_vars.update({
-            "FOAM_USER_RUN": "/tmp",
-            "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412",
-            "FOAM_SETTINGS": "-fileHandler uncollated",
-            "FOAM_SIGFPE": "false",
-            "HOME": "/home/foam",
-            "USER": "foam"
-        })
-        
-        # Prepare the command to run in the container
-        cmd = f"""
-        set -e  # Exit on error
-        
-        # Create necessary directories and set permissions
-        mkdir -p /home/foam
-        chown -R {os.getuid()}:{os.getgid()} /home/foam {container_case_path}
-        chmod -R 755 {container_case_path}
-        
-        # Source OpenFOAM environment
-        source {bashrc_path}
-        
-        # Change to case directory and list contents for debugging
-        cd {container_case_path}
-        echo "Current directory: $(pwd)"
-        echo "Contents of {container_case_path}:"
-        ls -la .
-        
-        # Check if essential files exist
-        echo "\nChecking for required files:"
-        for f in system/controlDict system/blockMeshDict 0/U 0/p constant/polyMesh/blockMeshDict; do
-            if [ -f "$f" ] || [ -d "$f" ]; then
-                echo "✅ Found: $f"
-            else
-                echo "❌ Missing: $f"
-            fi
-        done
-        
-        # Run the actual command
-        echo -e "\n🚀 Running: {command}"
-        {command} || {{ 
-            echo "\n❌ Command failed with status $?"
-            exit 1 
-        }}
+        # Use a much simpler command approach
+        full_command = f"""
+        . {bashrc_path} && \
+        cd {container_case_path} && \
+        {command}
         """
         
-        # Set up container with proper permissions and environment
-        container = client.containers.run(
+        print(f"🚀 Running: {command}")
+        print(f"📂 Case: {case_dir}")
+        
+        # Run container with simple command
+        result = client.containers.run(
             image,
-            command=cmd,
+            command=["/bin/bash", "-c", full_command],
             volumes={
                 os.path.abspath(case_dir): {"bind": container_case_path, "mode": "rw"},
                 temp_home: {"bind": "/home/foam", "mode": "rw"}
             },
-            environment=env_vars,
-            detach=True,
-            remove=False,
-            tty=True,
+            environment={
+                "FOAM_USER_RUN": "/tmp",
+                "WM_PROJECT_DIR": "/usr/lib/openfoam/openfoam2412",
+                "FOAM_SETTINGS": "-fileHandler uncollated", 
+                "FOAM_SIGFPE": "false",
+                "HOME": "/home/foam",
+                "USER": "foam"
+            },
             working_dir=container_case_path,
             mem_limit='4g',
             memswap_limit='4g',
             user=f"{os.getuid()}:{os.getgid()}",
-            entrypoint=["/bin/bash", "-c"]
+            remove=True,
+            stdout=True,
+            stderr=True
         )
         
-        # Stream output with better error handling
-        try:
-            # Get the logs as a single string
-            logs = container.logs(stdout=True, stderr=True, stream=False, follow=True)
-            # Decode and print complete lines
-            for line in logs.decode('utf-8', errors='replace').splitlines():
-                print(f"[14:02:14]{line}")
-            
-            result = container.wait()
-            return result['StatusCode'] == 0
-        except Exception as e:
-            print(f"❌ Error reading container logs: {e}")
-            return False
+        # Print output
+        output = result.decode('utf-8', errors='replace')
+        print("=== Command Output ===")
+        print(output)
+        print("======================")
         
+        # If we get here, command succeeded
+        print(f"✅ Command '{command}' completed successfully")
+        return True
+        
+    except docker.errors.ContainerError as e:
+        print(f"❌ Command '{command}' failed:")
+        print(f"Exit code: {e.exit_status}")
+        print(f"Error: {e.stderr.decode('utf-8', errors='replace') if e.stderr else 'No stderr'}")
+        return False
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error running command '{command}': {e}")
         return False
     finally:
-        try:
-            if 'container' in locals():
-                container.remove(force=True)
-        except Exception as e:
-            print(f"⚠️ Warning: Could not remove container: {e}")
+        # Cleanup
         try:
             if 'temp_home' in locals() and os.path.exists(temp_home):
                 shutil.rmtree(temp_home, ignore_errors=True)
+        except:
+            pass
+
+def create_run_directory() -> str:
+    """
+    Create or use an existing run directory.
+    If FOAMCHALAK_RUN_DIR is set in the environment, use that.
+    Otherwise, create a new directory in the current working directory.
+    """
+    # Check if run directory is provided in environment
+    run_dir = os.environ.get('FOAMCHALAK_RUN_DIR')
+    if run_dir and os.path.isdir(run_dir):
+        print(f"✅ Using existing run directory: {run_dir}")
+        
+        # Get tutorial directory
+        tutorial_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tutorials', 'pitzDaily')
+        
+        # Copy all files from tutorial directory to run directory
+        print(f"📂 Copying files from tutorial directory: {tutorial_dir}")
+        try:
+            # Create system and constant directories if they don't exist
+            system_dir = os.path.join(run_dir, "system")
+            constant_dir = os.path.join(run_dir, "constant")
+            zero_dir = os.path.join(run_dir, "0")
+            
+            os.makedirs(system_dir, exist_ok=True, mode=0o755)
+            os.makedirs(constant_dir, exist_ok=True, mode=0o755)
+            os.makedirs(zero_dir, exist_ok=True, mode=0o755)
+            
+            # Copy system files
+            if os.path.exists(os.path.join(tutorial_dir, "system")):
+                for item in os.listdir(os.path.join(tutorial_dir, "system")):
+                    src = os.path.join(tutorial_dir, "system", item)
+                    dst = os.path.join(system_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Copy constant files
+            if os.path.exists(os.path.join(tutorial_dir, "constant")):
+                for item in os.listdir(os.path.join(tutorial_dir, "constant")):
+                    src = os.path.join(tutorial_dir, "constant", item)
+                    dst = os.path.join(constant_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Copy 0 directory files
+            if os.path.exists(os.path.join(tutorial_dir, "0")):
+                for item in os.listdir(os.path.join(tutorial_dir, "0")):
+                    src = os.path.join(tutorial_dir, "0", item)
+                    dst = os.path.join(zero_dir, item)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+            
+            # Create polyMesh directory for blockMesh output
+            poly_mesh_dir = os.path.join(constant_dir, "polyMesh")
+            os.makedirs(poly_mesh_dir, exist_ok=True, mode=0o755)
+            
+            print("✅ All required files were copied successfully")
+            return run_dir
+            
         except Exception as e:
-            print(f"⚠️ Warning: Could not remove temporary home directory: {e}")
-        # Ensure case directory has correct permissions
-        if os.path.exists(case_dir):
-            try:
-                os.chmod(case_dir, 0o755)
-                for root, dirs, files in os.walk(case_dir):
-                    for d in dirs:
-                        os.chmod(os.path.join(root, d), 0o755)
-                    for f in files:
-                        os.chmod(os.path.join(root, f), 0o644)
-            except Exception as e:
-                print(f"⚠️ Warning: Could not set permissions for {case_dir}: {e}")
+            print(f"❌ Error copying tutorial files: {e}")
+            import traceback
+            traceback.print_exc()
+            return ""
+    
+    # Create a new run directory in the current working directory
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    base_runs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runs')
+    run_dir = os.path.join(base_runs_dir, f'run_{timestamp}')
+    
+    # Clean up any existing incomplete run directories
+    if os.path.exists(run_dir):
+        try:
+            shutil.rmtree(run_dir)
+        except Exception as e:
+            print(f"⚠️  Warning: Could not clean up existing run directory: {e}")
+    
+    # Create the base runs directory if it doesn't exist
+    os.makedirs(base_runs_dir, exist_ok=True, mode=0o755)
+    
+    # Create the run directory
+    os.makedirs(run_dir, exist_ok=True, mode=0o755)
+    
+    # Get the tutorial directory
+    tutorial_dir = setup_tutorial_case()
+    if not tutorial_dir:
+        print("❌ Failed to set up tutorial files")
+        return ""
+    
+    # Copy tutorial files to the run directory
+    try:
+        print(f"📂 Copying tutorial files from {tutorial_dir} to {run_dir}")
+        
+        # Copy all files and directories recursively
+        for item in os.listdir(tutorial_dir):
+            src = os.path.join(tutorial_dir, item)
+            dst = os.path.join(run_dir, item)
+            
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, dst)
+        
+        # Create polyMesh directory for blockMesh output
+        poly_mesh_dir = os.path.join(run_dir, "constant", "polyMesh")
+        os.makedirs(poly_mesh_dir, exist_ok=True, mode=0o755)
+        
+        # Set permissions on the copied files
+        print("🔒 Setting file permissions...")
+        for root, dirs, files in os.walk(run_dir):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), 0o755)
+            for f in files:
+                os.chmod(os.path.join(root, f), 0o644)
+        
+        print(f"✅ Successfully created run directory: {run_dir}")
+        return run_dir
+        
+    except Exception as e:
+        print(f"❌ Error creating run directory: {e}")
+        import traceback
+        traceback.print_exc()
+        # Clean up partially created directory
+        try:
+            shutil.rmtree(run_dir, ignore_errors=True)
+        except:
+            pass
+        return ""
 
 def get_tutorial_case_dir() -> str:
     """Get the path to the tutorial case directory"""
@@ -250,6 +331,45 @@ def get_tutorial_case_dir() -> str:
         "simpleFoam",
         "pitzDaily"
     )
+
+def debug_case_structure(case_dir: str):
+    """Debug the case directory structure"""
+    print(f"\n🔍 Debugging case structure: {case_dir}")
+    
+    if not os.path.exists(case_dir):
+        print("❌ Case directory does not exist")
+        return
+    
+    required_paths = [
+        "system/controlDict",
+        "system/blockMeshDict", 
+        "system/fvSchemes",
+        "system/fvSolution",
+        "0/U",
+        "0/p",
+        "constant/polyMesh/blockMeshDict"
+    ]
+    
+    print("=== Required Files Check ===")
+    for path in required_paths:
+        full_path = os.path.join(case_dir, path)
+        exists = os.path.exists(full_path)
+        print(f"{'✅' if exists else '❌'} {path}")
+        if exists:
+            try:
+                size = os.path.getsize(full_path)
+                print(f"    Size: {size} bytes")
+            except:
+                print(f"    Could not get size")
+    
+    print("\n=== Directory Structure ===")
+    for root, dirs, files in os.walk(case_dir):
+        level = root.replace(case_dir, '').count(os.sep)
+        indent = ' ' * 2 * level
+        print(f"{indent}{os.path.basename(root)}/")
+        subindent = ' ' * 2 * (level + 1)
+        for file in files[:10]:  # Limit to first 10 files per directory
+            print(f"{subindent}{file}")
 
 def setup_tutorial_case() -> str:
     """Set up the tutorial case files if they don't exist
@@ -995,6 +1115,9 @@ def main():
             return 1
         
         print(f"📂 Using case directory: {case_dir}")
+
+        # DEBUG: Check case structure
+        debug_case_structure(case_dir)
         
         # Check Docker and pull image if needed
         image = "haldardhruv/ubuntu_noble_openfoam:v2412"
@@ -1024,11 +1147,9 @@ def main():
             print("⚠️  checkMesh reported issues with the mesh")
             # Continue execution even if checkMesh reports issues
         
-        # Run potentialFoam to initialize the flow field
-        print("\n🌊 Running potentialFoam for initial flow field...")
-        if not run_openfoam_command(image, "potentialFoam", case_dir, bashrc_path):
-            print("❌ potentialFoam failed")
-            return 1
+        # Skip potentialFoam for pitzDaily case - it's not needed and causes errors
+        print("\n⏭️  Skipping potentialFoam (not required for pitzDaily case)")
+        print("   The pitzDaily tutorial is designed to work with simpleFoam directly")
         
         # Run simpleFoam for the main simulation
         print("\n🚀 Running simpleFoam...")
@@ -1054,6 +1175,18 @@ def main():
         print(f"📂 Results are available in: {case_dir}")
         print("\n💡 You can visualize the results using ParaView or other OpenFOAM post-processing tools.")
         print(f"   The case directory contains all the simulation data: {case_dir}")
+
+        # Show what files were created
+        print("\n📁 Generated files:")
+        for root, dirs, files in os.walk(case_dir):
+            level = root.replace(case_dir, '').count(os.sep)
+            indent = ' ' * 2 * level
+            print(f"{indent}{os.path.basename(root)}/")
+            subindent = ' ' * 2 * (level + 1)
+            for file in files:
+                if file.endswith(('.obj', '.vtk', '.dat', '.xy')) or 'mag(U)' in file:
+                    print(f"{subindent}📊 {file}")
+
         return 0
 
     except KeyboardInterrupt:
