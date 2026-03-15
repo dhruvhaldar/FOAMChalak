@@ -21,15 +21,15 @@
 **Learning:** In heavily dynamic UI frameworks or vanilla JS applications, elements that are dynamically injected into the DOM (like the `.copyable-value` buttons in the Geometry and Mesh info panels) are often overlooked for basic accessibility styling compared to their static counterparts. Specifically, failing to include keyboard focus rings (`focus:outline-none focus:ring-2`) makes them invisible to keyboard-only users navigating the interface.
 **Action:** Always cross-reference the styles applied to interactive elements in static HTML with their equivalents generated in TypeScript/JavaScript template strings. Create a shared styling constant or strictly ensure focus-visible styles are manually added to all dynamically created buttons and links.
 
-## $(date +%Y-%m-%d) - [Decorative SVGs Accessibility]
+## 2026-03-15 - [Decorative SVGs Accessibility]
 **Learning:** Found that many `<svg>` icons used inside buttons and links lacked the `aria-hidden="true"` attribute. This causes screen readers to potentially read out meaningless or confusing descriptions for these SVG elements, when the parent button's text or `aria-label` is already sufficient.
 **Action:** Always add `aria-hidden="true"` to purely decorative `<svg>` elements inside interactive components to streamline the experience for screen reader users.
 
-## $(date +%Y-%m-%d) - Focus Rings for Primary Navigation and Custom Dropdowns
+## 2026-03-15 - Focus Rings for Primary Navigation and Custom Dropdowns
 **Learning:** Found that custom-built navigation elements (like the desktop and mobile nav bars) and custom dropdown menus often strip default browser focus rings without providing alternative `focus-visible` styling. This creates a severe accessibility barrier where keyboard-only users cannot perceive their current location within the main site navigation or menu options.
 **Action:** Ensure all navigation buttons (`nav-btn`), custom dropdown items (`role="menuitem"`), and dialog close buttons explicitly define focus-visible styling (e.g., `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500`) to guarantee keyboard accessibility.
 
-## $(date +%Y-%m-%d) - Focus Rings for Secondary Inputs and Advanced Settings
+## 2026-03-15 - Focus Rings for Secondary Inputs and Advanced Settings
 **Learning:** In complex configuration panels like Advanced Settings or Meshing settings, inputs (like docker image versions, shm location vectors, custom VTK file browsers) and secondary action buttons (`setRootBtn`, `setDockerConfigBtn`) often miss standard keyboard focus outlines compared to primary forms. This creates a confusing experience for power users navigating via keyboard.
 **Action:** Consistently apply standardized focus utility classes (e.g. `focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500`) to all form inputs and interactive elements, even those buried in collapsible details menus or secondary tabs.
 ## 2026-04-01 - Add missing aria-labels to select elements
@@ -43,3 +43,7 @@
 ## 2026-04-03 - Focus Rings for Hidden-Until-Hover Overlay Buttons
 **Learning:** Found that interactive overlay buttons (like Plotly download options "CSV/PNG" and 3D viewer camera controls) which are visually hidden until hover (`opacity-0 group-hover:opacity-100`) often lack explicit focus rings. While they do become visually apparent via `focus:opacity-100` or `focus-within:opacity-100` when tabbed to, the keyboard user has no visual indication of *which* specific button currently holds focus within the newly visible group because the browser's default focus ring was either overridden or insufficient against the button's background.
 **Action:** Consistently add explicit focus rings (e.g., `focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1`) to all hidden-until-hover overlay buttons to ensure keyboard users can track their exact position within the revealed element group.
+
+## 2026-03-15 - [Required Form Field Indicators]
+**Learning:** Found that some required configuration inputs (specifically the vector inputs like `bmMin`, `bmMax`, `bmCells`, `bmGrading`, and `shmLocation` in the Meshing tab) lacked visual "required" indicators, despite being strictly validated by the frontend (`validateVector3` helper). This creates a disjointed experience where users only learn a field is required after attempting an action.
+**Action:** Consistently include a red asterisk (`<span class="text-red-500" title="Required">*</span>`) inside the `<label>` of any form input that is mandatory for the current operation, ensuring users understand requirements upfront.

@@ -938,14 +938,14 @@
           <div id="blockMeshSection" class="block space-y-3">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-900">Bounds (Min / Max)</label>
+                <label class="block text-sm font-medium text-gray-900">Bounds (Min / Max) <span class="text-red-500" title="Required">*</span></label>
                 <div class="grid grid-cols-2 gap-2">
                   <input type="text" id="bmMin" placeholder="-1 -1 -1" aria-describedby="bmBoundsHelp"
-                    spellcheck="false" autocorrect="off" autocapitalize="off"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     aria-label="BlockMesh Min Bounds" />
                   <input type="text" id="bmMax" placeholder="1 1 1" aria-describedby="bmBoundsHelp"
-                    spellcheck="false" autocorrect="off" autocapitalize="off"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     aria-label="BlockMesh Max Bounds" />
                 </div>
@@ -958,18 +958,18 @@
                 </button>
               </div>
               <div>
-                <label for="bmCells" class="block text-sm font-medium text-gray-900">Cells (x y z)</label>
+                <label for="bmCells" class="block text-sm font-medium text-gray-900">Cells (x y z) <span class="text-red-500" title="Required">*</span></label>
                 <input type="text" id="bmCells" value="20 20 20" aria-describedby="bmCellsHelp"
-                  spellcheck="false" autocorrect="off" autocapitalize="off"
+                  spellcheck="false" autocorrect="off" autocapitalize="off" required
                   class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                 <p id="bmCellsHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                   Format: 20 20 20 (Space-separated integers)
                 </p>
               </div>
               <div>
-                <label for="bmGrading" class="block text-sm font-medium text-gray-900">Grading (x y z)</label>
+                <label for="bmGrading" class="block text-sm font-medium text-gray-900">Grading (x y z) <span class="text-red-500" title="Required">*</span></label>
                 <input type="text" id="bmGrading" value="1 1 1" aria-describedby="bmGradingHelp"
-                  spellcheck="false" autocorrect="off" autocapitalize="off"
+                  spellcheck="false" autocorrect="off" autocapitalize="off" required
                   class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                 <p id="bmGradingHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                   Format: 1 1 1 (Space-separated expansion ratios)
@@ -1020,9 +1020,9 @@
                 </div>
                 <div class="mt-3">
                   <label for="shmLocation" class="block text-sm font-medium text-gray-900">Location In Mesh (x y
-                    z)</label>
+                    z) <span class="text-red-500" title="Required">*</span></label>
                   <input type="text" id="shmLocation" value="0 0 0" class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    spellcheck="false" autocorrect="off" autocapitalize="off"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     placeholder="e.g. 0.1 0.1 0.1" aria-describedby="shmLocationHelp" />
                   <p id="shmLocationHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                     Point inside the mesh region (Space-separated)
