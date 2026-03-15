@@ -551,7 +551,10 @@
         <div class="mt-4 space-y-4 pl-2">
           <!-- Case Directory -->
           <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label for="caseDir" class="w-32 font-medium text-gray-900">Case Root:</label>
+            <label for="caseDir" class="w-32 font-medium text-gray-900">
+              Case Root
+              <span class="text-red-500" title="Required">*</span>:
+            </label>
             <div class="relative flex-1">
               <input type="text" id="caseDir" name="caseDir" placeholder="e.g. /home/user/openfoam/run/my_case"
                 spellcheck="false" autocorrect="off" autocapitalize="off"
