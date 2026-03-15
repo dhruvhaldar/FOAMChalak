@@ -727,9 +727,10 @@ class IsosurfaceVisualizer:
                 u_mag = self.mesh.point_data["U_Magnitude"]
                 # ⚡ Bolt Optimization: Batch percentile calculation to avoid repeated sorting/partitioning of large arrays
                 p0, p25, p50, p75, p100 = np.percentile(u_mag, [0, 25, 50, 75, 100])
+                # ⚡ Bolt Optimization: Reuse p0 and p100 for min and max to avoid redundant O(N) array passes
                 mesh_info["u_magnitude"] = {
-                    "min": float(np.min(u_mag)),
-                    "max": float(np.max(u_mag)),
+                    "min": float(p0),
+                    "max": float(p100),
                     "mean": float(np.mean(u_mag)),
                     "std": float(np.std(u_mag)),
                     "percentiles": {
@@ -906,10 +907,11 @@ class IsosurfaceVisualizer:
                 else:
                     # ⚡ Bolt Optimization: Batch percentile calculation to avoid repeated sorting/partitioning of large arrays
                     p0, p25, p50, p75, p100 = np.percentile(data, [0, 25, 50, 75, 100])
+                    # ⚡ Bolt Optimization: Reuse p0 and p100 for min and max to avoid redundant O(N) array passes
                     result[field] = {
                         "type": "scalar",
-                        "min": float(np.min(data)),
-                        "max": float(np.max(data)),
+                        "min": float(p0),
+                        "max": float(p100),
                         "mean": float(np.mean(data)),
                         "std": float(np.std(data)),
                         "percentiles": {

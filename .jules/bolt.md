@@ -41,3 +41,7 @@
 ## 2025-03-14 - Replace path.exists() LBYL with EAFP for file creation
 **Learning:** Checking `path.exists()` immediately before opening and writing to a file (LBYL pattern) causes redundant file system calls (`stat` followed by `open`). This is inefficient, especially when generating many default configuration files during initialization.
 **Action:** Replace `if not path.exists(): write(...)` checks with an "Easier to Ask for Forgiveness than Permission" (EAFP) approach using `open(path, 'x')` (exclusive creation). Catch and ignore the `FileExistsError`. This reduces file operations by combining the existence check and open operation into a single atomic system call.
+
+## 2025-05-18 - Reuse percentiles for min and max calculations
+**Learning:** Calling `np.min` and `np.max` immediately before or after computing `np.percentile` with 0 and 100 percentiles is redundant and causes unnecessary O(N) passes over the array. The 0th and 100th percentiles returned by `np.percentile(data, [0, ..., 100])` are mathematically identical to the min and max.
+**Action:** Replace `np.min(data)` and `np.max(data)` calls with the already-computed `p0` and `p100` values from the `np.percentile` tuple unpacking to save redundant array traversals on large arrays.
