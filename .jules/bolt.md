@@ -45,3 +45,11 @@
 ## 2025-05-18 - Reuse percentiles for min and max calculations
 **Learning:** Calling `np.min` and `np.max` immediately before or after computing `np.percentile` with 0 and 100 percentiles is redundant and causes unnecessary O(N) passes over the array. The 0th and 100th percentiles returned by `np.percentile(data, [0, ..., 100])` are mathematically identical to the min and max.
 **Action:** Replace `np.min(data)` and `np.max(data)` calls with the already-computed `p0` and `p100` values from the `np.percentile` tuple unpacking to save redundant array traversals on large arrays.
+
+## 2026-03-22 - Optimize PyVista Data Range Calculation
+**Learning:** Extracting a NumPy array from a PyVista `DataSet` (e.g., `self.mesh.point_data[field]`) and calling `np.min()` and `np.max()` on it incurs overhead from moving data into Python and executing two separate O(N) linear scans. Using PyVista's built-in `mesh.get_data_range(field)` leverages VTK's optimized C++ backend to compute the bounds in a single pass without copying data to Python, improving performance.
+**Action:** Replace `np.min()` and `np.max()` operations on full PyVista mesh data arrays with `mesh.get_data_range(field)` when calculating data bounds.
+
+## 2026-03-22 - Do Not Replace Fast Linear Scans with Percentiles
+**Learning:** Replacing fast, O(N) linear scans like `np.min()` and `np.max()` with `np.percentile(..., [0, 100])` is a significant performance anti-pattern. Percentile calculations require partial sorting algorithms (like Introselect), which have a much higher constant factor and computational overhead than simple min/max traversals.
+**Action:** Never use `np.percentile` solely as a replacement for finding minimum and maximum values in an array; stick to `np.min()` and `np.max()` unless other percentiles are explicitly required by the API.

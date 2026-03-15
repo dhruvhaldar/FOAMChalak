@@ -789,10 +789,11 @@ class IsosurfaceVisualizer:
                 f"Generating isosurfaces for field: {scalar_field}"
             )
 
-            # Get the scalar data
-            scalars = self.mesh.point_data[scalar_field]
-            min_val = float(np.min(scalars))
-            max_val = float(np.max(scalars))
+            # ⚡ Bolt Optimization: Use VTK's optimized C++ get_data_range() instead of dual NumPy O(N) passes
+            # This avoids fetching the array into Python and computes min/max simultaneously.
+            _min, _max = self.mesh.get_data_range(scalar_field)
+            min_val = float(_min)
+            max_val = float(_max)
 
             # Determine isovalues to use
             if isovalues is not None:
