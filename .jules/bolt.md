@@ -53,3 +53,11 @@
 ## 2026-03-22 - Do Not Replace Fast Linear Scans with Percentiles
 **Learning:** Replacing fast, O(N) linear scans like `np.min()` and `np.max()` with `np.percentile(..., [0, 100])` is a significant performance anti-pattern. Percentile calculations require partial sorting algorithms (like Introselect), which have a much higher constant factor and computational overhead than simple min/max traversals.
 **Action:** Never use `np.percentile` solely as a replacement for finding minimum and maximum values in an array; stick to `np.min()` and `np.max()` unless other percentiles are explicitly required by the API.
+
+## 2026-03-24 - Optimize min and max calculations using get_data_range
+**Learning:** Extracting a NumPy array from a PyVista `DataSet` (e.g., `self.mesh.point_data[field]`) and calling `np.percentile([0, ..., 100])` or `np.min()`/`np.max()` on it incurs overhead from moving data into Python and executing separate O(N) linear scans. Using PyVista's built-in `mesh.get_data_range(field)` leverages VTK's optimized C++ backend to compute the bounds much faster.
+**Action:** Replace `np.percentile(data, [0, 25, 50, 75, 100])` with `np.percentile(data, [25, 50, 75])` for the inner percentiles and use `mesh.get_data_range(field)` to fetch exact minimum and maximum bounds. For vector fields, temporarily assign calculated magnitude arrays to the mesh point data to utilize `get_data_range` directly before removing them.
+
+## 2026-03-24 - Do not inject numpy arrays into pyvista meshes for min max calculation
+**Learning:** Injecting standalone computed NumPy arrays temporarily into PyVista mesh `point_data` solely to utilize `get_data_range()` is an anti-pattern due to VTK object synchronization overhead.
+**Action:** Use `get_data_range()` only for pre-existing mesh fields, and fallback to `np.min()`/`np.max()` for standalone computed NumPy arrays.

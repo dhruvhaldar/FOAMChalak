@@ -725,20 +725,26 @@ class IsosurfaceVisualizer:
             # Add velocity magnitude statistics if available
             if "U_Magnitude" in self.mesh.point_data:
                 u_mag = self.mesh.point_data["U_Magnitude"]
-                # ⚡ Bolt Optimization: Batch percentile calculation to avoid repeated sorting/partitioning of large arrays
-                p0, p25, p50, p75, p100 = np.percentile(u_mag, [0, 25, 50, 75, 100])
+
+                # ⚡ Bolt Optimization: Replace np.percentile with get_data_range for faster min/max calculation
+                _min, _max = self.mesh.get_data_range("U_Magnitude")
+                p0, p100 = float(_min), float(_max)
+
+                # ⚡ Bolt Optimization: Only calculate inner percentiles, reducing sorting overhead
+                p25, p50, p75 = np.percentile(u_mag, [25, 50, 75])
+
                 # ⚡ Bolt Optimization: Reuse p0 and p100 for min and max to avoid redundant O(N) array passes
                 mesh_info["u_magnitude"] = {
-                    "min": float(p0),
-                    "max": float(p100),
+                    "min": p0,
+                    "max": p100,
                     "mean": float(np.mean(u_mag)),
                     "std": float(np.std(u_mag)),
                     "percentiles": {
-                        "0": float(p0),
+                        "0": p0,
                         "25": float(p25),
                         "50": float(p50),
                         "75": float(p75),
-                        "100": float(p100),
+                        "100": p100,
                     },
                 }
 
@@ -906,21 +912,26 @@ class IsosurfaceVisualizer:
                         },
                     }
                 else:
-                    # ⚡ Bolt Optimization: Batch percentile calculation to avoid repeated sorting/partitioning of large arrays
-                    p0, p25, p50, p75, p100 = np.percentile(data, [0, 25, 50, 75, 100])
+                    # ⚡ Bolt Optimization: Use get_data_range for faster min/max
+                    _min, _max = self.mesh.get_data_range(field)
+                    p0, p100 = float(_min), float(_max)
+
+                    # ⚡ Bolt Optimization: Only calculate inner percentiles, reducing sorting overhead
+                    p25, p50, p75 = np.percentile(data, [25, 50, 75])
+
                     # ⚡ Bolt Optimization: Reuse p0 and p100 for min and max to avoid redundant O(N) array passes
                     result[field] = {
                         "type": "scalar",
-                        "min": float(p0),
-                        "max": float(p100),
+                        "min": p0,
+                        "max": p100,
                         "mean": float(np.mean(data)),
                         "std": float(np.std(data)),
                         "percentiles": {
-                            "0": float(p0),
+                            "0": p0,
                             "25": float(p25),
                             "50": float(p50),
                             "75": float(p75),
-                            "100": float(p100),
+                            "100": p100,
                         },
                     }
 
