@@ -47,3 +47,7 @@
 ## 2026-03-15 - [Required Form Field Indicators]
 **Learning:** Found that some required configuration inputs (specifically the vector inputs like `bmMin`, `bmMax`, `bmCells`, `bmGrading`, and `shmLocation` in the Meshing tab) lacked visual "required" indicators, despite being strictly validated by the frontend (`validateVector3` helper). This creates a disjointed experience where users only learn a field is required after attempting an action.
 **Action:** Consistently include a red asterisk (`<span class="text-red-500" title="Required">*</span>`) inside the `<label>` of any form input that is mandatory for the current operation, ensuring users understand requirements upfront.
+
+## 2026-04-04 - [Refresh Button ARIA-Busy State]
+**Learning:** Found that while the application's refresh buttons visually disabled themselves and displayed a spinner, they were missing the standard `aria-busy="true"` attribute during their async loading state. This prevented screen readers from correctly announcing that the related section was updating. Additionally, some refresh buttons (like the `resourceGeometrySelect` refresh) were missing the standardized "Refreshing..." text, causing inconsistency in user feedback.
+**Action:** For all refresh buttons, ensure that `aria-busy="true"` is applied when loading and removed in the `finally` block, and verify that the HTML spinner includes standardized text (e.g., "Refreshing...").
