@@ -1917,7 +1917,7 @@
       <div id="post-landing-view" class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <!-- Contour Card (Active) -->
         <button id="card-contour" onclick="switchPostView('contour')"
-          class="glass-panel p-4 text-left hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group border border-cyan-200 bg-white/40 flex flex-col h-full">
+          class="glass-panel p-4 text-left hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group border border-cyan-200 bg-white/40 flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:border-transparent">
           <div class="flex items-start justify-between mb-3">
             <div
               class="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-700 group-hover:text-white transition-colors duration-300">
@@ -1939,7 +1939,7 @@
         </button>
 
         <!-- Slice Card (Coming Soon) -->
-        <div
+        <div title="Feature coming soon" aria-disabled="true"
           class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
@@ -1959,7 +1959,7 @@
         </div>
 
         <!-- Streamline Card (Coming Soon) -->
-        <div
+        <div title="Feature coming soon" aria-disabled="true"
           class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
@@ -1978,7 +1978,7 @@
         </div>
 
         <!-- Surface Projection Card (Coming Soon) -->
-        <div
+        <div title="Feature coming soon" aria-disabled="true"
           class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
@@ -2288,7 +2288,7 @@
         You need to select or create a case to access Geometry, Meshing, and Simulation tools.
       </p>
       <button onclick="switchPage('setup')"
-        class="bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-500/30 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 inline-flex items-center gap-2">
+        class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 inline-flex items-center gap-2">
         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
@@ -2330,26 +2330,26 @@
           <div class="text-xs mt-1 text-black font-medium">
             Licensed under
             <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
-              class="text-black underline decoration-cyan-700 hover:text-cyan-900">GNU GPLv3</a>
+              class="text-black underline decoration-cyan-700 hover:text-cyan-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">GNU GPLv3</a>
           </div>
         </div>
         <div class="flex items-center space-x-4">
           <span>Powered by:</span>
 
           <a href="https://pyvista.org/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors">
+            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Pyvista-logo.avif') }}" alt="PyVista" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
           <a href="https://plotly.com/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors">
+            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Plotly-logo.avif') }}" alt="Plotly" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
           <a href="https://docker.com/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-600 hover:text-cyan-800 transition-colors">
+            class="flex items-center text-cyan-600 hover:text-cyan-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/docker-logo.avif') }}" alt="Docker" class="h-8 w-auto" />
           </a>
         </div>
