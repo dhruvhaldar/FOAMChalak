@@ -968,10 +968,10 @@ class IsosurfaceVisualizer:
 
             path = Path(self.current_mesh_path).resolve()
 
-            if not path.exists():
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
                 raise ValueError(f"Mesh file no longer exists: {path}")
-
-            mtime = path.stat().st_mtime
 
             # ⚡ Bolt Optimization: Caching logic
             # Create a cache key based on all parameters
