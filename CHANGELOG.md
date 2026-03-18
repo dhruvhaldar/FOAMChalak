@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial CHANGELOG.md file to track project changes
+- Additional OpenFOAM solver support
+- Enhanced mesh quality analysis
+- Batch simulation capabilities
+- Remote case management
+- Advanced post-processing tools
+- Export capabilities for plots and data
+- User authentication and multi-user support
+- WebSocket support for improved real-time updates
 
 ---
 
@@ -50,8 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Pull request template
 
 ### Technical Stack
-- **Backend**: Flask 3.1.2, Python 3.8+
-- **Frontend**: Tailwind CSS 3.1.6, Plotly.js for interactive plots
+- **Backend**: Flask 3.1.3, Python 3.13+
+- **Frontend**: Tailwind CSS 3.1.6, Plotly.js 3.3.1 for interactive plots
 - **Visualization**: PyVista 0.46.4, VTK 9.5.2, trame for 3D rendering
 - **OpenFOAM**: Compatible with OpenFOAM 2506 (adjustable for other versions)
 - **Additional libraries**: 
@@ -81,19 +89,7 @@ FOAMFlask/
 
 ---
 
-## Future Enhancements
 
-### Planned Features
-- Additional OpenFOAM solver support
-- Enhanced mesh quality analysis
-- Batch simulation capabilities
-- Remote case management
-- Advanced post-processing tools
-- Export capabilities for plots and data
-- User authentication and multi-user support
-- WebSocket support for improved real-time updates
-
----
 
 [Unreleased]: https://github.com/dhruvhaldar/FOAMFlask/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/dhruvhaldar/FOAMFlask/releases/tag/v0.1.0
