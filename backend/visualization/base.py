@@ -63,10 +63,6 @@ class BaseVisualizer:
                 logger.error(f"Security: Invalid file extension: {ext}")
                 return None
 
-            if not path.exists():
-                logger.error(f"File not found: {path}")
-                return None
-
             return path
         except Exception as e:
             logger.error(f"Error validating file: {e}")
