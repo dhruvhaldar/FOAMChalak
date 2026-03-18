@@ -3547,6 +3547,16 @@ const updateMeshView = async () => {
   const color = (document.getElementById("meshColor") as HTMLSelectElement)?.value ?? "lightblue";
   const cameraPosition = (document.getElementById("cameraPosition") as HTMLSelectElement)?.value || null;
 
+  const btn = document.getElementById("updateViewBtn") as HTMLButtonElement | null;
+  let originalText = "";
+
+  if (btn) {
+    originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+    btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Updating...`;
+  }
+
   try {
     const res = await fetch("/api/mesh_screenshot", {
       method: "POST",
@@ -3568,7 +3578,16 @@ const updateMeshView = async () => {
       document.getElementById("meshControls")?.classList.remove("hidden");
       document.getElementById("meshActionButtons")?.classList.add("hidden");
     }
-  } catch (e) { }
+  } catch (e) {
+    console.error("Error updating mesh view:", e);
+    showNotification("Failed to update mesh view", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.removeAttribute("aria-busy");
+      btn.innerHTML = originalText;
+    }
+  }
 };
 
 function displayMeshInfo(meshInfo: {
