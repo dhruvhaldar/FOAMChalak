@@ -106,7 +106,7 @@ dependencies = [
     "stack-data==0.6.3",
     "stevedore==5.6.0",
     "termcolor==3.2.0",
-    "tornado==6.5.2",
+    "tornado==6.5.5",
     "tqdm==4.67.1",
     "traitlets==5.14.3",
     "traittypes==0.2.3",
