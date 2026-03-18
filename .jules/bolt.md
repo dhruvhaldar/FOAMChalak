@@ -61,3 +61,7 @@
 ## 2026-03-24 - Do not inject numpy arrays into pyvista meshes for min max calculation
 **Learning:** Injecting standalone computed NumPy arrays temporarily into PyVista mesh `point_data` solely to utilize `get_data_range()` is an anti-pattern due to VTK object synchronization overhead.
 **Action:** Use `get_data_range()` only for pre-existing mesh fields, and fallback to `np.min()`/`np.max()` for standalone computed NumPy arrays.
+
+## 2026-03-24 - Remove Redundant path.exists() in BaseVisualizer
+**Learning:** The \`BaseVisualizer.validate_file\` method called \`path.exists()\` before returning the path, resulting in a redundant \`stat\` system call since all callers immediately called \`path.stat()\` to check for cache invalidation.
+**Action:** Removed \`path.exists()\` from \`validate_file\` and ensured all callers use an "Easier to Ask for Forgiveness than Permission" (EAFP) approach by catching \`OSError\` on the subsequent \`path.stat()\` call.

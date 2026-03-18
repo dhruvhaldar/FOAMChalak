@@ -69,7 +69,10 @@ class MeshVisualizer(BaseVisualizer):
                 raise FileNotFoundError(f"Mesh file not found or invalid: {file_path}")
 
             path_str = str(path)
-            mtime = path.stat().st_mtime
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                raise FileNotFoundError(f"Mesh file not found or invalid: {file_path}")
 
             # ⚡ Bolt Optimization: Cache Check
             if (
@@ -138,7 +141,10 @@ class MeshVisualizer(BaseVisualizer):
             if not path:
                 return None
 
-            mtime = path.stat().st_mtime
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                return None
 
             # ⚡ Bolt Optimization: Check screenshot cache
             h_color = tuple(color) if isinstance(color, list) else color

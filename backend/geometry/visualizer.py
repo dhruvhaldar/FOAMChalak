@@ -165,6 +165,10 @@ class GeometryVisualizer(BaseVisualizer):
             # ⚡ Bolt Optimization: Caching
             try:
                 mtime = path.stat().st_mtime
+            except OSError:
+                return None
+
+            try:
                 cache_key_str = f"{str(path)}_{mtime}_{color}_{opacity}_{optimize}"
                 cache_key = hashlib.sha256(cache_key_str.encode()).hexdigest()
 
@@ -250,14 +254,18 @@ class GeometryVisualizer(BaseVisualizer):
             if not path:
                 return {"success": False, "error": "Invalid file"}
 
-            # ⚡ Bolt Optimization: Check in-memory cache
             try:
                 mtime = path.stat().st_mtime
+            except OSError:
+                return {"success": False, "error": "Failed to load mesh"}
+
+            # ⚡ Bolt Optimization: Check in-memory cache
+            try:
                 cache_key = (str(path), mtime)
                 if cache_key in _MESH_INFO_CACHE:
                     _MESH_INFO_CACHE.move_to_end(cache_key)
                     return _MESH_INFO_CACHE[cache_key]
-            except OSError:
+            except Exception:
                 pass
 
             mesh = self.load_mesh_safe(path)
