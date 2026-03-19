@@ -54,3 +54,7 @@
 ## 2025-05-23 - Focus Rings for Secondary & Interactive Cards
 **Learning:** External links in footers, empty state action buttons, and large interactive components functioning as cards (like the Contour configuration card) are frequently styled for mouse interaction (e.g., hover colors) but overlook explicit keyboard focus states. Without properly defined `focus-visible` or `focus:ring-2` utility classes, keyboard-only users lose track of their position or cannot perceive that these crucial elements are operable.
 **Action:** Always apply `focus-visible` utility classes (like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm`) to all `<a>` tags (including image links) and large clickable components. Ensure buttons with custom rings also define `focus:outline-none` to prevent double-focus rings.
+
+## 2026-04-05 - [Missing Focus Ring on Icon-Only Back Buttons]
+**Learning:** Icon-only navigation buttons within view transitions (like the back button in Post Processing) often lack explicit focus rings. While they receive hover styles, keyboard users cannot perceive when these elements receive focus, hindering navigation out of nested views.
+**Action:** Always ensure that icon-only buttons include focus visible utility classes (e.g., `focus:outline-none focus:ring-2 focus:ring-cyan-500`) to guarantee keyboard accessibility.
