@@ -65,3 +65,7 @@
 ## 2026-03-24 - Remove Redundant path.exists() in BaseVisualizer
 **Learning:** The \`BaseVisualizer.validate_file\` method called \`path.exists()\` before returning the path, resulting in a redundant \`stat\` system call since all callers immediately called \`path.stat()\` to check for cache invalidation.
 **Action:** Removed \`path.exists()\` from \`validate_file\` and ensured all callers use an "Easier to Ask for Forgiveness than Permission" (EAFP) approach by catching \`OSError\` on the subsequent \`path.stat()\` call.
+
+## 2026-03-30 - Replace np.mean with generator and sum for Python lists
+**Learning:** When calculating the mean of an intermediate Python list containing primitive numbers or strings (e.g., `[float(n) for n in numbers_list]`), using `float(np.mean([float(n) for n in numbers_list]))` allocates an intermediate Python list and incurs the significant overhead of converting that list to a NumPy array for calculation.
+**Action:** Replace `float(np.mean(...))` with a generator expression evaluated by `sum()` divided by `len()` (`sum(float(n) for n in numbers_list) / len(numbers_list)`). This avoids allocating intermediate lists and bypassing the costly NumPy C-API conversion, making it substantially faster for typical Python lists.
