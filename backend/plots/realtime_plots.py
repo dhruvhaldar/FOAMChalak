@@ -558,7 +558,8 @@ class OpenFOAMFieldParser:
                             field_data = match.group(1)
                             numbers_list = _RE_NUMBERS_FINDALL.findall(field_data)
                             if numbers_list:
-                                val = float(np.mean([float(n) for n in numbers_list]))
+                                # ⚡ Bolt Optimization: Use sum/len generator to avoid O(N) list allocation and NumPy C-API overhead
+                                val = sum(float(n) for n in numbers_list) / len(numbers_list)
                 except (FileNotFoundError, OSError):
                     pass
 
