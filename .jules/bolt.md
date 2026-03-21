@@ -69,3 +69,6 @@
 ## 2026-03-30 - Replace np.mean with generator and sum for Python lists
 **Learning:** When calculating the mean of an intermediate Python list containing primitive numbers or strings (e.g., `[float(n) for n in numbers_list]`), using `float(np.mean([float(n) for n in numbers_list]))` allocates an intermediate Python list and incurs the significant overhead of converting that list to a NumPy array for calculation.
 **Action:** Replace `float(np.mean(...))` with a generator expression evaluated by `sum()` divided by `len()` (`sum(float(n) for n in numbers_list) / len(numbers_list)`). This avoids allocating intermediate lists and bypassing the costly NumPy C-API conversion, making it substantially faster for typical Python lists.
+## 2026-03-31 - [Optimize File Filtering with Specific rglob]
+**Learning:** When retrieving specific file types in large nested directories (e.g., OpenFOAM case folders), chaining specific glob patterns via `itertools.chain(path.rglob("*.ext1"), path.rglob("*.ext2"))` is significantly faster than using a wildcard `path.rglob("*")` followed by Python-level suffix filtering because it pushes filtering to the underlying OS/pathlib implementation.
+**Action:** Replace wildcard `rglob("*")` with chained specific `rglob("*.ext")` calls when searching for specific file extensions in large directories.
