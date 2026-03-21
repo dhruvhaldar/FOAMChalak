@@ -139,7 +139,8 @@ def _run_trame_process(mesh_path: str, params: Dict, port_queue: multiprocessing
          rng = mesh.get_data_range(scalar_field)
          
          # Initial value (center of range or from params)
-         initial_isovalue = params.get("isovalues", [np.mean(rng)])[0]
+         # ⚡ Bolt Optimization: Avoid np.mean on 2-element tuple to prevent unnecessary array instantiation
+         initial_isovalue = params.get("isovalues", [(rng[0] + rng[1]) / 2.0])[0]
          # Clamp initial value to range
          initial_isovalue = max(rng[0], min(rng[1], initial_isovalue))
 

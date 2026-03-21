@@ -2885,8 +2885,9 @@ def upload_vtk() -> Union[Response, Tuple[Response, int]]:
     finally:
         # Clean up the temporary file
         try:
-            if "filepath" in locals() and filepath.exists():
-                filepath.unlink()
+            # ⚡ Bolt Optimization: Use missing_ok=True instead of exists() to avoid redundant stat syscall
+            if "filepath" in locals():
+                filepath.unlink(missing_ok=True)
         except Exception as e:
             logger.error(f"Error cleaning up file {filepath}: {e}")
 
