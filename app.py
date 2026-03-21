@@ -2677,14 +2677,18 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
                     400,
                 )
         else:
+            import itertools
             # Fallback: Find latest VTK file
             logger.info(
                 f"[FOAMFlask] [create_contour] Searching for VTK files in {case_dir}"
             )
-            vtk_files = []
-            for file in case_dir.rglob("*"):
-                if file.suffix in [".vtk", ".vtp", ".vtu"]:
-                    vtk_files.append(str(file))
+            vtk_files = [
+                str(f) for f in itertools.chain(
+                    case_dir.rglob("*.vtk"),
+                    case_dir.rglob("*.vtp"),
+                    case_dir.rglob("*.vtu")
+                )
+            ]
 
             logger.info(
                 f"[FOAMFlask] [create_contour] Found {len(vtk_files)} VTK files"
