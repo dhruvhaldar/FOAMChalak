@@ -1135,8 +1135,8 @@
                     <label for="shmObjLayers" class="block text-xs font-medium text-gray-900">Number of Surface
                       Layers</label>
                     <input type="number" id="shmObjLayers" min="0" max="10"
-                      class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()" />
-                    <p class="text-xs text-gray-900 mt-1">
+                      class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()" aria-describedby="shmObjLayersHelp" />
+                    <p id="shmObjLayersHelp" class="text-xs text-gray-900 mt-1" aria-live="polite" aria-atomic="true">
                       Requires "Add Layers" to be enabled globally.
                     </p>
                   </div>
