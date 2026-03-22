@@ -138,6 +138,16 @@ pkill -f "uv run app.py"; sleep 1; uv run app.py > app_output.log 2>&1 &
    - Plots update every 2 seconds.
    - For aerodynamic cases, click "Show Aero Plots" to see Pressure Coefficient (Cp) and Velocity Profiles.
 
+9. **Keyboard Shortcuts**:
+   - Use access keys to quickly navigate between tabs. The combination depends on your browser and OS (e.g., `Alt` + `Shift` + `Key` on Windows Firefox).
+   - `s`: Setup
+   - `g`: Geometry
+   - `m`: Meshing
+   - `v`: Visualizer
+   - `r`: Run/Log
+   - `p`: Plots
+   - `o`: Post
+
 ---
 
 ## <span style="color:blue">Stage 4 : Development</span>
