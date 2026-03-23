@@ -72,3 +72,11 @@
 ## 2026-03-31 - [Optimize File Filtering with Specific rglob]
 **Learning:** When retrieving specific file types in large nested directories (e.g., OpenFOAM case folders), chaining specific glob patterns via `itertools.chain(path.rglob("*.ext1"), path.rglob("*.ext2"))` is significantly faster than using a wildcard `path.rglob("*")` followed by Python-level suffix filtering because it pushes filtering to the underlying OS/pathlib implementation.
 **Action:** Replace wildcard `rglob("*")` with chained specific `rglob("*.ext")` calls when searching for specific file extensions in large directories.
+
+## 2026-04-01 - Avoid Over-Optimizing Small Rate Limiter Arrays
+**Learning:** The `history` list for a rate-limiter is typically extremely small (bounded by limits like 5-100 requests per minute). Optimizing filtering logic on arrays of this size from O(N) linear scans to O(log N) binary search yields no measurable performance improvement, adds unnecessary cognitive overhead, and fails the core philosophy of avoiding premature micro-optimizations.
+**Action:** Do not use `bisect` or other advanced searching algorithms when the maximum array size is strictly bounded to a negligible size by design (like a rate limit window). Stick to simple, readable list comprehensions.
+
+## 2026-04-02 - Optimize Array Percentile Calculations with Striding
+**Learning:** Calculating percentiles (`np.percentile`) on large arrays (e.g., PyVista mesh point data with millions of elements) is an O(N log N) operation that forces partial sorting, consuming significant CPU time. For visualization statistics where inner percentiles (e.g., 25, 50, 75) are used to suggest color map ranges, exact precision down to the last element is not required.
+**Action:** When computing inner percentiles on large data arrays for visualization, downsample the array first by taking a strided slice (e.g., `data[::max(1, len(data) // 10000)]`). This provides an extremely fast, zero-copy, O(1) sample of ~10,000 points, reducing the percentile calculation time from hundreds of milliseconds to under a millisecond.
