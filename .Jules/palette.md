@@ -13,6 +13,7 @@
 ## 2025-06-12 - [Plotly Keyboard Accessibility]
 **Learning:** Plotly modebars (toolbars) are only visible on mouse hover by default (`.plot-container:hover .modebar`). This completely excludes keyboard-only and screen reader users from accessing critical interactive features like zoom, pan, and download.
 **Action:** Always append `:focus-within` to the hover CSS rules for Plotly modebars (e.g., `.plot-container:focus-within .modebar`) so that tabbing into the plot container forces the modebar to appear and become operable.
+
 ## 2026-03-01 - Added missing aria-labels to main action buttons
 **Learning:** Adding explicit aria-labels and descriptive titles to primarily icon-or-text action buttons (like 'Create Case', 'Update View', etc.) makes the UI significantly more accessible for screen readers without altering visual layout. Found that many key action buttons were missing comprehensive descriptions.
 **Action:** Always check form and primary interaction buttons for accessibility context beyond their visual text, especially in dynamic applications.
@@ -32,6 +33,7 @@
 ## 2026-03-15 - Focus Rings for Secondary Inputs and Advanced Settings
 **Learning:** In complex configuration panels like Advanced Settings or Meshing settings, inputs (like docker image versions, shm location vectors, custom VTK file browsers) and secondary action buttons (`setRootBtn`, `setDockerConfigBtn`) often miss standard keyboard focus outlines compared to primary forms. This creates a confusing experience for power users navigating via keyboard.
 **Action:** Consistently apply standardized focus utility classes (e.g. `focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500`) to all form inputs and interactive elements, even those buried in collapsible details menus or secondary tabs.
+
 ## 2026-04-01 - Add missing aria-labels to select elements
 **Learning:** Found that `<select>` elements used as configuration dropdowns (like Active Case, Tutorial Source, Available Geometries, etc.) often lacked `aria-label` attributes. This reduces accessibility for screen reader users since they would not be able to determine the purpose of the dropdown when focusing on it.
 **Action:** Always verify that all `<select>` form elements have explicit `aria-label`s describing their purpose or function.
@@ -51,6 +53,7 @@
 ## 2026-04-04 - [Refresh Button ARIA-Busy State]
 **Learning:** Found that while the application's refresh buttons visually disabled themselves and displayed a spinner, they were missing the standard `aria-busy="true"` attribute during their async loading state. This prevented screen readers from correctly announcing that the related section was updating. Additionally, some refresh buttons (like the `resourceGeometrySelect` refresh) were missing the standardized "Refreshing..." text, causing inconsistency in user feedback.
 **Action:** For all refresh buttons, ensure that `aria-busy="true"` is applied when loading and removed in the `finally` block, and verify that the HTML spinner includes standardized text (e.g., "Refreshing...").
+
 ## 2025-05-23 - Focus Rings for Secondary & Interactive Cards
 **Learning:** External links in footers, empty state action buttons, and large interactive components functioning as cards (like the Contour configuration card) are frequently styled for mouse interaction (e.g., hover colors) but overlook explicit keyboard focus states. Without properly defined `focus-visible` or `focus:ring-2` utility classes, keyboard-only users lose track of their position or cannot perceive that these crucial elements are operable.
 **Action:** Always apply `focus-visible` utility classes (like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm`) to all `<a>` tags (including image links) and large clickable components. Ensure buttons with custom rings also define `focus:outline-none` to prevent double-focus rings.
@@ -62,3 +65,7 @@
 ## 2026-04-05 - [Toast Notification Accessibility]
 **Learning:** Toast notifications dynamically injected into the DOM (like the application's `showNotification` function) may have a `role="alert"` or `role="status"`, but without an explicit `aria-live` attribute (`assertive` for errors, `polite` for info/success), some screen readers might not announce them reliably when they are appended to a container that doesn't inherently have a live region role.
 **Action:** Always pair `role="alert"` with `aria-live="assertive"` and `role="status"` with `aria-live="polite"` on dynamically created toast notifications to ensure consistent cross-browser and cross-screen-reader announcement.
+
+## 2026-04-06 - [Visible Keyboard Shortcut Hints]
+**Learning:** Found that while keyboard shortcuts (`accesskey`) were defined on the primary desktop navigation elements, they were completely hidden from the visual UI, appearing only inside HTML `title` attributes. Adding visually distinct, elegant `<kbd>` tags that appear on hover significantly improves shortcut discoverability for power users without cluttering the default view.
+**Action:** Always consider adding visual `<kbd>` hints for key functionality that has an `accesskey` defined, ensuring they are styled appropriately for the context (e.g., using `group-hover:opacity-100`).
