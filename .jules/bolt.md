@@ -80,3 +80,7 @@
 ## 2026-04-02 - Optimize Array Percentile Calculations with Striding
 **Learning:** Calculating percentiles (`np.percentile`) on large arrays (e.g., PyVista mesh point data with millions of elements) is an O(N log N) operation that forces partial sorting, consuming significant CPU time. For visualization statistics where inner percentiles (e.g., 25, 50, 75) are used to suggest color map ranges, exact precision down to the last element is not required.
 **Action:** When computing inner percentiles on large data arrays for visualization, downsample the array first by taking a strided slice (e.g., `data[::max(1, len(data) // 10000)]`). This provides an extremely fast, zero-copy, O(1) sample of ~10,000 points, reducing the percentile calculation time from hundreds of milliseconds to under a millisecond.
+
+## 2026-04-03 - Approximate Mean and Std Dev with Striding
+**Learning:** For visualization statistics like mean and standard deviation, exact precision isn't required down to the last element. Calculating exact `np.mean()` and `np.std()` on large PyVista mesh point arrays (e.g., millions of elements) incurs unnecessary O(N) overhead.
+**Action:** Downsample the array via striding first (e.g., `sample = data[::max(1, len(data) // 10000)]`) and compute the mean and standard deviation on the sample. This provides an extremely fast O(1) approximation that is virtually indistinguishable for visualization purposes while significantly reducing processing time on large datasets.
