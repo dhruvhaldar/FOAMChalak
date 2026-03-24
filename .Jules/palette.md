@@ -58,3 +58,7 @@
 ## 2026-04-05 - [Missing Focus Ring on Icon-Only Back Buttons]
 **Learning:** Icon-only navigation buttons within view transitions (like the back button in Post Processing) often lack explicit focus rings. While they receive hover styles, keyboard users cannot perceive when these elements receive focus, hindering navigation out of nested views.
 **Action:** Always ensure that icon-only buttons include focus visible utility classes (e.g., `focus:outline-none focus:ring-2 focus:ring-cyan-500`) to guarantee keyboard accessibility.
+
+## 2026-04-05 - [Toast Notification Accessibility]
+**Learning:** Toast notifications dynamically injected into the DOM (like the application's `showNotification` function) may have a `role="alert"` or `role="status"`, but without an explicit `aria-live` attribute (`assertive` for errors, `polite` for info/success), some screen readers might not announce them reliably when they are appended to a container that doesn't inherently have a live region role.
+**Action:** Always pair `role="alert"` with `aria-live="assertive"` and `role="status"` with `aria-live="polite"` on dynamically created toast notifications to ensure consistent cross-browser and cross-screen-reader announcement.
