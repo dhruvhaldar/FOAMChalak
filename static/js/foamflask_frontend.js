@@ -954,8 +954,10 @@ const showNotification = (message, type, duration = NOTIFY_DEFAULT)=>{
     // Set ARIA role for accessibility
     if (type === "error" || type === "warning") {
         notification.setAttribute("role", "alert");
+        notification.setAttribute("aria-live", "assertive");
     } else {
         notification.setAttribute("role", "status");
+        notification.setAttribute("aria-live", "polite");
     }
     // Set colors
     const colors = {
