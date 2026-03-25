@@ -1,10 +1,20 @@
-Write-Host "=== FOAMFlask Installer ===" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "███████╗ ██████╗  █████╗ ███╗   ███╗███████╗██╗      █████╗ ███████╗██╗  ██╗
+██╔════╝██╔═══██╗██╔══██╗████╗ ████║██╔════╝██║     ██╔══██╗██╔════╝██║ ██╔╝
+█████╗  ██║   ██║███████║██╔████╔██║█████╗  ██║     ███████║███████╗█████╔╝ 
+██╔══╝  ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  ██║     ██╔══██║╚════██║██╔═██╗ 
+██║     ╚██████╔╝██║  ██║██║ ╚═╝ ██║██║     ███████╗██║  ██║███████║██║  ██╗
+╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+                                                                            " -ForegroundColor Cyan
+Write-Host "GPLv3 License" -ForegroundColor Cyan
+Write-Host ""
 
 # Check for Winget
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Host "Error: 'winget' not found. Please ensure App Installer is installed from the Microsoft Store." -ForegroundColor Red
     exit 1
 }
+Write-Host "✓ Winget found" -ForegroundColor Green
 
 # 1. Check & Install System Tools
 
@@ -80,11 +90,13 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 
 # 3. Setup Python Environment
 Write-Host "Setting up Python environment with uv..." -ForegroundColor Cyan
-uv venv
+
+uv venv --clear
+
 Write-Host "Created virtual environment with uv" -ForegroundColor Green
 
 Write-Host "Installing Python dependencies with uv..."
-uv sync
+uv sync --link-mode copy
 
 # Install Rust Accelerator
 if (Test-Path "backend/accelerator") {
@@ -103,7 +115,7 @@ pnpm install
 pnpm run build
 
 # 5. Launch Application
-Write-Host "=== Installation Complete! ===" -ForegroundColor Cyan
+Write-Host "Installation Complete!" -ForegroundColor Cyan
 Write-Host "Starting FOAMFlask..." -ForegroundColor Green
 Write-Host "Access the app at: http://localhost:5000"
 
