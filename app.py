@@ -630,6 +630,16 @@ def run_startup_check() -> None:
         STARTUP_STATUS["message"] = f"Startup check failed: {str(e)}"
 
 
+def is_api_ready() -> bool:
+    """
+    Check whether API endpoints should accept requests.
+
+    Returns:
+        True when startup checks are completed, otherwise False.
+    """
+    return STARTUP_STATUS.get("status") == "completed"
+
+
 # Load HTML template
 TEMPLATE_FILE = get_resource_path("static/html/foamflask_frontend.html")
 try:
@@ -796,6 +806,33 @@ def csrf_protect():
             return fast_jsonify({"error": "CSRF token missing or invalid"}), 403
 
 
+@app.before_request
+def api_health_check():
+    """Gate API endpoints until startup checks have completed."""
+    if app.config.get("TESTING") and not app.config.get("ENABLE_API_HEALTH_CHECK", True):
+        return
+
+    if not request.path.startswith("/api/"):
+        return
+
+    if request.path in ("/api/startup_status", "/api/health"):
+        return
+
+    if is_api_ready():
+        return
+
+    return (
+        fast_jsonify(
+            {
+                "error": "Service is not ready yet",
+                "startup_status": STARTUP_STATUS.get("status", "unknown"),
+                "message": STARTUP_STATUS.get("message", "Initializing..."),
+            }
+        ),
+        503,
+    )
+
+
 @app.after_request
 def set_security_headers(response: Response) -> Response:
     """
@@ -896,6 +933,27 @@ def get_startup_status() -> Response:
         JSON response with status and message.
     """
     return fast_jsonify(STARTUP_STATUS)
+
+
+@app.route("/api/health", methods=["GET"])
+def get_api_health() -> Response:
+    """
+    Basic health endpoint for API readiness.
+
+    Returns:
+        JSON response indicating whether API requests are currently accepted.
+    """
+    ready = is_api_ready()
+    status = 200 if ready else 503
+    return fast_jsonify(
+        {
+            "status": "healthy" if ready else "starting",
+            "ready": ready,
+            "startup_status": STARTUP_STATUS.get("status", "unknown"),
+            "message": STARTUP_STATUS.get("message", "Initializing..."),
+        },
+        status=status,
+    )
 
 
 @app.route("/favicon.ico")
