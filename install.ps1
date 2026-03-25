@@ -9,14 +9,14 @@ Write-Host "███████╗ ██████╗  █████╗ �
 Write-Host "GPLv3 License" -ForegroundColor Cyan
 Write-Host ""
 
-# Check for Winget
+# 1. Check for Winget
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Host "Error: 'winget' not found. Please ensure App Installer is installed from the Microsoft Store." -ForegroundColor Red
     exit 1
 }
 Write-Host "✓ Winget found" -ForegroundColor Green
 
-# 1. Check & Install System Tools
+# 2. Check & Install System Tools (Python, Node, Docker)
 
 # --- Python ---
 if (Get-Command python -ErrorAction SilentlyContinue) {
@@ -59,7 +59,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
 }
 
-# 2. Check & Install pnpm
+# 3. Check & Install pnpm
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
     Write-Host "✓ pnpm found" -ForegroundColor Green
 } else {
@@ -88,7 +88,7 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
 }
 
-# 3. Setup Python Environment
+# 4. Setup Python Environment
 Write-Host "Setting up Python environment with uv..." -ForegroundColor Cyan
 
 uv venv --clear
@@ -109,12 +109,12 @@ if (Test-Path "backend/accelerator") {
     }
 }
 
-# 4. Build Frontend
+# 5. Build Frontend
 Write-Host "Building Frontend..." -ForegroundColor Cyan
 pnpm install
 pnpm run build
 
-# 5. Launch Application
+# 6. Launch Application
 Write-Host "Installation Complete!" -ForegroundColor Cyan
 Write-Host "Starting FOAMFlask..." -ForegroundColor Green
 Write-Host "Access the app at: http://localhost:5000"
