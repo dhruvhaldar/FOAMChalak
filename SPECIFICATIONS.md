@@ -6,7 +6,7 @@ FOAMPilot is a web-based interface for OpenFOAM simulations, providing a user-fr
 ## 2. Technical Stack
 
 ### Backend
-- **Framework**: Flask 2.x (Python 3.13)
+- **Framework**: Flask 3.x (Python 3.13+)
 - **Containerization**: Docker SDK for Python
 - **API**: RESTful JSON API
 - **Concurrency**: Thread-based for background tasks
@@ -42,6 +42,23 @@ FOAMPilot is a web-based interface for OpenFOAM simulations, providing a user-fr
 - 3D mesh visualization
 - Interactive isosurface generation
 - Screenshot generation of visualizations
+- Streamline visualization
+- Volume rendering
+- Custom colormaps
+
+### 3.4 User Management
+- Multi-user support
+- Authentication/authorization
+
+### 3.5 Batch Processing
+- Parameter sweeps
+- Job queuing
+- Remote execution
+
+### 3.6 Integration
+- Jupyter notebook support
+- REST API for programmatic access
+- Plugin system for custom solvers
 
 ## 4. API Endpoints
 
@@ -136,7 +153,7 @@ FOAMPilot is a web-based interface for OpenFOAM simulations, providing a user-fr
 
 ### System Requirements
 - Docker Engine
-- Python 3.13
+- Python 3.13+
 - Modern web browser (Chrome, Firefox, Edge)
 
 ## 10. Error Handling
@@ -146,23 +163,4 @@ FOAMPilot is a web-based interface for OpenFOAM simulations, providing a user-fr
 - Graceful degradation of features
 - Automatic recovery where possible
 
-## 11. Future Enhancements
 
-1. **User Management**
-   - Multi-user support
-   - Authentication/authorization
-
-2. **Advanced Visualization**
-   - Streamline visualization
-   - Volume rendering
-   - Custom colormaps
-
-3. **Batch Processing**
-   - Parameter sweeps
-   - Job queuing
-   - Remote execution
-
-4. **Integration**
-   - Jupyter notebook support
-   - REST API for programmatic access
-   - Plugin system for custom solvers

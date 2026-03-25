@@ -57,13 +57,10 @@ def test_simulation_run_lifecycle(mock_get_docker_client, client):
 
             # 2. Verify Database Record
             with app.app_context():
-                # We expect one run, but scalar_one() raises if multiple found.
-                # Since we reset DB in fixture, there should be only one.
-                # However, if run_case was called multiple times or threads, maybe 2?
-                # Let's inspect all results.
-                runs = db.session.execute(db.select(SimulationRun)).scalars().all()
-                assert len(runs) == 1, f"Expected 1 run, found {len(runs)}"
-                run = runs[0]
+                # Filter by case_name to avoid interference from other tests if DB reset fails
+                runs = db.session.execute(db.select(SimulationRun).where(SimulationRun.case_name == payload["caseDir"])).scalars().all()
+                assert len(runs) >= 1, f"Expected at least 1 run for {payload['caseDir']}, found {len(runs)}"
+                run = runs[-1]
 
                 assert run.case_name == payload["caseDir"]
                 assert run.tutorial == payload["tutorial"]

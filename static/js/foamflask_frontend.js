@@ -5,6 +5,51 @@
 
  * When making changes to the frontend, always edit foamflask_frontend.ts and build foamflask_frontend.js using `npm run build`
  */ import { generateContours as generateContoursFn, loadContourMesh } from "./frontend/isosurface.js";
+// 🎨 Palette UX: Dynamic Page Title
+const DEFAULT_TITLE = "FOAMFlask";
+let titleResetTimer = null;
+const updatePageTitle = (state)=>{
+    if (titleResetTimer) {
+        clearTimeout(titleResetTimer);
+        titleResetTimer = null;
+    }
+    switch(state){
+        case "running":
+            document.title = "▶ Running... | FOAMFlask";
+            break;
+        case "success":
+            document.title = "✓ Success | FOAMFlask";
+            titleResetTimer = window.setTimeout(()=>{
+                document.title = DEFAULT_TITLE;
+            }, 5000);
+            break;
+        case "error":
+            document.title = "✗ Error | FOAMFlask";
+            titleResetTimer = window.setTimeout(()=>{
+                document.title = DEFAULT_TITLE;
+            }, 5000);
+            break;
+        default:
+            document.title = DEFAULT_TITLE;
+    }
+};
+// ⚡ Bolt Optimization: Lazy load Plotly.js
+let plotlyPromise = null;
+const ensurePlotlyLoaded = ()=>{
+    if (window.Plotly) return Promise.resolve();
+    if (plotlyPromise) return plotlyPromise;
+    plotlyPromise = new Promise((resolve, reject)=>{
+        const script = document.createElement("script");
+        script.src = "https://cdn.plot.ly/plotly-2.27.0.min.js";
+        script.onload = ()=>resolve();
+        script.onerror = ()=>{
+            plotlyPromise = null; // Reset on error so we can retry
+            reject(new Error("Failed to load Plotly"));
+        };
+        document.head.appendChild(script);
+    });
+    return plotlyPromise;
+};
 // CSRF Protection Helpers
 const getCookie = (name)=>{
     const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -53,7 +98,7 @@ const loadInteractiveViewerCommon = async (config)=>{
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
         const loadingText = config.btnLoadingText || "Loading...";
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${loadingText}`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${loadingText}`;
     }
     showNotification(config.loadingMessage, "info");
     try {
@@ -89,6 +134,57 @@ const loadInteractiveViewerCommon = async (config)=>{
             btn.disabled = false;
             btn.removeAttribute("aria-busy");
             btn.innerHTML = originalBtnText;
+        }
+    }
+};
+const fillLocationFromGeometry = async (btnElement)=>{
+    if (!activeCase) {
+        showNotification("Please select an active case first", "warning");
+        return;
+    }
+    const filename = document.getElementById("shmObjectList")?.value;
+    if (!filename) {
+        showNotification("Please select a geometry object in the 'Object Settings' list", "warning");
+        return;
+    }
+    const btn = btnElement;
+    let originalText = "";
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.innerHTML = `Calculating...`;
+    }
+    try {
+        const res = await fetch("/api/geometry/info", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                caseName: activeCase,
+                filename
+            })
+        });
+        const info = await res.json();
+        if (info.success && info.bounds) {
+            const b = info.bounds;
+            const cx = (b[0] + b[1]) / 2;
+            const cy = (b[2] + b[3]) / 2;
+            const cz = (b[4] + b[5]) / 2;
+            const centerStr = `${cx.toFixed(3)} ${cy.toFixed(3)} ${cz.toFixed(3)}`;
+            document.getElementById("shmLocation").value = centerStr;
+            showNotification(`Location set to center of ${filename}`, "success");
+        } else {
+            showNotification("Failed to get geometry info", "error");
+        }
+    } catch (e) {
+        showNotification("Error calculating center", "error");
+    } finally{
+        if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.innerHTML = originalText;
         }
     }
 };
@@ -144,7 +240,7 @@ const clearLog = async ()=>{
         // 🎨 Palette UX Improvement: Prevent accidental data loss
         const confirmed = await showConfirmModal("Clear Console Log", "Are you sure you want to clear the console log? This cannot be undone.");
         if (!confirmed) return;
-        outputDiv.innerHTML = "";
+        outputDiv.innerHTML = OUTPUT_PLACEHOLDER;
         cachedLogHTML = ""; // ⚡ Bolt Optimization: clear cache
         try {
             localStorage.removeItem(CONSOLE_LOG_KEY);
@@ -163,7 +259,7 @@ const temporarilyShowSuccess = (btn, originalHTML, message = "Success!")=>{
     // Visual feedback: Green Checkmark
     // Note: Using !bg-green-600 to override any existing background colors
     btn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
     </svg>
     <span>${message}</span>
@@ -177,8 +273,11 @@ const temporarilyShowSuccess = (btn, originalHTML, message = "Success!")=>{
     ];
     btn.classList.add(...successClasses);
     setTimeout(()=>{
-        btn.innerHTML = originalHTML;
-        btn.classList.remove(...successClasses);
+        // Only restore if not busy (prevent overwriting spinner if clicked again)
+        if (!btn.hasAttribute("aria-busy")) {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove(...successClasses);
+        }
     }, 2000);
 };
 // Generic Copy to Clipboard Helper
@@ -198,7 +297,7 @@ const copyTextFromElement = (elementId, successMessage, btnElement)=>{
             const originalTitle = btnElement.getAttribute('title');
             // Visual feedback on the button
             btnElement.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
         </svg>
         <span class="text-green-600 font-medium">Copied!</span>
@@ -242,6 +341,11 @@ const fallbackCopyText = (text, successMessage, onSuccess)=>{
 };
 // Copy Console Log
 const copyLogToClipboard = (btnElement)=>{
+    const outputDiv = document.getElementById("output");
+    if (outputDiv && outputDiv.querySelector(".output-placeholder")) {
+        showNotification("Log is empty", "warning", NOTIFY_MEDIUM);
+        return;
+    }
     copyTextFromElement("output", "Log copied to clipboard", btnElement);
 };
 // Download Console Log
@@ -249,6 +353,12 @@ const downloadLog = ()=>{
     const outputDiv = document.getElementById("output");
     if (!outputDiv) {
         showNotification("Console output not found", "error");
+        return;
+    }
+    // Check for placeholder
+    const placeholder = outputDiv.querySelector(".output-placeholder");
+    if (placeholder) {
+        showNotification("Log is empty", "warning", NOTIFY_SHORT);
         return;
     }
     // Use innerText to preserve line breaks from divs
@@ -297,7 +407,7 @@ const copyInputToClipboard = (elementId, btnElement)=>{
             btnElement.dataset.isCopying = "true";
             const originalHTML = btnElement.innerHTML;
             // Visual feedback: Green Checkmark
-            btnElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+            btnElement.innerHTML = `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
             setTimeout(()=>{
                 btnElement.innerHTML = originalHTML;
                 delete btnElement.dataset.isCopying;
@@ -310,6 +420,29 @@ const copyInputToClipboard = (elementId, btnElement)=>{
         fallbackCopyText(text, "Copied", onSuccess);
     }
 };
+const copyText = (text, btnElement)=>{
+    if (!text) return;
+    const onSuccess = ()=>{
+        showNotification("Copied to clipboard", "success", NOTIFY_SHORT);
+        if (btnElement) {
+            if (btnElement.dataset.isCopying) return;
+            btnElement.dataset.isCopying = "true";
+            const originalHTML = btnElement.innerHTML;
+            // Visual feedback: Green Checkmark
+            btnElement.innerHTML = `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+            setTimeout(()=>{
+                btnElement.innerHTML = originalHTML;
+                delete btnElement.dataset.isCopying;
+            }, 1000);
+        }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(()=>fallbackCopyText(text, "Copied", onSuccess));
+    } else {
+        fallbackCopyText(text, "Copied", onSuccess);
+    }
+};
+window.copyText = copyText;
 // Clear Meshing Output
 const clearMeshingOutput = async ()=>{
     const div = document.getElementById("meshingOutput");
@@ -369,6 +502,14 @@ const downloadMeshingLog = ()=>{
 };
 // Storage for Console Log
 const CONSOLE_LOG_KEY = "foamflask_console_log";
+const OUTPUT_PLACEHOLDER = `<div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-400 select-none opacity-50">
+<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24"
+  stroke="currentColor">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+</svg>
+<span class="text-sm font-medium">Ready for output...</span>
+</div>`;
 // Global state
 let caseDir = "";
 let dockerImage = "";
@@ -405,6 +546,10 @@ let pendingPlotUpdate = false;
 let isSimulationRunning = false; // Controls polling loop
 let plotsInViewport = true;
 let isFirstPlotLoad = true;
+// ⚡ Bolt Optimization: State for incremental residuals fetching
+let lastResidualsCount = 0;
+let currentResidualsData = {};
+let cachedXArray = null;
 // Request management
 let abortControllers = new Map();
 let requestCache = new Map();
@@ -524,29 +669,47 @@ const createBoldTitle = (text)=>({
         }
     });
 // Helper: Download plot as PNG
-const downloadPlotAsPNG = (plotIdOrDiv, filename = "plot.png")=>{
-    // Handle both string ID (from HTML) or direct element
-    const plotDiv = typeof plotIdOrDiv === "string" ? document.getElementById(plotIdOrDiv) : plotIdOrDiv;
-    if (!plotDiv) {
-        console.error(`Plot element not found: ${plotIdOrDiv}`);
-        return;
+const downloadPlotAsPNG = async (plotIdOrDiv, filename = "plot.png", btnElement)=>{
+    let originalText = "";
+    if (btnElement) {
+        originalText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.setAttribute("aria-busy", "true");
+        btnElement.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
     }
-    // Plotly.toImage options (layout overrides are not supported here directly)
-    Plotly.toImage(plotDiv, {
-        format: "png",
-        width: plotDiv.offsetWidth,
-        height: plotDiv.offsetHeight,
-        scale: 2
-    }).then((dataUrl)=>{
+    try {
+        await ensurePlotlyLoaded();
+        // Handle both string ID (from HTML) or direct element
+        const plotDiv = typeof plotIdOrDiv === "string" ? document.getElementById(plotIdOrDiv) : plotIdOrDiv;
+        if (!plotDiv) {
+            console.error(`Plot element not found: ${plotIdOrDiv}`);
+            if (btnElement) showNotification("Plot not found", "error");
+            return;
+        }
+        // Await the image generation
+        const dataUrl = await Plotly.toImage(plotDiv, {
+            format: "png",
+            width: plotDiv.offsetWidth,
+            height: plotDiv.offsetHeight,
+            scale: 2
+        });
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }).catch((err)=>{
+        if (btnElement) showNotification("Download started", "success", 1500);
+    } catch (err) {
         console.error("Error downloading plot:", err);
-    });
+        if (btnElement) showNotification("Failed to download plot", "error");
+    } finally{
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.removeAttribute("aria-busy");
+            btnElement.innerHTML = originalText;
+        }
+    }
 };
 // Helper: Save current legend visibility
 const getLegendVisibility = (plotDiv)=>{
@@ -572,28 +735,19 @@ const getLegendVisibility = (plotDiv)=>{
         return {};
     }
 };
-// Helper: Attach white-bg download button to a plot
-const attachWhiteBGDownloadButton = (plotDiv)=>{
-    if (!plotDiv || plotDiv.dataset.whiteButtonAdded) return;
-    // plotDiv.layout.paper_bgcolor = "white"; // Disable white BG enforcement
-    // plotDiv.layout.plot_bgcolor = "white";
-    plotDiv.dataset.whiteButtonAdded = "true";
-    const configWithWhiteBG = {
-        ...plotDiv.fullLayout?.config,
-        ...plotConfig
+// ⚡ Bolt Optimization: Helper to get plot config with white background download options
+// Replaces attachWhiteBGDownloadButton to avoid double renders and configuration overwrites
+const getPlotConfigWithDownload = (plotDiv)=>{
+    return {
+        ...plotConfig,
+        toImageButtonOptions: {
+            format: "png",
+            filename: `${plotDiv.id}whitebg`,
+            height: plotDiv.clientHeight || 400,
+            width: plotDiv.clientWidth || 600,
+            scale: 2
+        }
     };
-    configWithWhiteBG.toImageButtonOptions = {
-        format: "png",
-        filename: `${plotDiv.id}whitebg`,
-        height: plotDiv.clientHeight,
-        width: plotDiv.clientWidth,
-        scale: 2
-    };
-    void Plotly.react(plotDiv, plotDiv.data, plotDiv.layout, configWithWhiteBG).then(()=>{
-        plotDiv.dataset.whiteButtonAdded = "true";
-    }).catch((err)=>{
-        console.error("Plotly update failed:", err);
-    });
 };
 const downloadPlotData = (plotId, filename)=>{
     const plotDiv = document.getElementById(plotId);
@@ -800,8 +954,10 @@ const showNotification = (message, type, duration = NOTIFY_DEFAULT)=>{
     // Set ARIA role for accessibility
     if (type === "error" || type === "warning") {
         notification.setAttribute("role", "alert");
+        notification.setAttribute("aria-live", "assertive");
     } else {
         notification.setAttribute("role", "status");
+        notification.setAttribute("aria-live", "polite");
     }
     // Set colors
     const colors = {
@@ -978,6 +1134,14 @@ const fetchWithCache = async (url, options = {})=>{
     const cached = cacheMap.get(cacheKey);
     // 1. Local Cache Check
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) return cached.data;
+    // Robust access to abortControllers
+    if (!abortControllers) {
+        if (window._abortControllers) abortControllers = window._abortControllers;
+        else {
+            abortControllers = new Map();
+            if (typeof window !== 'undefined') window._abortControllers = abortControllers;
+        }
+    }
     if (abortControllers.has(url)) abortControllers.get(url)?.abort();
     const controller = new AbortController();
     abortControllers.set(url, controller);
@@ -1031,9 +1195,20 @@ const fetchWithCache = async (url, options = {})=>{
         });
         return data;
     } finally{
-        abortControllers.delete(url);
+        if (abortControllers) abortControllers.delete(url);
     }
 };
+// Helper for manual HTML escaping
+// ⚡ Bolt Optimization: Extract outside render loop and use single-pass regex to avoid O(N) string allocations
+const htmlEntities = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+};
+const _escapeHtmlRe = /[&<>"']/g;
+const escapeHtml = (str)=>str.replace(_escapeHtmlRe, (char)=>htmlEntities[char]);
 // Logging
 const appendOutput = (message, type)=>{
     outputBuffer.push({
@@ -1079,14 +1254,15 @@ const flushOutputBuffer = ()=>{
         outputFlushTimer = null;
         return;
     }
+    // Remove placeholder if present
+    const placeholder = container.querySelector(".output-placeholder");
+    if (placeholder) {
+        placeholder.remove();
+    }
     // ⚡ Bolt Optimization: Check scroll position BEFORE appending to avoid layout thrashing
     // Check if user is near bottom (within 50px tolerance)
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 50;
     let newHtmlChunks = ""; // ⚡ Bolt Optimization: Accumulate HTML for cache
-    // Helper for manual HTML escaping (significantly faster than browser serialization)
-    const escapeHtml = (str)=>{
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    };
     outputBuffer.forEach(({ message, type })=>{
         // Determine class name
         let className = "text-green-700";
@@ -1130,7 +1306,7 @@ const setDockerConfig = async (image, version, btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Updating...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Updating...`;
     }
     try {
         dockerImage = image;
@@ -1177,12 +1353,13 @@ const loadTutorial = async ()=>{
         if (btn) {
             btn.disabled = true;
             btn.setAttribute("aria-busy", "true");
-            btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Importing...`;
+            btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Importing...`;
         }
         const tutorialSelect = document.getElementById("tutorialSelect");
         const selected = tutorialSelect.value;
         if (selected) localStorage.setItem("lastSelectedTutorial", selected);
         showNotification("Importing tutorial...", "info");
+        updatePageTitle("running");
         const response = await fetch("/load_tutorial", {
             method: "POST",
             headers: {
@@ -1217,6 +1394,7 @@ const loadTutorial = async ()=>{
     } catch (e) {
         showNotification(`Failed to load tutorial: ${getErrorMessage(e)}`, "error");
     } finally{
+        updatePageTitle(success ? "success" : "error");
         if (btn) {
             if (success) {
                 temporarilyShowSuccess(btn, originalText, "Imported!");
@@ -1280,10 +1458,10 @@ const refreshCaseList = async (btnElement)=>{
             // Since we know the structure from HTML, we can just replace innerHTML for simplicity
             // or toggle a class. But let's follow the pattern used elsewhere.
             // However, the Refresh button has text "↻ Refresh".
-            btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
+            btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
         } else {
             // Fallback or just standard spinner
-            btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Refreshing...`;
+            btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Refreshing...`;
         }
     }
     try {
@@ -1332,6 +1510,9 @@ const selectCase = (val)=>{
     activeCase = val;
     localStorage.setItem("lastSelectedCase", val);
     updateActiveCaseBadge();
+    // Reset residuals state for new case
+    lastResidualsCount = 0;
+    currentResidualsData = {};
 };
 const createNewCase = async ()=>{
     const caseName = document.getElementById("newCaseName").value;
@@ -1345,7 +1526,7 @@ const createNewCase = async ()=>{
     if (btn) {
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...`;
     }
     showNotification(`Creating case ${caseName}...`, "info");
     try {
@@ -1392,11 +1573,28 @@ const confirmRunCommand = async (cmd, btnElement)=>{
     }
     runCommand(cmd, btnElement);
 };
-const fetchRunHistory = async ()=>{
+const getStatusIcon = (status)=>{
+    if (status === "Completed") return `<svg aria-hidden="true" class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+    if (status === "Failed") return `<svg aria-hidden="true" class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+    if (status === "Running") return `<svg aria-hidden="true" class="animate-spin w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+    return "";
+};
+const fetchRunHistory = async (btnElement)=>{
     const container = document.getElementById("runHistoryList");
     if (!container) return;
+    const btn = btnElement;
+    let originalText = "";
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.classList.add("cursor-wait", "opacity-75");
+        // Use smaller spinner for this small button
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-3 w-3 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
+    }
     try {
-        const response = await fetch("/api/runs");
+        // ⚡ Bolt Optimization: Request limited number of runs to prevent DOM overload
+        const response = await fetch("/api/runs?limit=50");
         if (!response.ok) throw new Error("Failed to fetch runs");
         const data = await response.json();
         if (data.runs && data.runs.length > 0) {
@@ -1407,26 +1605,64 @@ const fetchRunHistory = async ()=>{
                 else if (run.status === "Running") statusColor = "bg-blue-100 text-blue-800";
                 const startTime = new Date(run.start_time).toLocaleString();
                 const duration = run.execution_duration ? `${run.execution_duration.toFixed(2)}s` : "-";
+                const safeCommand = run.command.replace(/'/g, "\\'");
                 return `
-          <tr class="hover:bg-gray-50 transition-colors border-b last:border-b-0 border-gray-100">
+          <tr class="group hover:bg-gray-50 transition-colors border-b last:border-b-0 border-gray-100">
             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">#${run.id}</td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${run.command}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">${run.command}</span>
+                <button onclick="copyText('${safeCommand}', this)" class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-cyan-600 transition-all p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Copy command" title="Copy command">
+                  <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button onclick="confirmRunCommand('${safeCommand}', this)" class="icon-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-cyan-600 hover:text-cyan-800 transition-all p-1 rounded hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Re-run command" title="Re-run command">
+                  <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </div>
+            </td>
             <td class="px-4 py-3 whitespace-nowrap">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+              <span class="px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                ${getStatusIcon(run.status)}
                 ${run.status}
               </span>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${duration}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">${duration}</td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${startTime}</td>
           </tr>
         `;
             }).join("");
         } else {
-            container.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">No run history available</td></tr>`;
+            container.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center text-gray-400">
+              <svg aria-hidden="true" class="w-12 h-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h4 class="text-sm font-medium text-gray-900">No runs yet</h4>
+              <p class="text-xs text-gray-500 mt-1 max-w-xs mx-auto">Run a simulation command like "blockMesh" or "Allrun" to see history here.</p>
+            </div>
+          </td>
+        </tr>
+      `;
         }
+        if (btn) showNotification("Run history refreshed", "success", NOTIFY_SHORT);
     } catch (e) {
         console.error("Error fetching run history:", e);
         container.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-sm text-red-500">Failed to load history</td></tr>`;
+        if (btn) showNotification("Failed to refresh run history", "error");
+    } finally{
+        if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.classList.remove("cursor-wait", "opacity-75");
+            btn.innerHTML = originalText;
+        }
     }
 };
 window.fetchRunHistory = fetchRunHistory;
@@ -1444,14 +1680,28 @@ const runCommand = async (cmd, btnElement)=>{
     let originalText = "";
     const btn = btnElement;
     if (btn) {
-        originalText = btn.innerHTML;
+        if (btn.dataset.originalHtml) {
+            originalText = btn.dataset.originalHtml;
+        } else {
+            originalText = btn.innerHTML;
+            btn.dataset.originalHtml = originalText;
+        }
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
+        const isIconBtn = btn.classList.contains("icon-btn");
+        // Palette UX: Adapt loading state for icon-only buttons
+        if (isIconBtn) {
+            // Use text-current for icon buttons to match their theme, and no text
+            btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+        } else {
+            btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
+        }
     }
     // Optimistically refresh list to show "Running" state
     // We wait a tick to allow the backend (previous implementation step) to create the record
     setTimeout(fetchRunHistory, 500);
+    let success = false;
+    updatePageTitle("running");
     try {
         showNotification(`Running ${cmd}...`, "info");
         const response = await fetch("/run", {
@@ -1481,6 +1731,7 @@ const runCommand = async (cmd, btnElement)=>{
                 if (buffer) appendOutput(buffer, "stdout"); // Flush remaining buffer
                 showNotification("Simulation completed successfully", "success");
                 flushOutputBuffer();
+                success = true;
                 break;
             }
             // ⚡ Bolt Optimization: Stream decoding and buffering for split packets
@@ -1501,11 +1752,17 @@ const runCommand = async (cmd, btnElement)=>{
         console.error(err); // Keep console error for debugging
         showNotification(`Error: ${err}`, "error");
     } finally{
+        updatePageTitle(success ? "success" : "error");
         const btn = btnElement;
         if (btn) {
-            btn.disabled = false;
+            // Remove busy state regardless of success
             btn.removeAttribute("aria-busy");
-            btn.innerHTML = originalText;
+            if (success) {
+                temporarilyShowSuccess(btn, originalText, "Completed!");
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
         isSimulationRunning = false;
         updatePlots(); // Final update to catch last data
@@ -1588,13 +1845,90 @@ const stopPlotUpdates = ()=>{
 };
 const updateResidualsPlot = async (tutorial, injectedData)=>{
     try {
+        await ensurePlotlyLoaded();
         let data = injectedData;
+        let isIncremental = false;
+        // ⚡ Bolt Optimization: Use incremental fetching to save bandwidth
         if (!data) {
-            data = await fetchWithCache(`/api/residuals?tutorial=${encodeURIComponent(tutorial)}`);
+            const url = `/api/residuals?tutorial=${encodeURIComponent(tutorial)}&start_index=${lastResidualsCount}`;
+            // Use direct fetch to bypass cache pollution and handle unique URLs
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Failed to fetch residuals");
+            data = await res.json();
+            isIncremental = true;
         }
-        if (data.error || !data.time || data.time.length === 0) {
+        if (data.error) return;
+        // Merge data logic
+        if (isIncremental) {
+            const newTime = data.time || [];
+            const newPointsCount = newTime.length;
+            // If we have new data
+            if (newPointsCount > 0) {
+                const oldTime = currentResidualsData.time || [];
+                const firstNewTime = newTime[0];
+                const lastOldTime = oldTime.length > 0 ? oldTime[oldTime.length - 1] : -Infinity;
+                // Detect reset: if new data starts before old data ended
+                // Note: checking < lastOldTime handles overlaps or full restarts
+                if (firstNewTime <= lastOldTime && lastOldTime !== -Infinity && lastResidualsCount > 0) {
+                    // Reset detected, replace full data
+                    currentResidualsData = data;
+                } else {
+                    // Append new data
+                    for(const key in data){
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            const val = data[key];
+                            if (Array.isArray(val)) {
+                                if (!currentResidualsData[key]) {
+                                    currentResidualsData[key] = [];
+                                }
+                                // ⚡ Bolt Optimization: Chunked push to prevent stack overflow for large updates
+                                const targetArray = currentResidualsData[key];
+                                const CHUNK_SIZE = 30000;
+                                if (val.length > CHUNK_SIZE) {
+                                    for(let i = 0; i < val.length; i += CHUNK_SIZE){
+                                        targetArray.push(...val.slice(i, i + CHUNK_SIZE));
+                                    }
+                                } else {
+                                    targetArray.push(...val);
+                                }
+                            }
+                        }
+                    }
+                }
+                lastResidualsCount = (currentResidualsData.time || []).length;
+            } else if (lastResidualsCount === 0) {
+                // First load but empty
+                currentResidualsData = data;
+            }
+        } else {
+            // Full data injected (e.g. from initial load)
+            currentResidualsData = data;
+            lastResidualsCount = (data.time || []).length;
+        }
+        const plotData = currentResidualsData;
+        if (!plotData.time || plotData.time.length === 0) {
             return;
         }
+        // ⚡ Bolt Optimization: Reuse x-axis array for all traces
+        // Avoids allocating 11 identical arrays of size N every update
+        const dataLength = plotData.time.length;
+        // ⚡ Bolt Optimization: Use cached Float32Array to avoid allocation and iteration overhead
+        if (!cachedXArray || cachedXArray.length < dataLength) {
+            // Allocate with buffer to prevent frequent resizing
+            const newSize = Math.max(Math.ceil(dataLength * 1.2), 1000);
+            const newArr = new Float32Array(newSize);
+            // Copy existing data
+            if (cachedXArray) {
+                newArr.set(cachedXArray);
+                // Fill new part
+                for(let i = cachedXArray.length; i < newSize; i++)newArr[i] = i + 1;
+            } else {
+                // Fill from scratch
+                for(let i = 0; i < newSize; i++)newArr[i] = i + 1;
+            }
+            cachedXArray = newArr;
+        }
+        const xArray = cachedXArray.subarray(0, dataLength);
         const traces = [];
         const fields = [
             "Ux",
@@ -1623,12 +1957,10 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
             plotlyColors.yellow
         ];
         fields.forEach((field, idx)=>{
-            const fieldData = data[field];
+            const fieldData = plotData[field];
             if (fieldData && fieldData.length > 0) {
                 traces.push({
-                    x: Array.from({
-                        length: fieldData.length
-                    }, (_, i)=>i + 1),
+                    x: xArray,
                     y: fieldData,
                     type: "scattergl",
                     mode: "lines",
@@ -1667,11 +1999,13 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
                         gridcolor: "rgba(0,0,0,0.1)"
                     }
                 };
+                // ⚡ Bolt Optimization: Use enhanced config directly to avoid second render
+                const config = getPlotConfigWithDownload(residualsPlotDiv);
                 void Plotly.react(residualsPlotDiv, traces, layout, {
-                    ...plotConfig,
+                    ...config,
                     displayModeBar: true,
                     scrollZoom: false
-                }).then(()=>attachWhiteBGDownloadButton(residualsPlotDiv));
+                });
             }
         }
     } catch (error) {
@@ -1682,6 +2016,7 @@ const updateAeroPlots = async (preFetchedData)=>{
     const selectedTutorial = document.getElementById("tutorialSelect")?.value;
     if (!selectedTutorial) return;
     try {
+        await ensurePlotlyLoaded();
         let data = preFetchedData;
         // ⚡ Bolt Optimization: Use pre-fetched data if available to save a network request
         if (!data) {
@@ -1709,6 +2044,8 @@ const updateAeroPlots = async (preFetchedData)=>{
                         width: 2.5
                     }
                 };
+                // ⚡ Bolt Optimization: Use enhanced config directly
+                const config = getPlotConfigWithDownload(cpDiv);
                 void Plotly.react(cpDiv, [
                     cpTrace
                 ], {
@@ -1726,9 +2063,7 @@ const updateAeroPlots = async (preFetchedData)=>{
                             text: "Cp"
                         }
                     }
-                }, plotConfig).then(()=>{
-                    attachWhiteBGDownloadButton(cpDiv);
-                }).catch((err)=>{
+                }, config).catch((err)=>{
                     console.error("Plotly update failed:", err);
                 });
             }
@@ -1749,6 +2084,8 @@ const updateAeroPlots = async (preFetchedData)=>{
                         size: 5
                     }
                 };
+                // ⚡ Bolt Optimization: Use enhanced config directly
+                const config = getPlotConfigWithDownload(velocityDiv);
                 void Plotly.react(velocityDiv, [
                     velocityTrace
                 ], {
@@ -1771,9 +2108,7 @@ const updateAeroPlots = async (preFetchedData)=>{
                             }
                         }
                     }
-                }, plotConfig).then(()=>{
-                    attachWhiteBGDownloadButton(velocityDiv);
-                }).catch((err)=>{
+                }, config).catch((err)=>{
                     console.error("Plotly update failed:", err);
                 });
             }
@@ -1787,6 +2122,13 @@ const updatePlots = async (injectedData)=>{
     console.log("DEBUG: updatePlots polling for tutorial:", selectedTutorial); // Debug log
     if (!selectedTutorial || isUpdatingPlots) {
         if (!selectedTutorial) console.warn("DEBUG: No tutorial selected, skipping update.");
+        return;
+    }
+    // ⚡ Bolt Optimization: Lazy load Plotly
+    try {
+        await ensurePlotlyLoaded();
+    } catch (e) {
+        showNotification("Failed to load plotting library", "error");
         return;
     }
     isUpdatingPlots = true;
@@ -1825,6 +2167,8 @@ const updatePlots = async (injectedData)=>{
             if (pressureTrace.name && legendVisibility.hasOwnProperty(pressureTrace.name)) {
                 pressureTrace.visible = legendVisibility[pressureTrace.name];
             }
+            // ⚡ Bolt Optimization: Use enhanced config directly
+            const config = getPlotConfigWithDownload(pressureDiv);
             void Plotly.react(pressureDiv, [
                 pressureTrace
             ], {
@@ -1842,9 +2186,7 @@ const updatePlots = async (injectedData)=>{
                         text: "Pressure (Pa)"
                     }
                 }
-            }, plotConfig).then(()=>{
-                attachWhiteBGDownloadButton(pressureDiv);
-            }).catch((err)=>{
+            }, config).catch((err)=>{
                 console.error("Plotly update failed:", err);
             });
         }
@@ -1921,6 +2263,8 @@ const updatePlots = async (injectedData)=>{
                     tr.visible = legendVisibility[tr.name];
                 }
             });
+            // ⚡ Bolt Optimization: Use enhanced config directly
+            const config = getPlotConfigWithDownload(velocityDiv);
             void Plotly.react(velocityDiv, traces, {
                 ...plotLayout,
                 title: createBoldTitle("Velocity vs Time"),
@@ -1936,9 +2280,7 @@ const updatePlots = async (injectedData)=>{
                         text: "Velocity (m/s)"
                     }
                 }
-            }, plotConfig).then(()=>{
-                attachWhiteBGDownloadButton(velocityDiv);
-            });
+            }, config);
         }
         // Turbulence plot
         const turbulenceTrace = [];
@@ -2001,6 +2343,8 @@ const updatePlots = async (injectedData)=>{
         if (turbulenceTrace.length > 0) {
             const turbPlotDiv = document.getElementById("turbulence-plot");
             if (turbPlotDiv) {
+                // ⚡ Bolt Optimization: Use enhanced config directly
+                const config = getPlotConfigWithDownload(turbPlotDiv);
                 void Plotly.react(turbPlotDiv, turbulenceTrace, {
                     ...plotLayout,
                     title: createBoldTitle("Turbulence Properties vs Time"),
@@ -2016,9 +2360,7 @@ const updatePlots = async (injectedData)=>{
                             text: "Value"
                         }
                     }
-                }, plotConfig).then(()=>{
-                    attachWhiteBGDownloadButton(turbPlotDiv);
-                });
+                }, config);
             }
         }
         // Update residuals and aero plots in parallel
@@ -2055,7 +2397,7 @@ const updatePlots = async (injectedData)=>{
     }
 };
 // Geometry Functions
-const refreshGeometryList = async (btnElement)=>{
+const refreshGeometryList = async (btnElement, targetSelection)=>{
     if (!activeCase) {
         showNotification("No active case selected to list geometries", "warning", NOTIFY_LONG);
         return;
@@ -2067,7 +2409,7 @@ const refreshGeometryList = async (btnElement)=>{
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
         btn.classList.add("opacity-75", "cursor-wait");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
     }
     try {
         const response = await fetch(`/api/geometry/list?caseName=${encodeURIComponent(activeCase)}`);
@@ -2075,6 +2417,8 @@ const refreshGeometryList = async (btnElement)=>{
         if (data.success) {
             const select = document.getElementById("geometrySelect");
             if (select) {
+                // Capture current selection
+                const currentSelection = select.value;
                 select.innerHTML = "";
                 if (data.files.length === 0) {
                     const opt = document.createElement("option");
@@ -2094,6 +2438,12 @@ const refreshGeometryList = async (btnElement)=>{
                         }
                         select.appendChild(opt);
                     });
+                    // Auto-select logic: Target > Current
+                    if (targetSelection && Array.from(select.options).some((o)=>o.value === targetSelection)) {
+                        select.value = targetSelection;
+                    } else if (currentSelection && Array.from(select.options).some((o)=>o.value === currentSelection)) {
+                        select.value = currentSelection;
+                    }
                 }
             }
         }
@@ -2110,6 +2460,7 @@ const refreshGeometryList = async (btnElement)=>{
         }
     }
 };
+window.refreshGeometryList = refreshGeometryList;
 const switchGeometryTab = (tab)=>{
     const track = document.getElementById("geometry-track");
     const pill = document.getElementById("geometry-bg-pill");
@@ -2158,8 +2509,9 @@ const loadResourceGeometries = async (refresh = false)=>{
     const originalIcon = btn ? btn.innerHTML : "Refresh";
     if (btn) {
         btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
         btn.classList.add("cursor-wait", "opacity-75");
-        btn.innerHTML = `<svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-3 w-3 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Refreshing...`;
     }
     select.innerHTML = '<option>Loading...</option>';
     try {
@@ -2188,6 +2540,7 @@ const loadResourceGeometries = async (refresh = false)=>{
     } finally{
         if (btn) {
             btn.disabled = false;
+            btn.removeAttribute("aria-busy");
             btn.classList.remove("cursor-wait", "opacity-75");
             btn.innerHTML = originalIcon;
         }
@@ -2204,7 +2557,7 @@ const fetchResourceGeometry = async (btnElement)=>{
     const originalText = btn ? btn.innerHTML : "Fetch & Import";
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Fetching...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Fetching...`;
     }
     try {
         const res = await fetch("/api/resources/geometry/fetch", {
@@ -2220,7 +2573,7 @@ const fetchResourceGeometry = async (btnElement)=>{
         const result = await res.json();
         if (result.success) {
             showNotification(`Fetched ${filename} successfully`, "success");
-            refreshGeometryList();
+            refreshGeometryList(undefined, filename);
         } else {
             showNotification(result.message || "Fetch failed", "error");
         }
@@ -2247,7 +2600,7 @@ const setCase = (btnElement)=>{
     if (btn) {
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Setting...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Setting...`;
     }
     fetchWithCache("/set_case", {
         method: "POST",
@@ -2341,7 +2694,7 @@ const uploadGeometry = async (btnElement)=>{
     if (btn) {
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Uploading...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Uploading...`;
     }
     const formData = new FormData();
     formData.append("file", file);
@@ -2352,9 +2705,10 @@ const uploadGeometry = async (btnElement)=>{
             body: formData
         });
         if (!response.ok) throw new Error("Upload failed");
+        const data = await response.json();
         showNotification("Geometry uploaded successfully", "success");
         input.value = "";
-        refreshGeometryList();
+        refreshGeometryList(undefined, data.filename);
         success = true;
     } catch (e) {
         showNotification("Failed to upload geometry", "error");
@@ -2383,7 +2737,7 @@ const deleteGeometry = async (btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Deleting...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Deleting...`;
     }
     try {
         await fetch("/api/geometry/delete", {
@@ -2542,7 +2896,16 @@ const generateBlockMeshDict = async (btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+    }
+    // Validate inputs
+    if (!validateVector3("bmMin", "Min Bounds") || !validateVector3("bmMax", "Max Bounds") || !validateVector3("bmCells", "Cells") || !validateVector3("bmGrading", "Grading")) {
+        if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.innerHTML = originalText;
+        }
+        return;
     }
     const minVal = document.getElementById("bmMin").value.trim().split(/\s+/).map(Number);
     const maxVal = document.getElementById("bmMax").value.trim().split(/\s+/).map(Number);
@@ -2592,7 +2955,7 @@ const generateSnappyHexMeshDict = async (btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
     }
     // Use default value 0 if element doesn't exist or is empty, though HTML doesn't have shmLevel
     // The HTML has shmObjRefMin/Max, but not a global shmLevel.
@@ -2602,6 +2965,14 @@ const generateSnappyHexMeshDict = async (btnElement)=>{
     // I should fix this too? Or just stub selectShmObject.
     // For now, I'll add selectShmObject.
     const level = 0; // Stub as element might be missing
+    if (!validateVector3("shmLocation", "Location In Mesh")) {
+        if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.innerHTML = originalText;
+        }
+        return;
+    }
     const locationInput = document.getElementById("shmLocation");
     const location = locationInput ? locationInput.value.trim().split(/\s+/).map(Number) : [
         0,
@@ -2662,9 +3033,10 @@ const runMeshingCommand = async (cmd, btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
     }
     showNotification(`Running ${cmd}`, "info");
+    updatePageTitle("running");
     try {
         const res = await fetch("/api/meshing/run", {
             method: "POST",
@@ -2694,6 +3066,7 @@ const runMeshingCommand = async (cmd, btnElement)=>{
         console.error(e);
         showNotification("Meshing failed to execute", "error");
     } finally{
+        updatePageTitle(success ? "success" : "error");
         if (btn) {
             if (success) {
                 temporarilyShowSuccess(btn, originalText, "Completed!");
@@ -2717,9 +3090,11 @@ const runFoamToVTK = async (btnElement)=>{
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Running...`;
     }
     showNotification("Running foamToVTK...", "info");
+    updatePageTitle("running");
+    let success = false;
     try {
         const response = await fetch("/run_foamtovtk", {
             method: "POST",
@@ -2743,6 +3118,7 @@ const runFoamToVTK = async (btnElement)=>{
                 showNotification("foamToVTK completed", "success");
                 flushOutputBuffer();
                 refreshMeshList();
+                success = true;
                 return;
             }
             const text = decoder.decode(value);
@@ -2760,6 +3136,7 @@ const runFoamToVTK = async (btnElement)=>{
         console.error(e);
         showNotification("Error running foamToVTK", "error");
     } finally{
+        updatePageTitle(success ? "success" : "error");
         if (btn) {
             btn.disabled = false;
             btn.removeAttribute("aria-busy");
@@ -2779,7 +3156,7 @@ const refreshMeshList = async (btnElement)=>{
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
         btn.classList.add("opacity-75", "cursor-wait");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
     }
     try {
         const res = await fetch(`/api/available_meshes?tutorial=${encodeURIComponent(activeCase)}`);
@@ -2831,7 +3208,7 @@ const loadMeshVisualization = async ()=>{
     if (btn) {
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Loading...`;
     }
     currentMeshPath = path;
     try {
@@ -2855,6 +3232,14 @@ const updateMeshView = async ()=>{
     const showEdges = document.getElementById("showEdges")?.checked ?? true;
     const color = document.getElementById("meshColor")?.value ?? "lightblue";
     const cameraPosition = document.getElementById("cameraPosition")?.value || null;
+    const btn = document.getElementById("updateViewBtn");
+    let originalText = "";
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Updating...`;
+    }
     try {
         const res = await fetch("/api/mesh_screenshot", {
             method: "POST",
@@ -2878,7 +3263,16 @@ const updateMeshView = async ()=>{
             document.getElementById("meshControls")?.classList.remove("hidden");
             document.getElementById("meshActionButtons")?.classList.add("hidden");
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error("Error updating mesh view:", e);
+        showNotification("Failed to update mesh view", "error");
+    } finally{
+        if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.innerHTML = originalText;
+        }
+    }
 };
 function displayMeshInfo(meshInfo) {
     const meshInfoDiv = document.getElementById("meshInfo");
@@ -2910,17 +3304,17 @@ function displayMeshInfo(meshInfo) {
             value: meshInfo.volume ? meshInfo.volume.toFixed(3) : "N/A"
         }
     ];
-    meshInfoContent.innerHTML = infoItems.map((item)=>`<div><strong>${item.label}:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors" title="Click to copy">${item.value}</button></div>`).join("");
+    meshInfoContent.innerHTML = infoItems.map((item)=>`<div><strong>${item.label}:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Click to copy">${item.value}</button></div>`).join("");
     // Add bounds if available
     if (meshInfo.bounds && Array.isArray(meshInfo.bounds)) {
         // Space separated for easier pasting into vector fields
         const boundsStr = `${meshInfo.bounds.map((b)=>b.toFixed(2)).join(" ")}`;
-        meshInfoContent.innerHTML += `<div class="col-span-2"><strong>Bounds:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors" title="Click to copy">${boundsStr}</button></div>`;
+        meshInfoContent.innerHTML += `<div class="col-span-2"><strong>Bounds:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Click to copy">${boundsStr}</button></div>`;
     }
     // Add center if available
     if (meshInfo.center && Array.isArray(meshInfo.center)) {
         const centerStr = `${meshInfo.center.map((c)=>c.toFixed(2)).join(" ")}`;
-        meshInfoContent.innerHTML += `<div class="col-span-2"><strong>Center:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors" title="Click to copy">${centerStr}</button></div>`;
+        meshInfoContent.innerHTML += `<div class="col-span-2"><strong>Center:</strong> <button type="button" class="copyable-value hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Click to copy">${centerStr}</button></div>`;
     }
     meshInfoDiv.classList.remove("hidden");
 }
@@ -3090,9 +3484,9 @@ const renderPipeline = ()=>{
         groupEl.className = `inline-flex items-center rounded-full border transition-colors whitespace-nowrap ${isActive ? activeWrapper : inactiveWrapper}`;
         // Icon based on type
         let icon = "";
-        if (node.type === "root") icon = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>`;
-        else if (node.type === "contour") icon = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>`;
-        else icon = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"></circle></svg>`;
+        if (node.type === "root") icon = `<svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>`;
+        else if (node.type === "contour") icon = `<svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>`;
+        else icon = `<svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"></circle></svg>`;
         // Select Button (Main)
         const selectBtn = document.createElement("button");
         const hasDelete = node.type !== 'root';
@@ -3110,12 +3504,13 @@ const renderPipeline = ()=>{
             const delTextClass = isActive ? "text-cyan-200 hover:text-white" : "text-gray-400 hover:text-white";
             delBtn.className = `mr-1 p-1 w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 ${delTextClass}`;
             // Use X icon
-            delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+            delBtn.innerHTML = `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
             delBtn.setAttribute("aria-label", `Delete ${node.name}`);
             delBtn.title = "Delete this step";
-            delBtn.onclick = (e)=>{
+            delBtn.onclick = async (e)=>{
                 e.stopPropagation();
-                if (confirm(`Delete ${node.name}? This will remove all subsequent steps.`)) {
+                const confirmed = await showConfirmModal("Delete Step", `Delete ${node.name}? This will remove all subsequent steps.`);
+                if (confirmed) {
                     deletePipelineStep(node.id);
                 }
             };
@@ -3205,7 +3600,7 @@ const refreshPostListVTK = async (btnElement)=>{
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
         btn.classList.add("opacity-75", "cursor-wait");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
     }
     try {
         const res = await fetch(`/api/available_meshes?tutorial=${encodeURIComponent(activeCase)}`);
@@ -3257,7 +3652,7 @@ const loadContourVTK = async ()=>{
     if (btn) {
         originalText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Loading...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Loading...`;
     }
     try {
         await loadContourMesh(fileToLoad);
@@ -3280,7 +3675,7 @@ const checkStartupStatus = async ()=>{
     modal.className = "fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50";
     modal.innerHTML = `
     <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
-      <div class="mb-4"><svg class="animate-spin h-10 w-10 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
+      <div class="mb-4"><svg aria-hidden="true" class="animate-spin h-10 w-10 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
       <h2 class="text-xl font-bold mb-2">System Check</h2>
       <p id="startup-message" class="text-gray-600">Checking Docker permissions...</p>
     </div>
@@ -3372,6 +3767,7 @@ window.uploadGeometry = uploadGeometry;
 window.deleteGeometry = deleteGeometry;
 window.loadGeometryView = loadGeometryView;
 window.fillBoundsFromGeometry = fillBoundsFromGeometry;
+window.fillLocationFromGeometry = fillLocationFromGeometry;
 window.generateBlockMeshDict = generateBlockMeshDict;
 window.generateSnappyHexMeshDict = generateSnappyHexMeshDict;
 window.selectShmObject = selectShmObject;
@@ -3555,6 +3951,8 @@ const init = ()=>{
         'bmMax',
         'shmLocation'
     ].forEach(setupVectorInputAutoFormat);
+    // Auto-format case name
+    setupCaseNameAutoFormat('newCaseName');
     // Scroll Listener for Navbar
     window.addEventListener("scroll", handleScroll);
     initLogScrollObserver();
@@ -3597,6 +3995,81 @@ const handleScroll = ()=>{
         }
     }
 };
+// Helper: Flash input with visual feedback
+const flashInputFeedback = (el, message, isError = false)=>{
+    const color = isError ? 'red' : 'green';
+    const bgColor = isError ? 'bg-red-100' : 'bg-green-50';
+    // Remove potential conflicting classes first
+    el.classList.remove('border-green-500', 'ring-green-500', 'bg-green-50', 'border-red-500', 'ring-red-500', 'bg-red-100');
+    // Add new classes
+    el.classList.add(`border-${color}-500`, 'ring-1', `ring-${color}-500`, bgColor);
+    // Update help text if available
+    const helpId = el.getAttribute('aria-describedby');
+    const helpEl = helpId ? document.getElementById(helpId) : null;
+    if (helpEl) {
+        // Store original state if not already stored (prevent race condition)
+        if (!helpEl.dataset.originalText) {
+            helpEl.dataset.originalText = helpEl.textContent || "";
+            helpEl.dataset.originalClass = helpEl.className;
+        }
+        // Clear any pending restore timer
+        if (helpEl.dataset.restoreTimer) {
+            clearTimeout(parseInt(helpEl.dataset.restoreTimer, 10));
+        }
+        // Set feedback state
+        helpEl.textContent = message;
+        if (isError) {
+            helpEl.className = "text-xs text-red-600 font-medium mt-1 transition-all duration-300";
+        } else {
+            helpEl.className = "text-xs text-green-600 font-medium mt-1 transition-all duration-300";
+        }
+        helpEl.style.opacity = '1';
+        // Revert input styles and help text after delay
+        const duration = isError ? 3000 : 2000;
+        const timerId = window.setTimeout(()=>{
+            el.classList.remove(`border-${color}-500`, 'ring-1', `ring-${color}-500`, bgColor);
+            // Fade out help text
+            helpEl.style.opacity = '0';
+            setTimeout(()=>{
+                // Restore original help text
+                helpEl.textContent = helpEl.dataset.originalText || "";
+                helpEl.className = helpEl.dataset.originalClass || "";
+                helpEl.style.opacity = '1';
+                // Cleanup data attributes
+                delete helpEl.dataset.originalText;
+                delete helpEl.dataset.originalClass;
+                delete helpEl.dataset.restoreTimer;
+            }, 300);
+        }, duration);
+        helpEl.dataset.restoreTimer = timerId.toString();
+    } else {
+        // Just revert input styles if no help text
+        const duration = isError ? 3000 : 2000;
+        setTimeout(()=>{
+            el.classList.remove(`border-${color}-500`, 'ring-1', `ring-${color}-500`, bgColor);
+        }, duration);
+    }
+};
+// Helper: Validate Vector3 Input
+const validateVector3 = (elementId, label)=>{
+    const el = document.getElementById(elementId);
+    if (!el) return true; // Skip if element missing
+    const val = el.value.trim();
+    if (!val) {
+        flashInputFeedback(el, `${label} is required`, true);
+        el.focus();
+        return false;
+    }
+    // Allow comma or space separated
+    const parts = val.replace(/,/g, ' ').split(/\s+/);
+    const nums = parts.map(Number);
+    if (parts.length !== 3 || nums.some(isNaN)) {
+        flashInputFeedback(el, `Invalid format: Expected 3 numbers (x y z)`, true);
+        el.focus();
+        return false;
+    }
+    return true;
+};
 // Auto-format Vector Inputs (comma to space)
 const setupVectorInputAutoFormat = (elementId)=>{
     const el = document.getElementById(elementId);
@@ -3607,6 +4080,9 @@ const setupVectorInputAutoFormat = (elementId)=>{
         }
         el.addEventListener('blur', ()=>{
             let val = el.value;
+            // 🎨 Palette UX: Handle OpenFOAM syntax (parentheses, brackets, simpleGrading)
+            val = val.replace(/[()\[\]]/g, ' ');
+            val = val.replace(/simpleGrading/g, ' ');
             // Replace commas with spaces
             val = val.replace(/,/g, ' ');
             // Collapse multiple spaces
@@ -3614,50 +4090,28 @@ const setupVectorInputAutoFormat = (elementId)=>{
             val = val.trim();
             if (val !== el.value && val.length > 0) {
                 el.value = val;
-                // 🎨 Palette UX Improvement: Visual feedback for auto-formatting
-                // Flash input green
-                const originalClasses = el.className;
-                el.classList.add('border-green-500', 'ring-1', 'ring-green-500', 'bg-green-50');
-                // Update help text if available
-                const helpId = el.getAttribute('aria-describedby');
-                const helpEl = helpId ? document.getElementById(helpId) : null;
-                if (helpEl) {
-                    // Store original state if not already stored (prevent race condition)
-                    if (!helpEl.dataset.originalText) {
-                        helpEl.dataset.originalText = helpEl.textContent || "";
-                        helpEl.dataset.originalClass = helpEl.className;
-                    }
-                    // Clear any pending restore timer
-                    if (helpEl.dataset.restoreTimer) {
-                        clearTimeout(parseInt(helpEl.dataset.restoreTimer, 10));
-                    }
-                    // Set feedback state
-                    helpEl.textContent = "✨ Auto-formatted to space-separated";
-                    helpEl.className = "text-xs text-green-600 font-medium mt-1 transition-all duration-300";
-                    helpEl.style.opacity = '1';
-                    // Revert input styles and help text after delay
-                    const timerId = window.setTimeout(()=>{
-                        el.classList.remove('border-green-500', 'ring-1', 'ring-green-500', 'bg-green-50');
-                        // Fade out help text
-                        helpEl.style.opacity = '0';
-                        setTimeout(()=>{
-                            // Restore original help text
-                            helpEl.textContent = helpEl.dataset.originalText || "";
-                            helpEl.className = helpEl.dataset.originalClass || "";
-                            helpEl.style.opacity = '1';
-                            // Cleanup data attributes
-                            delete helpEl.dataset.originalText;
-                            delete helpEl.dataset.originalClass;
-                            delete helpEl.dataset.restoreTimer;
-                        }, 300);
-                    }, 2000);
-                    helpEl.dataset.restoreTimer = timerId.toString();
-                } else {
-                    // Just revert input styles if no help text
-                    setTimeout(()=>{
-                        el.classList.remove('border-green-500', 'ring-1', 'ring-green-500', 'bg-green-50');
-                    }, 2000);
-                }
+                flashInputFeedback(el, "✨ Auto-formatted from OpenFOAM syntax");
+            }
+        });
+    }
+};
+// Auto-format Case Name (spaces to underscores, remove invalid chars)
+const setupCaseNameAutoFormat = (elementId)=>{
+    const el = document.getElementById(elementId);
+    if (el) {
+        if (!el.classList.contains('transition-colors')) {
+            el.classList.add('transition-colors', 'duration-500');
+        }
+        el.addEventListener('blur', ()=>{
+            let val = el.value;
+            const original = val;
+            // Replace spaces with underscores
+            val = val.replace(/\s+/g, '_');
+            // Remove any character that is not alphanumeric, underscore, or dash
+            val = val.replace(/[^a-zA-Z0-9_-]/g, '');
+            if (val !== original && val.length > 0) {
+                el.value = val;
+                flashInputFeedback(el, "✨ Auto-formatted: spaces to underscores");
             }
         });
     }
@@ -3708,9 +4162,11 @@ const initLogScrollObserver = ()=>{
             if (shouldShowBottom) {
                 bottomBtn.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
                 bottomBtn.classList.add("opacity-100", "translate-y-0", "pointer-events-auto");
+                bottomBtn.removeAttribute("tabindex");
             } else {
                 bottomBtn.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
                 bottomBtn.classList.remove("opacity-100", "translate-y-0", "pointer-events-auto");
+                bottomBtn.setAttribute("tabindex", "-1");
             }
         }
         // Scroll to Top Button Logic
@@ -3719,9 +4175,11 @@ const initLogScrollObserver = ()=>{
             if (shouldShowTop) {
                 topBtn.classList.remove("opacity-0", "translate-y-2", "pointer-events-none");
                 topBtn.classList.add("opacity-100", "translate-y-0", "pointer-events-auto");
+                topBtn.removeAttribute("tabindex");
             } else {
                 topBtn.classList.add("opacity-0", "translate-y-2", "pointer-events-none");
                 topBtn.classList.remove("opacity-100", "translate-y-0", "pointer-events-auto");
+                topBtn.setAttribute("tabindex", "-1");
             }
         }
     };
@@ -3810,8 +4268,13 @@ window.toggleFontSettings = ()=>{
         closeMenu();
     }
 };
-window.changePlotFont = (fontFamily)=>{
+window.changePlotFont = async (fontFamily)=>{
     if (!fontFamily) return;
+    try {
+        await ensurePlotlyLoaded();
+    } catch (e) {
+        return;
+    }
     // Update global layout config
     if (plotLayout.font) {
         plotLayout.font.family = fontFamily;
@@ -3958,6 +4421,7 @@ const setupGeometryDragDrop = ()=>{
     const dropZone = document.getElementById('geo-drop-zone');
     const input = document.getElementById('geometryUpload');
     const nameDisplay = document.getElementById('geo-file-name');
+    const overlay = document.getElementById('geo-drop-overlay');
     if (!dropZone || !input) return;
     const showFile = ()=>{
         if (input.files && input.files[0]) {
@@ -3967,7 +4431,7 @@ const setupGeometryDragDrop = ()=>{
           <div class="flex items-center justify-center gap-2">
             <span>Selected: ${input.files[0].name}</span>
             <button type="button" id="remove-file-btn" class="text-cyan-700 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded p-0.5 transition-colors" aria-label="Remove file" title="Remove file">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -3991,6 +4455,7 @@ const setupGeometryDragDrop = ()=>{
         }
     };
     input.addEventListener('change', showFile);
+    let dragCounter = 0;
     [
         'dragenter',
         'dragover',
@@ -4002,23 +4467,33 @@ const setupGeometryDragDrop = ()=>{
             e.stopPropagation();
         });
     });
-    [
-        'dragenter',
-        'dragover'
-    ].forEach((eventName)=>{
-        dropZone.addEventListener(eventName, ()=>{
-            dropZone.classList.add('border-cyan-500', 'bg-cyan-50');
-        });
+    dropZone.addEventListener('dragenter', ()=>{
+        dragCounter++;
+        if (dragCounter === 1) {
+            dropZone.classList.add('border-cyan-500');
+            if (overlay) {
+                overlay.classList.remove('opacity-0', 'scale-95');
+                overlay.classList.add('opacity-100', 'scale-100');
+            }
+        }
     });
-    [
-        'dragleave',
-        'drop'
-    ].forEach((eventName)=>{
-        dropZone.addEventListener(eventName, ()=>{
-            dropZone.classList.remove('border-cyan-500', 'bg-cyan-50');
-        });
+    dropZone.addEventListener('dragleave', ()=>{
+        dragCounter--;
+        if (dragCounter === 0) {
+            dropZone.classList.remove('border-cyan-500');
+            if (overlay) {
+                overlay.classList.remove('opacity-100', 'scale-100');
+                overlay.classList.add('opacity-0', 'scale-95');
+            }
+        }
     });
     dropZone.addEventListener('drop', (e)=>{
+        dragCounter = 0;
+        dropZone.classList.remove('border-cyan-500');
+        if (overlay) {
+            overlay.classList.remove('opacity-100', 'scale-100');
+            overlay.classList.add('opacity-0', 'scale-95');
+        }
         const dt = e.dataTransfer;
         if (dt && dt.files) {
             input.files = dt.files;
@@ -4031,8 +4506,8 @@ window.toggleFullscreen = (containerId, btn)=>{
     const container = document.getElementById(containerId);
     if (!container) return;
     // Icons
-    const expandIcon = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>`;
-    const compressIcon = `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 14h6v6M10 14L4 20M20 14h-6v6M14 14l6 20M4 10h6V4M10 10L4 4M20 10h-6V4M14 10l6-4" /></svg>`;
+    const expandIcon = `<svg aria-hidden="true" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>`;
+    const compressIcon = `<svg aria-hidden="true" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 14h6v6M10 14L4 20M20 14h-6v6M14 14l6 20M4 10h6V4M10 10L4 4M20 10h-6V4M14 10l6-4" /></svg>`;
     const updateUI = ()=>{
         // Check if this container is the one in fullscreen
         if (document.fullscreenElement === container) {
@@ -4070,6 +4545,9 @@ window._fetchWithCache = fetchWithCache;
 window._requestCache = requestCache;
 const resetState = ()=>{
     requestCache = new Map();
+    if (typeof window !== 'undefined') window._requestCache = requestCache;
+    abortControllers = new Map();
+    if (typeof window !== 'undefined') window._abortControllers = abortControllers;
     activeCase = null;
     caseDir = "";
     dockerImage = "";
@@ -4089,6 +4567,9 @@ const resetState = ()=>{
     activePipelineId = "root";
     outputBuffer.length = 0;
     cachedLogHTML = "";
+    lastResidualsCount = 0;
+    currentResidualsData = {};
+    cachedXArray = null;
 };
 window._resetState = resetState;
 export { init, fetchWithCache, requestCache, setCase, refreshCaseList, uploadGeometry, deleteGeometry, resetState };

@@ -12,7 +12,8 @@ describe('Geometry UX', () => {
     document.body.innerHTML = `
       <div id="page-geometry" class="page">
          <label for="geometryUpload" id="geo-drop-zone">
-            Drop Zone
+            <div id="geo-drop-content">Drop Zone</div>
+            <div id="geo-drop-overlay" class="opacity-0">Drop Here</div>
             <input type="file" id="geometryUpload" />
          </label>
          <div id="geo-file-name" class="hidden"></div>

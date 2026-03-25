@@ -141,8 +141,10 @@ def _generate_html_process(file_path: str, output_path: str, color: str, opacity
 
     except Exception as e:
         print(f"Error in subprocess: {e}")
-        if os.path.exists(output_path):
+        try:
             os.remove(output_path)
+        except OSError:
+            pass
 
 class GeometryVisualizer(BaseVisualizer):
     """Visualizes geometry files (STL) using PyVista with caching and multiprocessing."""
@@ -163,16 +165,23 @@ class GeometryVisualizer(BaseVisualizer):
             # ⚡ Bolt Optimization: Caching
             try:
                 mtime = path.stat().st_mtime
+            except OSError:
+                return None
+
+            try:
                 cache_key_str = f"{str(path)}_{mtime}_{color}_{opacity}_{optimize}"
                 cache_key = hashlib.sha256(cache_key_str.encode()).hexdigest()
 
                 cache_dir = _get_cache_dir()
                 cache_path = cache_dir / f"{cache_key}.html"
 
-                if cache_path.exists():
-                    logger.debug(f"Serving geometry from cache: {cache_path}")
+                # ⚡ Bolt Optimization: EAFP pattern for cache read avoids double syscall
+                try:
                     with open(cache_path, "r", encoding="utf-8") as f:
+                        logger.debug(f"Serving geometry from cache: {cache_path}")
                         return f.read()
+                except FileNotFoundError:
+                    pass
             except Exception as e:
                 logger.warning(f"Cache check failed: {e}")
 
@@ -192,20 +201,30 @@ class GeometryVisualizer(BaseVisualizer):
                 p.terminate()
                 p.join()
                 logger.error("HTML generation timed out")
-                if os.path.exists(temp_output_path):
+                try:
                     os.remove(temp_output_path)
+                except OSError:
+                    pass
                 return None
 
             if p.exitcode != 0:
                 logger.error("HTML generation process failed")
-                if os.path.exists(temp_output_path):
+                try:
                     os.remove(temp_output_path)
+                except OSError:
+                    pass
                 return None
 
-            if not os.path.exists(temp_output_path) or os.path.getsize(temp_output_path) == 0:
-                 logger.error("HTML output file is empty or missing")
-                 if os.path.exists(temp_output_path):
-                    os.remove(temp_output_path)
+            try:
+                if os.path.getsize(temp_output_path) == 0:
+                     logger.error("HTML output file is empty")
+                     try:
+                        os.remove(temp_output_path)
+                     except OSError:
+                        pass
+                     return None
+            except OSError:
+                 logger.error("HTML output file is missing")
                  return None
 
             with open(temp_output_path, "r", encoding="utf-8") as f:
@@ -217,8 +236,10 @@ class GeometryVisualizer(BaseVisualizer):
                 shutil.move(temp_output_path, cache_path)
             except Exception as e:
                 logger.warning(f"Failed to save to cache: {e}")
-                if os.path.exists(temp_output_path):
+                try:
                     os.remove(temp_output_path)
+                except OSError:
+                    pass
 
             return html_content
 
@@ -233,14 +254,18 @@ class GeometryVisualizer(BaseVisualizer):
             if not path:
                 return {"success": False, "error": "Invalid file"}
 
-            # ⚡ Bolt Optimization: Check in-memory cache
             try:
                 mtime = path.stat().st_mtime
+            except OSError:
+                return {"success": False, "error": "Failed to load mesh"}
+
+            # ⚡ Bolt Optimization: Check in-memory cache
+            try:
                 cache_key = (str(path), mtime)
                 if cache_key in _MESH_INFO_CACHE:
                     _MESH_INFO_CACHE.move_to_end(cache_key)
                     return _MESH_INFO_CACHE[cache_key]
-            except OSError:
+            except Exception:
                 pass
 
             mesh = self.load_mesh_safe(path)

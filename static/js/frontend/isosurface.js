@@ -25,7 +25,7 @@ let currentFieldStats = null;
         originalText = btn.innerHTML;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
     }
     try {
         // Show loading state
@@ -437,7 +437,9 @@ let currentFieldStats = null;
                 </div>
                 <button 
                     onclick="generateContours()" 
-                    class="mt-4 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">
+                    title="Retry generating contours"
+                    aria-label="Try Again: Retry generating contours"
+                    class="mt-4 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2">
                     Try Again
                 </button>
             </div>

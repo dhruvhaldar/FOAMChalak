@@ -25,8 +25,10 @@ def test_mesh_screenshot_valid_dimensions():
 
         # Patch load_mesh to avoid FileNotFoundError and return success
         with patch("pathlib.Path.exists", return_value=True):
-            with patch.object(visualizer, 'load_mesh', return_value={"success": True}) as mock_load:
-                 result = visualizer.get_mesh_screenshot("dummy.vtk", width=valid_width, height=valid_height)
+            with patch("pathlib.Path.stat") as mock_stat:
+                mock_stat.return_value.st_mtime = 123456.0
+                with patch.object(visualizer, 'load_mesh', return_value={"success": True}) as mock_load:
+                     result = visualizer.get_mesh_screenshot("dummy.vtk", width=valid_width, height=valid_height)
 
         # Assert that the result is NOT None
         assert result is not None

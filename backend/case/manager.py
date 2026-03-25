@@ -54,9 +54,6 @@ class CaseManager:
 
     @staticmethod
     def _create_default_control_dict(filepath: Path) -> None:
-        if filepath.exists():
-            return
-
         content = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
@@ -106,13 +103,15 @@ runTimeModifiable true;
 
 // ************************************************************************* //
 """
-        filepath.write_text(content, encoding="utf-8")
+        # ⚡ Bolt Optimization: Use 'x' mode to atomically create and write without LBYL check
+        try:
+            with filepath.open("x", encoding="utf-8") as f:
+                f.write(content)
+        except FileExistsError:
+            pass
 
     @staticmethod
     def _create_default_fv_schemes(filepath: Path) -> None:
-        if filepath.exists():
-            return
-
         content = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
@@ -167,13 +166,15 @@ snGradSchemes
 
 // ************************************************************************* //
 """
-        filepath.write_text(content, encoding="utf-8")
+        # ⚡ Bolt Optimization: Use 'x' mode to atomically create and write without LBYL check
+        try:
+            with filepath.open("x", encoding="utf-8") as f:
+                f.write(content)
+        except FileExistsError:
+            pass
 
     @staticmethod
     def _create_default_fv_solution(filepath: Path) -> None:
-        if filepath.exists():
-            return
-
         content = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
@@ -234,13 +235,15 @@ relaxationFactors
 
 // ************************************************************************* //
 """
-        filepath.write_text(content, encoding="utf-8")
+        # ⚡ Bolt Optimization: Use 'x' mode to atomically create and write without LBYL check
+        try:
+            with filepath.open("x", encoding="utf-8") as f:
+                f.write(content)
+        except FileExistsError:
+            pass
 
     @staticmethod
     def _create_default_transport_properties(filepath: Path) -> None:
-        if filepath.exists():
-            return
-
         content = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
@@ -264,4 +267,9 @@ nu              [0 2 -1 0 0 0 0] 1e-05;
 
 // ************************************************************************* //
 """
-        filepath.write_text(content, encoding="utf-8")
+        # ⚡ Bolt Optimization: Use 'x' mode to atomically create and write without LBYL check
+        try:
+            with filepath.open("x", encoding="utf-8") as f:
+                f.write(content)
+        except FileExistsError:
+            pass

@@ -29,10 +29,13 @@ def test_get_tutorials_optimization(mocker):
         args, kwargs = mock_container_run.call_args
         cmd = args[1]
 
+        # cmd is a list like ["bash", "-c", "full command string"]
+        full_command = cmd[2]
+
         # Assert optimization is present
-        assert "find $FOAM_TUTORIALS -mindepth 3 -maxdepth 3" in cmd
-        assert "sed 's|/[^/]*$||'" in cmd
-        assert "uniq -d" in cmd
+        assert "find $tutorials_dir -mindepth 3 -maxdepth 3" in full_command
+        assert "sed 's|/[^/]*$||'" in full_command
+        assert "uniq -d" in full_command
 
         # Assert slow path is removed
-        assert "-exec test -d" not in cmd
+        assert "-exec test -d" not in full_command

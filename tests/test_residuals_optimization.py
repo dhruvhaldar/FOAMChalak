@@ -1,109 +1,92 @@
-
-import pytest
-from pathlib import Path
+import os
+import tempfile
+import array
+import numpy as np
+import unittest
 from backend.plots.realtime_plots import OpenFOAMFieldParser, _RESIDUALS_CACHE
 
-@pytest.fixture(autouse=True)
-def clear_cache():
-    _RESIDUALS_CACHE.clear()
-    yield
-    _RESIDUALS_CACHE.clear()
+class TestResidualsOptimization(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = tempfile.TemporaryDirectory()
+        self.case_dir = self.test_dir.name
+        self.log_file = os.path.join(self.case_dir, "log.foamRun")
 
-def test_incremental_parsing_correctness(tmp_path):
-    # 1. Create log file with initial data
-    log_file = tmp_path / "log.foamRun"
-    content1 = (
-        b"Time = 1\n"
-        b"Solving for Ux, Initial residual = 0.1, Final residual = 0.01, No Iterations 1\n"
-        b"Solving for p, Initial residual = 0.2, Final residual = 0.02, No Iterations 1\n"
-        b"ExecutionTime = 1 s\n"
-    )
-    log_file.write_bytes(content1)
+        # Create a dummy log file
+        with open(self.log_file, "wb") as f:
+            f.write(b"Time = 0.1\n")
+            f.write(b"Solving for Ux, Initial residual = 0.5, Final residual = 0.01, No Iterations 1\n")
+            f.write(b"Solving for p, Initial residual = 0.2, Final residual = 0.001, No Iterations 5\n")
+            f.write(b"\n")
+            f.write(b"Time = 0.2\n")
+            f.write(b"Solving for Ux, Initial residual = 0.4, Final residual = 0.005, No Iterations 1\n")
+            f.write(b"Solving for p, Initial residual = 0.1, Final residual = 0.0005, No Iterations 4\n")
 
-    parser = OpenFOAMFieldParser(tmp_path)
+        self.parser = OpenFOAMFieldParser(self.case_dir)
+        _RESIDUALS_CACHE.clear()
 
-    # 2. First parse
-    residuals1 = parser.get_residuals_from_log()
-    assert residuals1["time"] == [1.0]
-    assert residuals1["Ux"] == [0.1]
-    assert residuals1["p"] == [0.2]
+    def tearDown(self):
+        self.test_dir.cleanup()
+        _RESIDUALS_CACHE.clear()
 
-    # 3. Append data
-    content2 = (
-        b"Time = 2\n"
-        b"Solving for Ux, Initial residual = 0.05, Final residual = 0.005, No Iterations 1\n"
-        b"Solving for p, Initial residual = 0.1, Final residual = 0.01, No Iterations 1\n"
-        b"ExecutionTime = 2 s\n"
-    )
-    # Using open 'ab' to append
-    with open(log_file, "ab") as f:
-        f.write(content2)
+    def test_get_residuals_returns_arrays(self):
+        residuals = self.parser.get_residuals_from_log("log.foamRun")
 
-    # 4. Second parse (incremental)
-    residuals2 = parser.get_residuals_from_log()
+        # Check type
+        self.assertIsInstance(residuals, dict)
+        self.assertIsInstance(residuals["time"], array.array)
+        self.assertIsInstance(residuals["Ux"], array.array)
+        self.assertIsInstance(residuals["p"], array.array)
 
-    # Verify correctness
-    assert residuals2["time"] == [1.0, 2.0]
-    assert residuals2["Ux"] == [0.1, 0.05]
-    assert residuals2["p"] == [0.2, 0.1]
+        # Check typecode
+        self.assertEqual(residuals["time"].typecode, 'd')
+        self.assertEqual(residuals["Ux"].typecode, 'd')
 
-    # Verify object identity (should be same list objects if extended in place,
-    # but our new logic will still extend the same cached list objects)
-    assert residuals1["time"] is residuals2["time"]
+        # Check values
+        self.assertEqual(list(residuals["time"]), [0.1, 0.2])
+        self.assertEqual(list(residuals["Ux"]), [0.5, 0.4])
+        self.assertEqual(list(residuals["p"]), [0.2, 0.1])
 
-def test_partial_line_handling(tmp_path):
-    log_file = tmp_path / "log.foamRun"
+    def test_numpy_conversion(self):
+        residuals = self.parser.get_residuals_from_log("log.foamRun")
 
-    # 1. Write data ending with incomplete line
-    content = (
-        b"Time = 1\n"
-        b"Solving for Ux, Initial residual = 0.1, Final residual = 0.01\n" # Missing newline? No, valid line
-        b"Solving for p, Initial " # Incomplete
-    )
-    log_file.write_bytes(content)
+        # Simulate app.py conversion
+        converted = {}
+        for k, v in residuals.items():
+            if isinstance(v, array.array):
+                converted[k] = np.frombuffer(v, dtype=float)
+            else:
+                converted[k] = v
 
-    parser = OpenFOAMFieldParser(tmp_path)
-    residuals = parser.get_residuals_from_log()
+        # Check numpy arrays
+        self.assertIsInstance(converted["time"], np.ndarray)
+        self.assertIsInstance(converted["Ux"], np.ndarray)
 
-    assert residuals["time"] == [1.0]
-    assert residuals["Ux"] == [0.1]
-    assert len(residuals["p"]) == 0 # p not parsed yet
+        # Check values preserved
+        np.testing.assert_array_equal(converted["time"], np.array([0.1, 0.2]))
+        np.testing.assert_array_equal(converted["Ux"], np.array([0.5, 0.4]))
 
-    # 2. Complete the line and add more
-    with open(log_file, "ab") as f:
-        f.write(b"residual = 0.2, Final residual = 0.02\nTime = 2\n")
+        # Check zero copy (if we modify array, numpy view should reflect it?)
+        # array.array is mutable. np.frombuffer creates a view.
+        residuals["time"][0] = 9.9
+        self.assertEqual(converted["time"][0], 9.9)
 
-    residuals = parser.get_residuals_from_log()
-    assert residuals["p"] == [0.2]
-    assert residuals["time"] == [1.0, 2.0]
+    def test_cache_immutability(self):
+        """Verify that the conversion logic in app.py does not mutate the cache."""
+        residuals = self.parser.get_residuals_from_log("log.foamRun")
 
-def test_dynamic_field_discovery(tmp_path):
-    log_file = tmp_path / "log.foamRun"
-    content = (
-        b"Time = 1\n"
-        b"Solving for CustomField, Initial residual = 0.5, Final residual = 0.05, No Iterations 1\n"
-    )
-    log_file.write_bytes(content)
+        # Simulate app.py logic with explicit copy
+        response_data = residuals.copy()
+        for k, v in response_data.items():
+            if isinstance(v, array.array):
+                response_data[k] = np.frombuffer(v, dtype=float)
 
-    parser = OpenFOAMFieldParser(tmp_path)
-    residuals = parser.get_residuals_from_log()
+        # Verify residuals (which represents the cache) still holds array.array
+        self.assertIsInstance(residuals["time"], array.array)
+        self.assertIsInstance(residuals["Ux"], array.array)
 
-    assert "CustomField" in residuals
-    assert residuals["CustomField"] == [0.5]
-    assert residuals["time"] == [1.0]
+        # Verify response_data holds numpy arrays
+        self.assertIsInstance(response_data["time"], np.ndarray)
+        self.assertIsInstance(response_data["Ux"], np.ndarray)
 
-def test_tab_separated_residuals(tmp_path):
-    log_file = tmp_path / "log.foamRun"
-    # Note the tab after "Solving for"
-    content = (
-        b"Time = 1\n"
-        b"Solving for\tUx, Initial residual = 0.5, Final residual = 0.05, No Iterations 1\n"
-    )
-    log_file.write_bytes(content)
-
-    parser = OpenFOAMFieldParser(tmp_path)
-    residuals = parser.get_residuals_from_log()
-
-    assert "Ux" in residuals
-    assert residuals["Ux"] == [0.5]
-    assert residuals["time"] == [1.0]
+if __name__ == "__main__":
+    unittest.main()

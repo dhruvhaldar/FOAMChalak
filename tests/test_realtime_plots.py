@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from app import OpenFOAMFieldParser, get_available_fields
+from backend.plots.realtime_plots import OpenFOAMFieldParser, get_available_fields
 
 
 def test_get_time_directories(tmp_path):
@@ -142,11 +142,11 @@ smoothSolver:  Solving for p, Initial residual = 0.05
     parser = OpenFOAMFieldParser(tmp_path)
     residuals = parser.get_residuals_from_log()
 
-    assert residuals["time"] == [0.1]
-    assert residuals["Ux"] == [0.1]
-    assert residuals["Uy"] == [0.2]
-    assert residuals["Uz"] == [0.3]
-    assert residuals["p"] == [0.05]
+    assert list(residuals["time"]) == [0.1]
+    assert list(residuals["Ux"]) == [0.1]
+    assert list(residuals["Uy"]) == [0.2]
+    assert list(residuals["Uz"]) == [0.3]
+    assert list(residuals["p"]) == [0.05]
 
 
 def test_get_available_fields(tmp_path):
@@ -175,8 +175,8 @@ def test_get_residuals_from_log_incremental(tmp_path):
 
     # First call
     res1 = parser.get_residuals_from_log("log.foamRun")
-    assert res1["time"] == [1.0]
-    assert res1["Ux"] == [0.1]
+    assert list(res1["time"]) == [1.0]
+    assert list(res1["Ux"]) == [0.1]
 
     # Chunk 2 (Append)
     chunk2 = "Time = 2\nSolving for Ux, Initial residual = 0.05\n"
@@ -185,28 +185,5 @@ def test_get_residuals_from_log_incremental(tmp_path):
 
     # Second call
     res2 = parser.get_residuals_from_log("log.foamRun")
-    assert res2["time"] == [1.0, 2.0]
-    assert res2["Ux"] == [0.1, 0.05]
-
-def test_get_residuals_from_log_incremental(tmp_path):
-    log_file = tmp_path / "log.foamRun"
-    parser = OpenFOAMFieldParser(tmp_path)
-
-    # Chunk 1
-    chunk1 = "Time = 1\nSolving for Ux, Initial residual = 0.1\n"
-    log_file.write_text(chunk1)
-
-    # First call
-    res1 = parser.get_residuals_from_log("log.foamRun")
-    assert res1["time"] == [1.0]
-    assert res1["Ux"] == [0.1]
-
-    # Chunk 2 (Append)
-    chunk2 = "Time = 2\nSolving for Ux, Initial residual = 0.05\n"
-    with open(log_file, "a") as f:
-        f.write(chunk2)
-
-    # Second call
-    res2 = parser.get_residuals_from_log("log.foamRun")
-    assert res2["time"] == [1.0, 2.0]
-    assert res2["Ux"] == [0.1, 0.05]
+    assert list(res2["time"]) == [1.0, 2.0]
+    assert list(res2["Ux"]) == [0.1, 0.05]

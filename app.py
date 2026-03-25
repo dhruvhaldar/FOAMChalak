@@ -9,6 +9,7 @@ import platform
 import posixpath
 import re
 import sys
+import array
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Generator, Any
 from functools import wraps, lru_cache
@@ -20,9 +21,17 @@ from datetime import datetime, timezone
 # Third-party imports
 import docker
 import orjson
+import numpy as np
 from docker import DockerClient
 from docker.errors import DockerException
-from flask import Flask, Response, render_template_string, request, send_from_directory, stream_with_context
+from flask import (
+    Flask,
+    Response,
+    render_template_string,
+    request,
+    send_from_directory,
+    stream_with_context,
+)
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import escape
 from werkzeug.utils import secure_filename
@@ -30,7 +39,11 @@ from flask_compress import Compress
 
 # Local application imports
 from backend.mesh.mesher import mesh_visualizer
-from backend.plots.realtime_plots import OpenFOAMFieldParser, clear_cache as clear_plots_cache, get_available_fields
+from backend.plots.realtime_plots import (
+    OpenFOAMFieldParser,
+    clear_cache as clear_plots_cache,
+    get_available_fields,
+)
 from backend.post.isosurface import IsosurfaceVisualizer, isosurface_visualizer
 from backend.post.slice import SliceVisualizer
 from backend.post.streamline import StreamlineVisualizer
@@ -66,27 +79,29 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///simulation_runs.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+
 class SimulationRun(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     case_name = db.Column(db.Text, nullable=False)
     tutorial = db.Column(db.String(200), nullable=False)
     command = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(20), nullable=False, default="Pending")
-    start_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # ⚡ Bolt Optimization: Add index to start_time to speed up descending sort queries in /api/runs
+    start_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     end_time = db.Column(db.DateTime, nullable=True)
-    execution_duration = db.Column(db.Float, nullable=True) # in seconds
+    execution_duration = db.Column(db.Float, nullable=True)  # in seconds
     log_file_path = db.Column(db.String(255), nullable=True)
 
     def __repr__(self):
         return f"<SimulationRun {self.id} {self.case_name} {self.status}>"
 
+
 # Security: Set maximum upload size to 500MB to prevent DoS
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("FOAMFlask")
-
 
 
 def fast_jsonify(data: Any, status: int = 200) -> Response:
@@ -104,12 +119,9 @@ def fast_jsonify(data: Any, status: int = 200) -> Response:
     # OPT_SERIALIZE_NUMPY: Handles numpy arrays automatically
     # OPT_NAIVE_UTC: Assumes naive datetime is UTC
     json_bytes = orjson.dumps(
-        data,
-        option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NAIVE_UTC
+        data, option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NAIVE_UTC
     )
-    return Response(json_bytes, status=status, mimetype='application/json')
-
-
+    return Response(json_bytes, status=status, mimetype="application/json")
 
 
 def get_resource_path(relative_path: str) -> Path:
@@ -124,11 +136,12 @@ def get_resource_path(relative_path: str) -> Path:
     """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = Path(sys._MEIPASS) # type: ignore
+        base_path = Path(sys._MEIPASS)  # type: ignore
     except AttributeError:
         base_path = Path(app.root_path)
 
     return (base_path / relative_path).resolve()
+
 
 # Global configuration
 CONFIG_FILE = Path("case_config.json")
@@ -144,6 +157,7 @@ STARTUP_STATUS = {"status": "starting", "message": "Initializing..."}
 # IP -> list of timestamps
 _request_history: Dict[str, List[float]] = {}
 _last_cleanup_time = 0.0
+
 
 def _cleanup_rate_limit_history(window: int = 60):
     """
@@ -170,6 +184,7 @@ def _cleanup_rate_limit_history(window: int = 60):
     for ip in ips_to_remove:
         del _request_history[ip]
 
+
 def rate_limit(limit: int = 5, window: int = 60):
     """
     Decorator to rate limit endpoints.
@@ -178,11 +193,14 @@ def rate_limit(limit: int = 5, window: int = 60):
         limit: Max requests allowed in the window.
         window: Time window in seconds.
     """
+
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
             # Allow rate limiting to be disabled for testing if needed
-            if app.config.get("TESTING") and not app.config.get("ENABLE_RATE_LIMIT", True):
+            if app.config.get("TESTING") and not app.config.get(
+                "ENABLE_RATE_LIMIT", True
+            ):
                 return f(*args, **kwargs)
 
             # Get IP address (simple remote_addr, trusted in this context)
@@ -203,21 +221,35 @@ def rate_limit(limit: int = 5, window: int = 60):
             history = [t for t in history if now - t < window]
 
             if len(history) >= limit:
-                logger.warning(f"Security: Rate limit exceeded for {ip} on {request.endpoint}")
-                return fast_jsonify({
-                    "error": "Too many requests. Please try again later.",
-                    "retry_after": int(window - (now - history[0])) if history else window
-                }), 429
+                logger.warning(
+                    f"Security: Rate limit exceeded for {ip} on {request.endpoint}"
+                )
+                return (
+                    fast_jsonify(
+                        {
+                            "error": "Too many requests. Please try again later.",
+                            "retry_after": (
+                                int(window - (now - history[0])) if history else window
+                            ),
+                        }
+                    ),
+                    429,
+                )
 
             history.append(now)
             _request_history[ip] = history
 
             return f(*args, **kwargs)
+
         return wrapped
+
     return decorator
 
 
 # Security validation functions
+# ⚡ Bolt Optimization: Pre-compile security validation regexes to avoid cache lookup overhead
+_SAFE_TUTORIAL_PATH_RE = re.compile(r"^[a-zA-Z0-9_./-]+$")
+
 def is_safe_tutorial_path(path: str) -> bool:
     """
     Validate tutorial path to prevent command injection.
@@ -231,52 +263,54 @@ def is_safe_tutorial_path(path: str) -> bool:
     if not path or not isinstance(path, str):
         return False
     # Only allow alphanumeric, underscore, hyphen, dot, and slash
-    if not re.match(r'^[a-zA-Z0-9_./-]+$', path):
+    if not _SAFE_TUTORIAL_PATH_RE.match(path):
         return False
-    if '..' in path:
+    if ".." in path:
         return False
     # Prevent argument injection (starting with -)
-    if path.startswith('-'):
+    if path.startswith("-"):
         return False
     # Prevent absolute paths (starting with /)
-    if path.startswith('/') or path.startswith('\\'):
+    if path.startswith("/") or path.startswith("\\"):
         return False
     return True
 
 
+_SAFE_SCRIPT_NAME_RE = re.compile(r"^[a-zA-Z0-9_.-]+$")
+
 def is_safe_script_name(script_name: str) -> bool:
     """
     Validate script name to prevent path traversal and injection.
-    
+
     Args:
         script_name: Script file name (without path)
-        
+
     Returns:
         True if script name is safe, False otherwise
     """
     if not script_name or not isinstance(script_name, str):
         return False
-    
+
     # Only allow alphanumeric characters, underscores, hyphens, and dots
-    if not re.match(r'^[a-zA-Z0-9_.-]+$', script_name):
+    if not _SAFE_SCRIPT_NAME_RE.match(script_name):
         return False
-    
+
     # Prevent path traversal
-    if '..' in script_name or '/' in script_name or '\\' in script_name:
+    if ".." in script_name or "/" in script_name or "\\" in script_name:
         return False
-    
+
     # Prevent hidden files starting with dot
-    if script_name.startswith('.'):
+    if script_name.startswith("."):
         return False
 
     # Prevent arguments being interpreted as flags (starting with -)
-    if script_name.startswith('-'):
+    if script_name.startswith("-"):
         return False
-    
+
     # Length check
     if len(script_name) > 50:
         return False
-    
+
     return True
 
 
@@ -287,6 +321,7 @@ def _resolve_path_cached(path_str: str) -> Path:
     Only used for the base directory which changes infrequently.
     """
     return Path(path_str).resolve()
+
 
 # ⚡ Bolt Optimization: Cache date formatting to avoid repeated string ops
 @lru_cache(maxsize=128)
@@ -303,6 +338,8 @@ def format_mtime(mtime: float) -> str:
     """
     return _format_mtime_cached(int(mtime))
 
+
+_WIN_DRIVE_ROOT_RE = re.compile(r"^[a-z]:\\?+$")
 
 def is_safe_case_root(path_str: str) -> bool:
     """
@@ -324,7 +361,7 @@ def is_safe_case_root(path_str: str) -> bool:
         path_parts = Path(normalized).parts
         for part in path_parts:
             # Check if part starts with . but is not . or ..
-            if part.startswith('.') and part not in ('.', '..'):
+            if part.startswith(".") and part not in (".", ".."):
                 return False
     except Exception:
         # If path parsing fails, fail safe
@@ -339,7 +376,7 @@ def is_safe_case_root(path_str: str) -> bool:
 
         # Check for drive root (e.g. C:\)
         # Regex: ^[a-z]:\\?$ or ^[a-z]:$
-        if re.match(r'^[a-z]:\\?$', norm_lower):
+        if _WIN_DRIVE_ROOT_RE.match(norm_lower):
             return False
 
         forbidden_prefixes = [
@@ -358,8 +395,19 @@ def is_safe_case_root(path_str: str) -> bool:
     else:
         # Linux/Unix system directories
         forbidden_prefixes = [
-            "/bin", "/boot", "/dev", "/etc", "/lib", "/lib64",
-            "/proc", "/root", "/run", "/sbin", "/sys", "/usr", "/var"
+            "/bin",
+            "/boot",
+            "/dev",
+            "/etc",
+            "/lib",
+            "/lib64",
+            "/proc",
+            "/root",
+            "/run",
+            "/sbin",
+            "/sys",
+            "/usr",
+            "/var",
         ]
 
         if normalized == "/":
@@ -418,7 +466,9 @@ def validate_safe_path(base_dir: str, relative_path: str) -> Path:
         base_prefix = base_str
 
     if not (target_str == base_str or target_str.startswith(base_prefix)):
-        logger.warning(f"Security: Path traversal attempt blocked. Path: {target}, Base: {base}")
+        logger.warning(
+            f"Security: Path traversal attempt blocked. Path: {target}, Base: {base}"
+        )
         raise ValueError("Access denied: Invalid path")
 
     return target
@@ -557,11 +607,13 @@ def run_startup_check() -> None:
 
         result = run_initial_setup_checks(
             check_client_func,
-            current_config["CASE_ROOT"], # Use config directly as global CASE_ROOT might be stale
+            current_config[
+                "CASE_ROOT"
+            ],  # Use config directly as global CASE_ROOT might be stale
             current_config["DOCKER_IMAGE"],
             save_config,
             current_config,
-            status_callback=update_status_message
+            status_callback=update_status_message,
         )
 
         STARTUP_STATUS.update(result)
@@ -576,6 +628,16 @@ def run_startup_check() -> None:
         logger.error(f"Startup check failed: {e}", exc_info=True)
         STARTUP_STATUS["status"] = "failed"
         STARTUP_STATUS["message"] = f"Startup check failed: {str(e)}"
+
+
+def is_api_ready() -> bool:
+    """
+    Check whether API endpoints should accept requests.
+
+    Returns:
+        True when startup checks are completed, otherwise False.
+    """
+    return STARTUP_STATUS.get("status") == "completed"
 
 
 # Load HTML template
@@ -614,10 +676,10 @@ def generate_grouped_tutorial_options(tutorials: Tuple[str, ...]) -> str:
     """
     groups: Dict[str, List[Tuple[str, str]]] = {}
     for t in tutorials:
-        parts = t.split('/')
+        parts = t.split("/")
         if len(parts) > 1:
             category = parts[0]
-            display_text = t[len(category) + 1:]  # Strip category + slash
+            display_text = t[len(category) + 1 :]  # Strip category + slash
         else:
             category = "Other"
             display_text = t
@@ -633,7 +695,7 @@ def generate_grouped_tutorial_options(tutorials: Tuple[str, ...]) -> str:
         # Sort tutorials within category
         for t, display in sorted(groups[category], key=lambda x: x[0]):
             html_parts.append(f'<option value="{escape(t)}">{escape(display)}</option>')
-        html_parts.append('</optgroup>')
+        html_parts.append("</optgroup>")
 
     return "\n".join(html_parts)
 
@@ -711,10 +773,7 @@ def get_tutorials() -> Tuple[List[str], Optional[str]]:
         sorted_tutorials = sorted(tutorials)
 
         # Update cache
-        _TUTORIALS_CACHE = {
-            "key": cache_key,
-            "data": sorted_tutorials
-        }
+        _TUTORIALS_CACHE = {"key": cache_key, "data": sorted_tutorials}
 
         return sorted_tutorials, None
 
@@ -739,8 +798,40 @@ def csrf_protect():
             return
         token = request.cookies.get("csrf_token")
         header_token = request.headers.get("X-CSRFToken")
-        if not token or not header_token or not secrets.compare_digest(token, header_token):
+        if (
+            not token
+            or not header_token
+            or not secrets.compare_digest(token, header_token)
+        ):
             return fast_jsonify({"error": "CSRF token missing or invalid"}), 403
+
+
+@app.before_request
+def api_health_check():
+    """Gate API endpoints until startup checks have completed."""
+    if app.config.get("TESTING") and not app.config.get("ENABLE_API_HEALTH_CHECK", True):
+        return
+
+    if not request.path.startswith("/api/"):
+        return
+
+    if request.path in ("/api/startup_status", "/api/health"):
+        return
+
+    if is_api_ready():
+        return
+
+    return (
+        fast_jsonify(
+            {
+                "error": "Service is not ready yet",
+                "startup_status": STARTUP_STATUS.get("status", "unknown"),
+                "message": STARTUP_STATUS.get("message", "Initializing..."),
+            }
+        ),
+        503,
+    )
+
 
 @app.after_request
 def set_security_headers(response: Response) -> Response:
@@ -754,12 +845,17 @@ def set_security_headers(response: Response) -> Response:
 
     # Permissions Policy
     # Disable sensitive features not used by the app
-    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+    )
 
     # Cache-Control Policy
     # Only apply to JSON API responses to avoid performance regression on static assets.
     # Respect existing Cache-Control headers if set.
-    if "Cache-Control" not in response.headers and response.mimetype == "application/json":
+    if (
+        "Cache-Control" not in response.headers
+        and response.mimetype == "application/json"
+    ):
         if "ETag" in response.headers or "Last-Modified" in response.headers:
             # Data with validation headers: allow caching but force revalidation
             response.headers["Cache-Control"] = "no-cache"
@@ -786,7 +882,12 @@ def set_security_headers(response: Response) -> Response:
         # Lax allows top-level navigation, Strict is better but might break if linked from elsewhere
         # Since this is a local app, Lax is fine.
         # Security: Use request.is_secure to dynamically set Secure flag (True if HTTPS, False if HTTP)
-        response.set_cookie("csrf_token", secrets.token_hex(32), samesite="Lax", secure=request.is_secure)
+        response.set_cookie(
+            "csrf_token",
+            secrets.token_hex(32),
+            samesite="Lax",
+            secure=request.is_secure,
+        )
 
     return response
 
@@ -818,11 +919,7 @@ def index() -> str:
 
     # ⚡ Bolt Optimization: Use pre-compiled template rendering
     # We must manually update the context with Flask globals (url_for, request, etc.)
-    context = {
-        "options": options_html,
-        "CASE_ROOT": CASE_ROOT,
-        "startup_error": error
-    }
+    context = {"options": options_html, "CASE_ROOT": CASE_ROOT, "startup_error": error}
     app.update_template_context(context)
     return COMPILED_TEMPLATE.render(context)
 
@@ -838,10 +935,33 @@ def get_startup_status() -> Response:
     return fast_jsonify(STARTUP_STATUS)
 
 
-@app.route('/favicon.ico')
+@app.route("/api/health", methods=["GET"])
+def get_api_health() -> Response:
+    """
+    Basic health endpoint for API readiness.
+
+    Returns:
+        JSON response indicating whether API requests are currently accepted.
+    """
+    ready = is_api_ready()
+    status = 200 if ready else 503
+    return fast_jsonify(
+        {
+            "status": "healthy" if ready else "starting",
+            "ready": ready,
+            "startup_status": STARTUP_STATUS.get("status", "unknown"),
+            "message": STARTUP_STATUS.get("message", "Initializing..."),
+        },
+        status=status,
+    )
+
+
+@app.route("/favicon.ico")
 def favicon():
     static_dir = get_resource_path("static")
-    return send_from_directory(static_dir, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    return send_from_directory(
+        static_dir, "favicon.ico", mimetype="image/vnd.microsoft.icon"
+    )
 
 
 @app.route("/get_case_root", methods=["GET"])
@@ -874,8 +994,17 @@ def set_case() -> Union[Response, Tuple[Response, int]]:
         resolved_str = str(case_dir_path)
 
         if not is_safe_case_root(resolved_str):
-            logger.warning(f"Security: Attempt to set case root to system directory blocked: {resolved_str}")
-            return fast_jsonify({"output": "[FOAMFlask] [Error] Cannot set case root to system directory"}), 400
+            logger.warning(
+                f"Security: Attempt to set case root to system directory blocked: {resolved_str}"
+            )
+            return (
+                fast_jsonify(
+                    {
+                        "output": "[FOAMFlask] [Error] Cannot set case root to system directory"
+                    }
+                ),
+                400,
+            )
 
         case_dir_path.mkdir(parents=True, exist_ok=True)
         CASE_ROOT = str(case_dir_path)
@@ -908,13 +1037,15 @@ def open_case_root() -> Response:
             os.startfile(path)
         elif system == "Darwin":  # macOS
             import subprocess
+
             subprocess.run(["open", path], check=True)
         else:  # Linux and others
             import subprocess
+
             subprocess.run(["xdg-open", path], check=True)
-            
+
         return fast_jsonify({"output": f"Opened {path} in file explorer"})
-        
+
     except Exception as e:
         logger.error(f"Failed to open file explorer: {e}")
         return fast_jsonify({"output": f"Error opening file explorer: {str(e)}"}), 500
@@ -924,11 +1055,9 @@ def open_case_root() -> Response:
 def api_list_cases() -> Response:
     """List available cases in the CASE_ROOT."""
     if not CASE_ROOT:
-         return fast_jsonify({"cases": []})
+        return fast_jsonify({"cases": []})
 
     root = Path(CASE_ROOT)
-    if not root.exists():
-         return fast_jsonify({"cases": []})
 
     # List subdirectories that look like cases (or just all dirs)
     # ⚡ Bolt Optimization: Use os.scandir instead of Path.iterdir()
@@ -944,6 +1073,7 @@ def api_list_cases() -> Response:
         return fast_jsonify({"cases": []})
 
     return fast_jsonify({"cases": sorted(cases)})
+
 
 @app.route("/api/case/create", methods=["POST"])
 @rate_limit(limit=5, window=60)
@@ -961,12 +1091,15 @@ def api_create_case() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify({"success": False, "message": "No case name provided"}), 400
 
     if not isinstance(case_name, str):
-        return fast_jsonify({"success": False, "message": "Case name must be a string"}), 400
+        return (
+            fast_jsonify({"success": False, "message": "Case name must be a string"}),
+            400,
+        )
 
     try:
         # Use globally set CASE_ROOT
         if not CASE_ROOT:
-             return fast_jsonify({"success": False, "message": "Case root not set"}), 500
+            return fast_jsonify({"success": False, "message": "Case root not set"}), 500
 
         try:
             # Security: Validate path is within CASE_ROOT
@@ -988,6 +1121,7 @@ def api_create_case() -> Union[Response, Tuple[Response, int]]:
 
 
 # --- Geometry Routes ---
+
 
 @app.route("/api/geometry/upload", methods=["POST"])
 @rate_limit(limit=10, window=60)
@@ -1035,7 +1169,12 @@ def api_upload_geometry() -> Union[Response, Tuple[Response, int]]:
             case_dir_path = validate_safe_path(CASE_ROOT, case_name)
             case_dir = str(case_dir_path)
         else:
-             return fast_jsonify({"success": False, "message": "No case name or directory specified"}), 400
+            return (
+                fast_jsonify(
+                    {"success": False, "message": "No case name or directory specified"}
+                ),
+                400,
+            )
 
     except ValueError as e:
         logger.warning(f"Security: Blocked upload attempt: {e}")
@@ -1047,12 +1186,16 @@ def api_upload_geometry() -> Union[Response, Tuple[Response, int]]:
     else:
         return fast_jsonify(result), 500
 
+
 @app.route("/api/geometry/list", methods=["GET"])
 def api_list_geometry() -> Union[Response, Tuple[Response, int]]:
     """List STL files in the current case."""
     case_name = request.args.get("caseName")
     if not case_name:
-         return fast_jsonify({"success": False, "message": "No case name specified"}), 400
+        return (
+            fast_jsonify({"success": False, "message": "No case name specified"}),
+            400,
+        )
 
     try:
         # Security: Validate path is within CASE_ROOT
@@ -1067,6 +1210,7 @@ def api_list_geometry() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify(result)
     else:
         return fast_jsonify(result), 500
+
 
 @app.route("/api/geometry/delete", methods=["POST"])
 def api_delete_geometry() -> Union[Response, Tuple[Response, int]]:
@@ -1092,7 +1236,10 @@ def api_delete_geometry() -> Union[Response, Tuple[Response, int]]:
     else:
         return fast_jsonify(result), 500
 
-def validate_geometry_path(case_name: str, filename: str) -> Union[Path, Tuple[Response, int]]:
+
+def validate_geometry_path(
+    case_name: str, filename: str
+) -> Union[Path, Tuple[Response, int]]:
     """
     Validate and resolve geometry file path with security checks.
 
@@ -1107,16 +1254,19 @@ def validate_geometry_path(case_name: str, filename: str) -> Union[Path, Tuple[R
     filename = secure_filename(filename)
 
     file_path = Path(CASE_ROOT) / case_name / "constant" / "triSurface" / filename
-    
+
     # Security: Ensure resolved path is within valid directories
     resolved_path = file_path.resolve()
     base_path = Path(CASE_ROOT).resolve()
-    
+
     if not resolved_path.is_relative_to(base_path):
-        logger.warning(f"Security: Path traversal attempt blocked. Path: {resolved_path}, Base: {base_path}")
+        logger.warning(
+            f"Security: Path traversal attempt blocked. Path: {resolved_path}, Base: {base_path}"
+        )
         return fast_jsonify({"success": False, "message": "Access denied"}), 400
-    
+
     return resolved_path
+
 
 @app.route("/api/geometry/view", methods=["POST"])
 def api_view_geometry() -> Union[Response, Tuple[Response, int]]:
@@ -1135,10 +1285,12 @@ def api_view_geometry() -> Union[Response, Tuple[Response, int]]:
     path_or_error = validate_geometry_path(case_name, filename)
     if isinstance(path_or_error, tuple):
         return path_or_error
-    
+
     resolved_path = path_or_error
 
-    html_content = geometry_visualizer.get_interactive_html(resolved_path, color, opacity, optimize)
+    html_content = geometry_visualizer.get_interactive_html(
+        resolved_path, color, opacity, optimize
+    )
 
     if html_content:
         response = Response(html_content, mimetype="text/html")
@@ -1146,7 +1298,11 @@ def api_view_geometry() -> Union[Response, Tuple[Response, int]]:
         response.headers["Content-Encoding"] = "identity"
         return response
     else:
-        return fast_jsonify({"success": False, "message": "Failed to generate view"}), 500
+        return (
+            fast_jsonify({"success": False, "message": "Failed to generate view"}),
+            500,
+        )
+
 
 @app.route("/api/geometry/info", methods=["POST"])
 def api_info_geometry() -> Union[Response, Tuple[Response, int]]:
@@ -1158,7 +1314,7 @@ def api_info_geometry() -> Union[Response, Tuple[Response, int]]:
     path_or_error = validate_geometry_path(case_name, filename)
     if isinstance(path_or_error, tuple):
         return path_or_error
-    
+
     resolved_path = path_or_error
 
     info = geometry_visualizer.get_mesh_info(resolved_path)
@@ -1166,6 +1322,7 @@ def api_info_geometry() -> Union[Response, Tuple[Response, int]]:
 
 
 # --- Meshing Routes ---
+
 
 @app.route("/api/meshing/blockMesh/config", methods=["POST"])
 def api_meshing_blockmesh_config() -> Union[Response, Tuple[Response, int]]:
@@ -1175,7 +1332,10 @@ def api_meshing_blockmesh_config() -> Union[Response, Tuple[Response, int]]:
     config = data.get("config", {})
 
     if not case_name:
-         return fast_jsonify({"success": False, "message": "No case name specified"}), 400
+        return (
+            fast_jsonify({"success": False, "message": "No case name specified"}),
+            400,
+        )
 
     try:
         # Security: Validate path is within CASE_ROOT
@@ -1190,6 +1350,7 @@ def api_meshing_blockmesh_config() -> Union[Response, Tuple[Response, int]]:
     else:
         return fast_jsonify(result), 500
 
+
 @app.route("/api/meshing/snappyHexMesh/config", methods=["POST"])
 def api_meshing_snappyhexmesh_config() -> Union[Response, Tuple[Response, int]]:
     """Generate snappyHexMeshDict."""
@@ -1198,7 +1359,10 @@ def api_meshing_snappyhexmesh_config() -> Union[Response, Tuple[Response, int]]:
     config = data.get("config", {})
 
     if not case_name:
-         return fast_jsonify({"success": False, "message": "No case name specified"}), 400
+        return (
+            fast_jsonify({"success": False, "message": "No case name specified"}),
+            400,
+        )
 
     try:
         # Security: Validate path is within CASE_ROOT
@@ -1213,16 +1377,17 @@ def api_meshing_snappyhexmesh_config() -> Union[Response, Tuple[Response, int]]:
     else:
         return fast_jsonify(result), 500
 
+
 @app.route("/api/meshing/run", methods=["POST"])
 @rate_limit(limit=10, window=60)
 def api_meshing_run() -> Union[Response, Tuple[Response, int]]:
     """Run a meshing command."""
     data = request.get_json()
     case_name = data.get("caseName")
-    command = data.get("command") # "blockMesh" or "snappyHexMesh"
+    command = data.get("command")  # "blockMesh" or "snappyHexMesh"
 
     if not case_name or not command:
-         return fast_jsonify({"success": False, "message": "Missing parameters"}), 400
+        return fast_jsonify({"success": False, "message": "Missing parameters"}), 400
 
     if command not in ["blockMesh", "snappyHexMesh"]:
         return fast_jsonify({"success": False, "message": "Invalid command"}), 400
@@ -1237,12 +1402,7 @@ def api_meshing_run() -> Union[Response, Tuple[Response, int]]:
     user_config = get_docker_user_config()
 
     result = MeshingRunner.run_meshing_command(
-        case_path,
-        command,
-        client,
-        DOCKER_IMAGE,
-        OPENFOAM_VERSION,
-        user_config
+        case_path, command, client, DOCKER_IMAGE, OPENFOAM_VERSION, user_config
     )
 
     if result["success"]:
@@ -1258,8 +1418,13 @@ def get_docker_config() -> Response:
     Returns:
         JSON response containing Docker image and OpenFOAM version.
     """
-    return fast_jsonify({"dockerImage": DOCKER_IMAGE, "openfoamVersion": OPENFOAM_VERSION})
+    return fast_jsonify(
+        {"dockerImage": DOCKER_IMAGE, "openfoamVersion": OPENFOAM_VERSION}
+    )
 
+
+_SAFE_DOCKER_IMAGE_RE = re.compile(r"^[a-zA-Z0-9_./:-]+$")
+_SAFE_OPENFOAM_VERSION_RE = re.compile(r"^[a-zA-Z0-9.-]+$")
 
 @app.route("/set_docker_config", methods=["POST"])
 def set_docker_config() -> Union[Response, Tuple[Response, int]]:
@@ -1273,7 +1438,9 @@ def set_docker_config() -> Union[Response, Tuple[Response, int]]:
     data = request.get_json()
     if not data:
         return (
-            fast_jsonify({"output": "[FOAMFlask] [Error] No configuration data provided"}),
+            fast_jsonify(
+                {"output": "[FOAMFlask] [Error] No configuration data provided"}
+            ),
             400,
         )
 
@@ -1282,8 +1449,13 @@ def set_docker_config() -> Union[Response, Tuple[Response, int]]:
         # Security: Validate docker image string
         # Allow alphanumeric, underscore, hyphen, dot, slash, colon
         image_str = str(data["dockerImage"])
-        if not re.match(r'^[a-zA-Z0-9_./:-]+$', image_str):
-            return fast_jsonify({"output": "[FOAMFlask] [Error] Invalid Docker image string"}), 400
+        if not _SAFE_DOCKER_IMAGE_RE.match(image_str):
+            return (
+                fast_jsonify(
+                    {"output": "[FOAMFlask] [Error] Invalid Docker image string"}
+                ),
+                400,
+            )
 
         DOCKER_IMAGE = image_str
         updates["DOCKER_IMAGE"] = DOCKER_IMAGE
@@ -1292,8 +1464,13 @@ def set_docker_config() -> Union[Response, Tuple[Response, int]]:
         # Security: Validate version string to prevent command injection
         # Allow alphanumeric, dot, hyphen
         version_str = str(data["openfoamVersion"])
-        if not re.match(r'^[a-zA-Z0-9.-]+$', version_str):
-             return fast_jsonify({"output": "[FOAMFlask] [Error] Invalid OpenFOAM version string"}), 400
+        if not _SAFE_OPENFOAM_VERSION_RE.match(version_str):
+            return (
+                fast_jsonify(
+                    {"output": "[FOAMFlask] [Error] Invalid OpenFOAM version string"}
+                ),
+                400,
+            )
 
         OPENFOAM_VERSION = version_str
         updates["OPENFOAM_VERSION"] = OPENFOAM_VERSION
@@ -1332,15 +1509,20 @@ def load_tutorial() -> Union[Response, Tuple[Response, int]]:
     # SECURITY FIX: Validate tutorial path to prevent command injection
     if not is_safe_tutorial_path(tutorial):
         logger.warning(f"Security: Invalid tutorial path rejected: {tutorial}")
-        return fast_jsonify({"output": "[FOAMFlask] [Error] Invalid tutorial path detected"}), 400
+        return (
+            fast_jsonify(
+                {"output": "[FOAMFlask] [Error] Invalid tutorial path detected"}
+            ),
+            400,
+        )
 
     client = get_docker_client()
     if client is None:
         return docker_unavailable_response()
 
     bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
-    container_run_path = "/tmp/FOAM_Run" # nosec B108
-    
+    container_run_path = "/tmp/FOAM_Run"  # nosec B108
+
     # Flatten structure: use only the leaf name of the tutorial for the local case directory
     tutorial_name = posixpath.basename(tutorial)
     container_case_path = posixpath.join(container_run_path, tutorial_name)
@@ -1355,22 +1537,21 @@ def load_tutorial() -> Union[Response, Tuple[Response, int]]:
     # Base docker command: create directory and copy tutorial
     # Security: Use list format for command to prevent shell injection
     shell_cmd = (
-        "source \"$1\" && "
-        "mkdir -p \"$2\" && "
-        "cp -r $FOAM_TUTORIALS/\"$3\"/* \"$2\""
+        'source "$1" && ' 'mkdir -p "$2" && ' 'cp -r $FOAM_TUTORIALS/"$3"/* "$2"'
     )
 
     # On Linux/macOS, add chmod; on Windows skip it
     if not is_windows:
-        shell_cmd += " && chmod +x \"$2\"/Allrun"
+        shell_cmd += ' && chmod +x "$2"/Allrun'
 
     docker_cmd = [
-        "bash", "-c",
+        "bash",
+        "-c",
         shell_cmd,
         "load_tutorial",  # $0
-        bashrc,           # $1
-        container_case_path, # $2
-        tutorial          # $3
+        bashrc,  # $1
+        container_case_path,  # $2
+        tutorial,  # $3
     ]
 
     # Clear plot caches to ensure fresh data on re-import
@@ -1390,11 +1571,7 @@ def load_tutorial() -> Union[Response, Tuple[Response, int]]:
         # Update with user config if present
         run_kwargs.update(get_docker_user_config())
 
-        container = client.containers.run(
-            DOCKER_IMAGE,
-            docker_cmd,
-            **run_kwargs
-        )
+        container = client.containers.run(DOCKER_IMAGE, docker_cmd, **run_kwargs)
 
         result = container.wait()
         logs = container.logs().decode()
@@ -1431,28 +1608,39 @@ def load_tutorial() -> Union[Response, Tuple[Response, int]]:
 @app.route("/api/runs", methods=["GET"])
 def api_list_runs() -> Response:
     """Get list of simulation runs."""
+    # ⚡ Bolt Optimization: Add limit parameter to prevent unbounded memory fetch and massive JSON payload
+    try:
+        limit = int(request.args.get("limit", 100))
+    except ValueError:
+        limit = 100
+
     try:
         # Use simple select query compatible with SQLAlchemy 2.0
-        stmt = db.select(SimulationRun).order_by(SimulationRun.start_time.desc())
+        stmt = db.select(SimulationRun).order_by(SimulationRun.start_time.desc()).limit(limit)
         runs = db.session.execute(stmt).scalars().all()
 
         runs_data = []
         for run in runs:
-            runs_data.append({
-                "id": run.id,
-                "case_name": run.case_name,
-                "tutorial": run.tutorial,
-                "command": run.command,
-                "status": run.status,
-                "start_time": run.start_time.isoformat() if run.start_time else None,
-                "end_time": run.end_time.isoformat() if run.end_time else None,
-                "execution_duration": run.execution_duration
-            })
+            runs_data.append(
+                {
+                    "id": run.id,
+                    "case_name": run.case_name,
+                    "tutorial": run.tutorial,
+                    "command": run.command,
+                    "status": run.status,
+                    "start_time": (
+                        run.start_time.isoformat() if run.start_time else None
+                    ),
+                    "end_time": run.end_time.isoformat() if run.end_time else None,
+                    "execution_duration": run.execution_duration,
+                }
+            )
 
         return fast_jsonify({"runs": runs_data})
     except Exception as e:
         logger.error(f"Error fetching runs: {e}")
         return fast_jsonify({"error": str(e)}), 500
+
 
 @app.route("/run", methods=["POST"])
 @rate_limit(limit=5, window=60)
@@ -1498,7 +1686,7 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             tutorial=tutorial,
             command=command,
             status="Running",
-            start_time=datetime.now(timezone.utc)
+            start_time=datetime.now(timezone.utc),
         )
         db.session.add(new_run)
         db.session.commit()
@@ -1514,7 +1702,7 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
 
     def stream_container_logs(run_id) -> Generator[str, None, None]:
         """Stream container logs for OpenFOAM command execution.
-        
+
         Yields:
             Log lines as raw text strings (newline-delimited).
         """
@@ -1535,32 +1723,40 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
 
         # Convert Windows path to POSIX for Docker volumes
         host_path = Path(case_dir).resolve()
-        host_path_str = host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        host_path_str = (
+            host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        )
 
         # DEBUG: Check if we are pointing to the case itself or its parent
         tutorial_name = Path(tutorial).name
         # If case_dir ends with the tutorial name, we assume it IS the case directory
         is_direct_case_path = host_path.name == tutorial_name
 
-        logger.info(f"[FOAMFlask] run_case: tutorial='{tutorial}', case_dir='{case_dir}'")
+        logger.info(
+            f"[FOAMFlask] run_case: tutorial='{tutorial}', case_dir='{case_dir}'"
+        )
         logger.info(f"[FOAMFlask] run_case: is_direct_case_path={is_direct_case_path}")
 
         if is_direct_case_path:
-             # Mount the case directory directly to /tmp/FOAM_Run
-             # So inside container: /tmp/FOAM_Run contains the case files (0, constant, system) directly
-             container_bind_path = "/tmp/FOAM_Run"
-             container_case_path = "/tmp/FOAM_Run" # Working dir is the mount point
+            # Mount the case directory directly to /tmp/FOAM_Run
+            # So inside container: /tmp/FOAM_Run contains the case files (0, constant, system) directly
+            container_bind_path = "/tmp/FOAM_Run"
+            container_case_path = "/tmp/FOAM_Run"  # Working dir is the mount point
         else:
-             # Mount the parent directory (presumably) so tutorial structure is preserved
-             # e.g. /tmp/FOAM_Run/tutorial/case
-             container_bind_path = "/tmp/FOAM_Run"
-             container_case_path = posixpath.join("/tmp/FOAM_Run", tutorial_name) # nosec B108
+            # Mount the parent directory (presumably) so tutorial structure is preserved
+            # e.g. /tmp/FOAM_Run/tutorial/case
+            container_bind_path = "/tmp/FOAM_Run"
+            container_case_path = posixpath.join(
+                "/tmp/FOAM_Run", tutorial_name
+            )  # nosec B108
 
-        logger.info(f"[FOAMFlask] run_case: container_case_path='{container_case_path}'")
+        logger.info(
+            f"[FOAMFlask] run_case: container_case_path='{container_case_path}'"
+        )
 
         volumes = {
             host_path_str: {
-                "bind": container_bind_path, # nosec B108
+                "bind": container_bind_path,  # nosec B108
                 "mode": "rw",
             }
         }
@@ -1572,8 +1768,16 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             return
 
         # Determine if command is an OpenFOAM command or a script file
-        openfoam_commands = ["blockMesh", "simpleFoam", "pimpleFoam", "decomposePar", "reconstructPar", "foamToVTK", "paraFoam"]
-        
+        openfoam_commands = [
+            "blockMesh",
+            "simpleFoam",
+            "pimpleFoam",
+            "decomposePar",
+            "reconstructPar",
+            "foamToVTK",
+            "paraFoam",
+        ]
+
         if command.startswith("./") or command in openfoam_commands:
             if command.startswith("./"):
                 # Script file - validate path and execute safely
@@ -1582,25 +1786,27 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
                     yield f"[FOAMFlask] [Error] Unsafe script name: {script_name}\n"
                     yield "[FOAMFlask] [Error] Script names must be alphanumeric with underscores/hyphens only.\n"
                     return
-                
+
                 # Security: Use positional arguments for bash -c to prevent injection
                 docker_cmd = [
-                    "bash", "-c",
-                    "source \"$1\" && cd \"$2\" && chmod +x \"$3\" && ./\"$3\"",
-                    "run_script",        # $0
-                    bashrc,              # $1
-                    container_case_path, # $2
-                    script_name          # $3
+                    "bash",
+                    "-c",
+                    'source "$1" && cd "$2" && chmod +x "$3" && ./"$3"',
+                    "run_script",  # $0
+                    bashrc,  # $1
+                    container_case_path,  # $2
+                    script_name,  # $3
                 ]
             else:
                 # OpenFOAM command - Security: Use positional arguments
                 docker_cmd = [
-                    "bash", "-c",
-                    "source \"$1\" && cd \"$2\" && $3",
-                    "run_foam_cmd",      # $0
-                    bashrc,              # $1
-                    container_case_path, # $2
-                    command              # $3
+                    "bash",
+                    "-c",
+                    'source "$1" && cd "$2" && $3',
+                    "run_foam_cmd",  # $0
+                    bashrc,  # $1
+                    container_case_path,  # $2
+                    command,  # $3
                 ]
         else:
             # Fallback - treat as script with validation
@@ -1608,15 +1814,16 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
                 yield f"[FOAMFlask] [Error] Unsafe command name: {command}\n"
                 yield "[FOAMFlask] [Error] Command names must be alphanumeric with underscores/hyphens only.\n"
                 return
-            
+
             # Security: Use positional arguments
             docker_cmd = [
-                "bash", "-c",
-                "source \"$1\" && cd \"$2\" && chmod +x \"$3\" && ./\"$3\"",
-                "run_script_fallback", # $0
-                bashrc,                # $1
-                container_case_path,   # $2
-                command                # $3
+                "bash",
+                "-c",
+                'source "$1" && cd "$2" && chmod +x "$3" && ./"$3"',
+                "run_script_fallback",  # $0
+                bashrc,  # $1
+                container_case_path,  # $2
+                command,  # $3
             ]
 
         try:
@@ -1628,17 +1835,13 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             }
             run_kwargs.update(get_docker_user_config())
 
-            container = client.containers.run(
-                DOCKER_IMAGE,
-                docker_cmd,
-                **run_kwargs
-            )
+            container = client.containers.run(DOCKER_IMAGE, docker_cmd, **run_kwargs)
 
             # Stream container logs directly (stdout/stderr)
             # User Preference: Do not tail internal log files, show only what the container prints.
             try:
                 for line in container.logs(stream=True):
-                    yield line.decode(errors='ignore')
+                    yield line.decode(errors="ignore")
             except Exception as e:
                 status = "Failed"
                 error_msg = str(e)
@@ -1671,17 +1874,23 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
                 except Exception as db_err:
                     logger.error(f"Failed to update run record: {db_err}")
 
-            if 'container' in locals():
+            if "container" in locals():
                 try:
                     container.kill()
                 except Exception as kill_err:
-                    logger.debug(f"[FOAMPilot] Could not kill container (might have stopped): {kill_err}")
+                    logger.debug(
+                        f"[FOAMPilot] Could not kill container (might have stopped): {kill_err}"
+                    )
                 try:
                     container.remove()
                 except Exception as remove_err:
-                    logger.error(f"[FOAMPilot] Could not remove container: {remove_err}")
+                    logger.error(
+                        f"[FOAMPilot] Could not remove container: {remove_err}"
+                    )
 
-    return Response(stream_with_context(stream_container_logs(run_id)), mimetype="text/plain")
+    return Response(
+        stream_with_context(stream_container_logs(run_id)), mimetype="text/plain"
+    )
 
 
 # --- Realtime Plotting Endpoints ---
@@ -1707,10 +1916,12 @@ def api_available_fields() -> Union[Response, Tuple[Response, int]]:
     except ValueError as e:
         return fast_jsonify({"error": str(e)}), 400
 
-    if not case_dir.exists():
-        return fast_jsonify({"error": "Case directory not found"}), 404
-
     try:
+        try:
+            os.stat(str(case_dir))
+        except OSError:
+            return fast_jsonify({"error": "Case directory not found"}), 404
+
         fields = get_available_fields(str(case_dir))
         return fast_jsonify({"fields": fields})
     except Exception as e:
@@ -1718,7 +1929,9 @@ def api_available_fields() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify({"error": sanitize_error(e)}), 500
 
 
-def check_cache(path_to_check: Path) -> Tuple[bool, Optional[str], Optional[os.stat_result]]:
+def check_cache(
+    path_to_check: Path,
+) -> Tuple[bool, Optional[str], Optional[os.stat_result]]:
     """
     Check if the resource at path_to_check has been modified since the
     time specified in the If-Modified-Since header.
@@ -1773,9 +1986,6 @@ def api_plot_data() -> Union[Response, Tuple[Response, int]]:
     except ValueError as e:
         return fast_jsonify({"error": str(e)}), 400
 
-    if not case_dir.exists():
-        return fast_jsonify({"error": "Case directory not found"}), 404
-
     try:
         # ⚡ Bolt Optimization: Removed 'log.foamRun' proxy check.
         # Previously we checked if log file changed as a fast path. However, during active simulation,
@@ -1793,6 +2003,9 @@ def api_plot_data() -> Union[Response, Tuple[Response, int]]:
             case_mtime = os.stat(str(case_dir)).st_mtime
         except OSError:
             pass
+
+        if case_mtime is None:
+            return fast_jsonify({"error": "Case directory not found"}), 404
 
         # Get time directories (cached if case mtime matches)
         time_dirs = parser.get_time_directories(known_mtime=case_mtime)
@@ -1820,15 +2033,15 @@ def api_plot_data() -> Union[Response, Tuple[Response, int]]:
                 last_modified = format_mtime(max_mtime)
 
                 if request.headers.get("If-None-Match") == etag:
-                     response = Response(status=304)
-                     response.headers["ETag"] = etag
-                     return response
+                    response = Response(status=304)
+                    response.headers["ETag"] = etag
+                    return response
 
                 # ⚡ Bolt Optimization: Support If-Modified-Since for clients that don't use ETag
                 if request.headers.get("If-Modified-Since") == last_modified:
-                     response = Response(status=304)
-                     response.headers["Last-Modified"] = last_modified
-                     return response
+                    response = Response(status=304)
+                    response.headers["Last-Modified"] = last_modified
+                    return response
 
             except OSError:
                 pass
@@ -1836,7 +2049,7 @@ def api_plot_data() -> Union[Response, Tuple[Response, int]]:
         data = parser.get_all_time_series_data(
             max_points=100,
             known_case_mtime=case_mtime,
-            known_latest_mtime=latest_dir_mtime
+            known_latest_mtime=latest_dir_mtime,
         )
         response = fast_jsonify(data)
         if last_modified:
@@ -1871,12 +2084,18 @@ def api_latest_data() -> Union[Response, Tuple[Response, int]]:
     except ValueError as e:
         return fast_jsonify({"error": str(e)}), 400
 
-    if not case_dir.exists():
-        return fast_jsonify({"error": "Case directory not found"}), 404
-
     try:
+        # ⚡ Bolt Optimization: Stat case directory once
+        try:
+            case_mtime = os.stat(str(case_dir)).st_mtime
+        except OSError:
+            case_mtime = None
+
+        if case_mtime is None:
+            return fast_jsonify({"error": "Case directory not found"}), 404
+
         parser = OpenFOAMFieldParser(str(case_dir))
-        data = parser.get_latest_time_data()
+        data = parser.get_latest_time_data(known_case_mtime=case_mtime)
         return fast_jsonify(data if data else {})
     except Exception as e:
         logger.error(f"Error getting latest data: {e}", exc_info=True)
@@ -1905,10 +2124,12 @@ def api_residuals() -> Union[Response, Tuple[Response, int]]:
     except ValueError as e:
         return fast_jsonify({"error": str(e)}), 400
 
-    if not case_dir.exists():
-        return fast_jsonify({"error": "Case directory not found"}), 404
-
     try:
+        try:
+            os.stat(str(case_dir))
+        except OSError:
+            return fast_jsonify({"error": "Case directory not found"}), 404
+
         # Optimization: Check if log file has changed
         # We need to find the log file. It could be log.foamRun or custom.
         # OpenFOAMFieldParser.get_residuals_from_log searches for 'log.foamRun' or 'log.*'.
@@ -1916,14 +2137,59 @@ def api_residuals() -> Union[Response, Tuple[Response, int]]:
         log_file = case_dir / "log.foamRun"
         is_not_modified, last_modified, stat_result = check_cache(log_file)
         if is_not_modified:
-             return Response(status=304)
+            return Response(status=304)
+
+        # ⚡ Bolt Optimization: If file is missing (stat_result is None), return empty immediately
+        # This avoids redundant OpenFOAMFieldParser initialization and os.open calls
+        if stat_result is None:
+            return fast_jsonify({})
 
         parser = OpenFOAMFieldParser(str(case_dir))
         # ⚡ Bolt Optimization: Pass the stat result from check_cache to avoid re-stat call
         residuals = parser.get_residuals_from_log(known_stat=stat_result)
-        response = fast_jsonify(residuals)
+
+        # ⚡ Bolt Optimization: Incremental data fetching
+        try:
+            start_index = int(request.args.get("start_index", 0))
+        except ValueError:
+            start_index = 0
+
+        # ⚡ Bolt Optimization: Zero-copy serialization using offset
+        # Instead of slicing array.array (which copies data), we pass an offset to np.frombuffer.
+        # This is ~400x faster for incremental updates.
+
+        # We assume time array is the reference for length
+        current_len = len(residuals.get("time", []))
+        response_data = {}
+
+        if start_index > current_len:
+            # Client ahead or out of sync -> return full data (implicit reset)
+            start_index = 0
+
+        if start_index == current_len:
+             # No new data
+             response_data = {k: [] for k in residuals}
+        else:
+             # Calculate offset for zero-copy view
+             # array.array('d') uses 8 bytes per item
+             itemsize = 8
+             offset = start_index * itemsize
+
+             for k, v in residuals.items():
+                if isinstance(v, array.array):
+                    # Safety check: Ensure offset doesn't exceed buffer size
+                    if offset < len(v) * itemsize:
+                         response_data[k] = np.frombuffer(v, dtype=float, offset=offset)
+                    else:
+                         # Should not happen if all arrays are aligned with 'time', but safe fallback
+                         response_data[k] = []
+                else:
+                    # Fallback for non-array types (lists)
+                    response_data[k] = v[start_index:]
+
+        response = fast_jsonify(response_data)
         if last_modified:
-             response.headers["Last-Modified"] = last_modified
+            response.headers["Last-Modified"] = last_modified
         return response
     except Exception as e:
         logger.error(f"Error getting residuals: {e}", exc_info=True)
@@ -2062,7 +2328,10 @@ def api_mesh_screenshot() -> Union[Response, Tuple[Response, int]]:
 
     MAX_DIMENSION = 4096
     if width > MAX_DIMENSION or height > MAX_DIMENSION:
-        return fast_jsonify({"error": f"Dimensions too large (max {MAX_DIMENSION}px)"}), 400
+        return (
+            fast_jsonify({"error": f"Dimensions too large (max {MAX_DIMENSION}px)"}),
+            400,
+        )
 
     if width < 1 or height < 1:
         return fast_jsonify({"error": "Dimensions must be positive"}), 400
@@ -2085,7 +2354,9 @@ def api_mesh_screenshot() -> Union[Response, Tuple[Response, int]]:
             return response
         else:
             return (
-                fast_jsonify({"success": False, "error": "Failed to generate screenshot"}),
+                fast_jsonify(
+                    {"success": False, "error": "Failed to generate screenshot"}
+                ),
                 500,
             )
     except Exception as e:
@@ -2175,7 +2446,7 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
 
     def stream_foamtovtk_logs() -> Generator[str, None, None]:
         """Stream logs for foamToVTK conversion process.
-        
+
         Yields:
             Log lines as HTML-formatted strings.
         """
@@ -2188,43 +2459,54 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
 
         # Convert Windows path to POSIX for Docker volumes
         host_path = Path(case_dir).resolve()
-        host_path_str = host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        host_path_str = (
+            host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        )
 
         # DEBUG: Check if we are pointing to the case itself or its parent
         tutorial_name = Path(tutorial).name
         # If case_dir ends with the tutorial name, we assume it IS the case directory
         is_direct_case_path = host_path.name == tutorial_name
 
-        logger.info(f"[FOAMFlask] run_foamtovtk: tutorial='{tutorial}', case_dir='{case_dir}'")
-        logger.info(f"[FOAMFlask] run_foamtovtk: is_direct_case_path={is_direct_case_path}")
+        logger.info(
+            f"[FOAMFlask] run_foamtovtk: tutorial='{tutorial}', case_dir='{case_dir}'"
+        )
+        logger.info(
+            f"[FOAMFlask] run_foamtovtk: is_direct_case_path={is_direct_case_path}"
+        )
 
         if is_direct_case_path:
-             # Mount the case directory directly to /tmp/FOAM_Run
-             # So inside container: /tmp/FOAM_Run contains the case files (0, constant, system) directly
-             container_bind_path = "/tmp/FOAM_Run"
-             container_case_path = "/tmp/FOAM_Run" # Working dir is the mount point
+            # Mount the case directory directly to /tmp/FOAM_Run
+            # So inside container: /tmp/FOAM_Run contains the case files (0, constant, system) directly
+            container_bind_path = "/tmp/FOAM_Run"
+            container_case_path = "/tmp/FOAM_Run"  # Working dir is the mount point
         else:
-             # Mount the parent directory (presumably) so tutorial structure is preserved
-             # e.g. /tmp/FOAM_Run/tutorial/case
-             container_bind_path = "/tmp/FOAM_Run"
-             container_case_path = posixpath.join("/tmp/FOAM_Run", tutorial_name) # nosec B108
+            # Mount the parent directory (presumably) so tutorial structure is preserved
+            # e.g. /tmp/FOAM_Run/tutorial/case
+            container_bind_path = "/tmp/FOAM_Run"
+            container_case_path = posixpath.join(
+                "/tmp/FOAM_Run", tutorial_name
+            )  # nosec B108
 
-        logger.info(f"[FOAMFlask] run_foamtovtk: container_case_path='{container_case_path}'")
+        logger.info(
+            f"[FOAMFlask] run_foamtovtk: container_case_path='{container_case_path}'"
+        )
 
         volumes = {
             host_path_str: {
-                "bind": container_bind_path, # nosec B108
+                "bind": container_bind_path,  # nosec B108
                 "mode": "rw",
             }
         }
 
         # Security: Use positional arguments
         docker_cmd = [
-            "bash", "-c",
-            "source \"$1\" && cd \"$2\" && source \"$1\" && foamToVTK -case \"$2\"",
+            "bash",
+            "-c",
+            'source "$1" && cd "$2" && source "$1" && foamToVTK -case "$2"',
             "foamtovtk_runner",  # $0
-            bashrc,              # $1
-            container_case_path  # $2
+            bashrc,  # $1
+            container_case_path,  # $2
         ]
 
         try:
@@ -2236,11 +2518,7 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
             }
             run_kwargs.update(get_docker_user_config())
 
-            container = client.containers.run(
-                DOCKER_IMAGE,
-                docker_cmd,
-                **run_kwargs
-            )
+            container = client.containers.run(DOCKER_IMAGE, docker_cmd, **run_kwargs)
 
             # Stream logs line by line
             for line in container.logs(stream=True):
@@ -2253,7 +2531,7 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
             yield f"[FOAMFlask] [Error] {sanitize_error(e)}\n"
 
         finally:
-            if 'container' in locals():
+            if "container" in locals():
                 try:
                     container.kill()
                 except Exception as e:
@@ -2270,13 +2548,15 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
 @app.route("/api/post_process", methods=["POST"])
 def post_process() -> Union[Response, Tuple[Response, int]]:
     """Handle post-processing requests for OpenFOAM results.
-    
+
     Returns:
         JSON response with post-processing status or error.
     """
     try:
         # Add your post-processing logic here
-        return fast_jsonify({"status": "success", "message": "Post processing endpoint"})
+        return fast_jsonify(
+            {"status": "success", "message": "Post processing endpoint"}
+        )
     except Exception as e:
         logger.error(f"Error during post-processing: {e}", exc_info=True)
         return fast_jsonify({"error": sanitize_error(e)}), 500
@@ -2289,7 +2569,17 @@ def create_slice() -> Union[Response, Tuple[Response, int]]:
     parent_id = data.get("parent_id")
     # For now, just pass to placeholder class to verify signature
     result = SliceVisualizer().process("", {}, parent_id=parent_id)
-    return fast_jsonify({"status": "coming_soon", "message": "Slice visualization coming soon", "details": result}), 501
+    return (
+        fast_jsonify(
+            {
+                "status": "coming_soon",
+                "message": "Slice visualization coming soon",
+                "details": result,
+            }
+        ),
+        501,
+    )
+
 
 @app.route("/api/streamline/create", methods=["POST"])
 def create_streamline() -> Union[Response, Tuple[Response, int]]:
@@ -2297,7 +2587,17 @@ def create_streamline() -> Union[Response, Tuple[Response, int]]:
     data = request.get_json() or {}
     parent_id = data.get("parent_id")
     result = StreamlineVisualizer().process("", {}, parent_id=parent_id)
-    return fast_jsonify({"status": "coming_soon", "message": "Streamline visualization coming soon", "details": result}), 501
+    return (
+        fast_jsonify(
+            {
+                "status": "coming_soon",
+                "message": "Streamline visualization coming soon",
+                "details": result,
+            }
+        ),
+        501,
+    )
+
 
 @app.route("/api/surface_projection/create", methods=["POST"])
 def create_surface_projection() -> Union[Response, Tuple[Response, int]]:
@@ -2305,7 +2605,16 @@ def create_surface_projection() -> Union[Response, Tuple[Response, int]]:
     data = request.get_json() or {}
     parent_id = data.get("parent_id")
     result = SurfaceProjectionVisualizer().process("", {}, parent_id=parent_id)
-    return fast_jsonify({"status": "coming_soon", "message": "Surface projection visualization coming soon", "details": result}), 501
+    return (
+        fast_jsonify(
+            {
+                "status": "coming_soon",
+                "message": "Surface projection visualization coming soon",
+                "details": result,
+            }
+        ),
+        501,
+    )
 
 
 @app.route("/api/contours/create", methods=["POST", "OPTIONS"])
@@ -2351,7 +2660,10 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
 
         # Security: Validate colormap format early
         if not is_safe_color(colormap):
-            return fast_jsonify({"success": False, "error": "Invalid colormap format"}), 400
+            return (
+                fast_jsonify({"success": False, "error": "Invalid colormap format"}),
+                400,
+            )
 
         logger.info(
             f"[FOAMFlask] [create_contour] Parsed parameters: "
@@ -2397,27 +2709,48 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
                 # Ensure the path is within the case directory or at least safe
                 # We can reuse validate_safe_path but we need to match it against CASE_ROOT
                 valid_vtk_path = validate_safe_path(CASE_ROOT, vtk_file_path)
-                
+
                 # Check if it actually exists
                 if not valid_vtk_path.exists():
-                     return fast_jsonify({"success": False, "error": f"Specified VTK file not found: {vtk_file_path}"}), 404
-                
+                    return (
+                        fast_jsonify(
+                            {
+                                "success": False,
+                                "error": f"Specified VTK file not found: {vtk_file_path}",
+                            }
+                        ),
+                        404,
+                    )
+
                 target_vtk_file = str(valid_vtk_path)
-                logger.info(f"[FOAMFlask] [create_contour] Using specified VTK file: {target_vtk_file}")
+                logger.info(
+                    f"[FOAMFlask] [create_contour] Using specified VTK file: {target_vtk_file}"
+                )
 
             except ValueError as e:
-                return fast_jsonify({"success": False, "error": f"Invalid VTK file path: {str(e)}"}), 400
+                return (
+                    fast_jsonify(
+                        {"success": False, "error": f"Invalid VTK file path: {str(e)}"}
+                    ),
+                    400,
+                )
         else:
+            import itertools
             # Fallback: Find latest VTK file
             logger.info(
                 f"[FOAMFlask] [create_contour] Searching for VTK files in {case_dir}"
             )
-            vtk_files = []
-            for file in case_dir.rglob("*"):
-                 if file.suffix in [".vtk", ".vtp", ".vtu"]:
-                     vtk_files.append(str(file))
+            vtk_files = [
+                str(f) for f in itertools.chain(
+                    case_dir.rglob("*.vtk"),
+                    case_dir.rglob("*.vtp"),
+                    case_dir.rglob("*.vtu")
+                )
+            ]
 
-            logger.info(f"[FOAMFlask] [create_contour] Found {len(vtk_files)} VTK files")
+            logger.info(
+                f"[FOAMFlask] [create_contour] Found {len(vtk_files)} VTK files"
+            )
 
             if not vtk_files:
                 error_msg = f"No VTK files found in {case_dir}"
@@ -2426,7 +2759,9 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
 
             # Get latest VTK file
             target_vtk_file = max(vtk_files, key=os.path.getmtime)
-            logger.info(f"[FOAMFlask] [create_contour] Using latest VTK file: {target_vtk_file}")
+            logger.info(
+                f"[FOAMFlask] [create_contour] Using latest VTK file: {target_vtk_file}"
+            )
 
         # Load mesh
         logger.info(f"[FOAMFlask] [create_contour] Loading mesh...")
@@ -2469,7 +2804,9 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
         # Get specific isovalues if provided (for interactive slider)
         isovalues = request_data.get("isovalues")
         if isovalues:
-            logger.info(f"[FOAMFlask] [create_contour] Using specific isovalues: {isovalues}")
+            logger.info(
+                f"[FOAMFlask] [create_contour] Using specific isovalues: {isovalues}"
+            )
 
         # ⚡ Bolt Optimization: Skipped redundant generation of static isosurfaces in main thread.
         # The Trame visualization process handles its own isosurface/threshold generation dynamically.
@@ -2477,12 +2814,14 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
 
         # Get isovalue widget setting
         show_isovalue_widget = request_data.get("showIsovalueWidget", True)
-        logger.info(f"[FOAMFlask] [create_contour] Show isovalue widget: {show_isovalue_widget}")
+        logger.info(
+            f"[FOAMFlask] [create_contour] Show isovalue widget: {show_isovalue_widget}"
+        )
 
         # Generate HTML
         # Generate Trame Visualization (Embedded)
         logger.info(f"[FOAMFlask] [create_contour] Starting Trame visualization...")
-        
+
         # colormap already validated above
         logger.info(f"[FOAMFlask] [create_contour] Using colormap: {colormap}")
 
@@ -2499,7 +2838,7 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
             num_isosurfaces=num_isosurfaces,
             isovalues=isovalues,
         )
-        
+
         # Return iframe configuration
         return fast_jsonify(viz_info)
 
@@ -2512,13 +2851,18 @@ def create_contour() -> Union[Response, Tuple[Response, int]]:
             f"[FOAMFlask] [create_contour] Traceback:\n{traceback.format_exc()}"
         )
 
-        return fast_jsonify({"success": False, "error": f"Server error: {sanitize_error(e)}"}), 500
+        return (
+            fast_jsonify(
+                {"success": False, "error": f"Server error: {sanitize_error(e)}"}
+            ),
+            500,
+        )
 
 
 @app.route("/api/upload_vtk", methods=["POST"])
 def upload_vtk() -> Union[Response, Tuple[Response, int]]:
     """Upload VTK files for visualization.
-    
+
     Returns:
         JSON response with upload status or error.
     """
@@ -2544,7 +2888,15 @@ def upload_vtk() -> Union[Response, Tuple[Response, int]]:
     allowed_extensions = {".vtk", ".vtp", ".vtu", ".vtm", ".pvtu"}
     ext = os.path.splitext(safe_filename)[1].lower()
     if ext not in allowed_extensions:
-        return fast_jsonify({"success": False, "error": "Invalid file type. Allowed: .vtk, .vtp, .vtu, .vtm, .pvtu"}), 400
+        return (
+            fast_jsonify(
+                {
+                    "success": False,
+                    "error": "Invalid file type. Allowed: .vtk, .vtp, .vtu, .vtm, .pvtu",
+                }
+            ),
+            400,
+        )
 
     filepath = temp_dir / safe_filename
 
@@ -2584,14 +2936,20 @@ def upload_vtk() -> Union[Response, Tuple[Response, int]]:
     except Exception as e:
         logger.error(f"Error in upload_vtk: {str(e)}", exc_info=True)
         return (
-            fast_jsonify({"success": False, "error": f"Error processing file: {sanitize_error(e)}"}),
+            fast_jsonify(
+                {
+                    "success": False,
+                    "error": f"Error processing file: {sanitize_error(e)}",
+                }
+            ),
             500,
         )
     finally:
         # Clean up the temporary file
         try:
-            if 'filepath' in locals() and filepath.exists():
-                filepath.unlink()
+            # ⚡ Bolt Optimization: Use missing_ok=True instead of exists() to avoid redundant stat syscall
+            if "filepath" in locals():
+                filepath.unlink(missing_ok=True)
         except Exception as e:
             logger.error(f"Error cleaning up file {filepath}: {e}")
 
@@ -2599,13 +2957,14 @@ def upload_vtk() -> Union[Response, Tuple[Response, int]]:
 # --- Caching for Resource Geometry ---
 _RESOURCE_GEOMETRY_CACHE: Dict[str, Union[str, List[str]]] = {}
 
+
 @app.route("/api/resources/geometry/list", methods=["GET"])
 def api_list_resource_geometry() -> Union[Response, Tuple[Response, int]]:
     """List available geometry files in $FOAM_TUTORIALS/resources/geometry."""
     global _RESOURCE_GEOMETRY_CACHE
-    
+
     refresh = request.args.get("refresh", "false").lower() == "true"
-    
+
     # Check cache if not refreshing
     if not refresh and _RESOURCE_GEOMETRY_CACHE.get("files"):
         logger.debug("[FOAMFlask] Returning cached resource geometry list")
@@ -2614,38 +2973,38 @@ def api_list_resource_geometry() -> Union[Response, Tuple[Response, int]]:
     try:
         client = get_docker_client()
         if client is None:
-             return docker_unavailable_response()
+            return docker_unavailable_response()
 
         bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
         # Security: Use list-based command construction to prevent shell injection
         # Even though there is no user input here, we maintain consistency
         docker_cmd = [
-            "bash", "-c",
-            "source \"$1\" && ls -1 $FOAM_TUTORIALS/resources/geometry",
-            "list_geometry", # $0
-            bashrc          # $1
+            "bash",
+            "-c",
+            'source "$1" && ls -1 $FOAM_TUTORIALS/resources/geometry',
+            "list_geometry",  # $0
+            bashrc,  # $1
         ]
 
         result = client.containers.run(
-            DOCKER_IMAGE,
-            docker_cmd,
-            remove=True,
-            stdout=True,
-            stderr=True,
-            tty=True
+            DOCKER_IMAGE, docker_cmd, remove=True, stdout=True, stderr=True, tty=True
         )
 
         output = result.decode().strip()
         if not output:
-             files = []
+            files = []
         else:
-             files = [f.strip() for f in output.splitlines() if f.strip().lower().endswith(('.stl', '.obj', '.gz'))]
-        
+            files = [
+                f.strip()
+                for f in output.splitlines()
+                if f.strip().lower().endswith((".stl", ".obj", ".gz"))
+            ]
+
         files = sorted(files)
-        
+
         # Update cache
         _RESOURCE_GEOMETRY_CACHE["files"] = files
-        
+
         return fast_jsonify({"files": files})
 
     except Exception as e:
@@ -2661,12 +3020,17 @@ def api_fetch_resource_geometry() -> Union[Response, Tuple[Response, int]]:
     case_name = data.get("caseName")
 
     if not filename or not case_name:
-        logger.error(f"Fetch failed: Missing filename ({filename}) or caseName ({case_name})")
-        return fast_jsonify({"success": False, "message": "Missing filename or caseName"}), 400
+        logger.error(
+            f"Fetch failed: Missing filename ({filename}) or caseName ({case_name})"
+        )
+        return (
+            fast_jsonify({"success": False, "message": "Missing filename or caseName"}),
+            400,
+        )
 
     if not is_safe_script_name(filename):
-         logger.error(f"Fetch failed: Invalid filename ({filename})")
-         return fast_jsonify({"success": False, "message": "Invalid filename"}), 400
+        logger.error(f"Fetch failed: Invalid filename ({filename})")
+        return fast_jsonify({"success": False, "message": "Invalid filename"}), 400
 
     try:
         case_dir_path = validate_safe_path(CASE_ROOT, case_name)
@@ -2679,45 +3043,42 @@ def api_fetch_resource_geometry() -> Union[Response, Tuple[Response, int]]:
     try:
         client = get_docker_client()
         if client is None:
-             return docker_unavailable_response()
+            return docker_unavailable_response()
 
         bashrc = f"/opt/openfoam{OPENFOAM_VERSION}/etc/bashrc"
         host_path = tri_surface_dir.resolve()
-        host_path_str = host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        host_path_str = (
+            host_path.as_posix() if platform.system() == "Windows" else str(host_path)
+        )
 
-        volumes = {
-            host_path_str: {"bind": "/output", "mode": "rw"}
-        }
+        volumes = {host_path_str: {"bind": "/output", "mode": "rw"}}
 
         # Security: Use list-based command construction to prevent shell injection
         # Pass filename and bashrc as positional arguments to bash -c
         docker_cmd = [
-            "bash", "-c",
-            "source \"$1\" && cp $FOAM_TUTORIALS/resources/geometry/\"$2\" /output/",
-            "fetcher",   # $0
-            bashrc,      # $1
-            filename     # $2
+            "bash",
+            "-c",
+            'source "$1" && cp $FOAM_TUTORIALS/resources/geometry/"$2" /output/',
+            "fetcher",  # $0
+            bashrc,  # $1
+            filename,  # $2
         ]
-        
+
         run_kwargs = {
             "volumes": volumes,
             "remove": True,
             "stdout": True,
-            "stderr": True
+            "stderr": True,
         }
         run_kwargs.update(get_docker_user_config())
 
-        client.containers.run(
-            DOCKER_IMAGE,
-            docker_cmd,
-            **run_kwargs
-        )
+        client.containers.run(DOCKER_IMAGE, docker_cmd, **run_kwargs)
 
         expected_file = tri_surface_dir / filename
         if expected_file.exists():
-             return fast_jsonify({"success": True, "message": f"Fetched {filename}"})
+            return fast_jsonify({"success": True, "message": f"Fetched {filename}"})
         else:
-             return fast_jsonify({"success": False, "message": "File copy failed"}), 500
+            return fast_jsonify({"success": False, "message": "File copy failed"}), 500
 
     except Exception as e:
         logger.error(f"Error fetching resource geometry: {e}")

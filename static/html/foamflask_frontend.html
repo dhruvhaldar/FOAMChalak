@@ -104,13 +104,19 @@
       position: relative;
     }
 
-    /* Show modebar on plot hover */
+    /* Show modebar on plot hover or keyboard focus */
     .plot-container:hover .modebar,
+    .plot-container:focus-within .modebar,
     .js-plotly-plot:hover .modebar,
+    .js-plotly-plot:focus-within .modebar,
     .plotly-graph-div:hover .modebar,
+    .plotly-graph-div:focus-within .modebar,
     .plot-container:hover .modebar-container .modebar,
+    .plot-container:focus-within .modebar-container .modebar,
     .js-plotly-plot:hover .modebar-container .modebar,
-    .plotly-graph-div:hover .modebar-container .modebar {
+    .js-plotly-plot:focus-within .modebar-container .modebar,
+    .plotly-graph-div:hover .modebar-container .modebar,
+    .plotly-graph-div:focus-within .modebar-container .modebar {
       opacity: 1;
       pointer-events: auto;
       z-index: 1000;
@@ -257,9 +263,9 @@
             <span class="text-sm font-medium message-slot leading-tight py-1"></span>
           </div>
           <!-- Close Button -->
-          <button class="close-btn text-white/60 hover:text-white transition-colors p-1 rounded hover:bg-white/10"
-            aria-label="Close notification">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button class="close-btn text-white/60 hover:text-white transition-colors p-1 rounded hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Close notification" title="Close notification">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -293,32 +299,32 @@
             style="opacity: 0"></div>
 
           <button id="nav-setup" aria-current="page" accesskey="s" title="Setup (AccessKey: s)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 bg-transparent">
-            Setup
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Setup<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">S</kbd>
           </button>
           <button id="nav-geometry" accesskey="g" title="Geometry (AccessKey: g)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Geometry
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Geometry<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">G</kbd>
           </button>
           <button id="nav-meshing" accesskey="m" title="Meshing (AccessKey: m)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Meshing
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Meshing<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">M</kbd>
           </button>
           <button id="nav-visualizer" accesskey="v" title="Visualizer (AccessKey: v)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Visualizer
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Visualizer<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">V</kbd>
           </button>
           <button id="nav-run" accesskey="r" title="Run/Log (AccessKey: r)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Run/Log
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Run/Log<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">R</kbd>
           </button>
           <button id="nav-plots" accesskey="p" title="Plots (AccessKey: p)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Plots
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Plots<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">P</kbd>
           </button>
           <button id="nav-post" accesskey="o" title="Post (AccessKey: o)"
-            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent">
-            Post
+            class="px-4 py-1 rounded-md text-sm font-medium transition-colors nav-btn text-gray-900 hover:bg-gray-100/50 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 group">
+            Post<kbd class="ml-1.5 hidden lg:inline-block text-[10px] px-1.5 py-0.5 bg-black/5 border border-black/10 rounded shadow-sm font-sans opacity-70 group-hover:opacity-100 transition-opacity">O</kbd>
           </button>
         </div>
 
@@ -326,9 +332,9 @@
         <div class="flex items-center md:hidden">
           <button type="button" onclick="toggleMobileMenu()" id="mobile-menu-btn"
             class="inline-flex items-center justify-center p-2 rounded-md text-gray-900 hover:text-cyan-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-500"
-            aria-controls="mobile-menu" aria-expanded="false">
+            aria-controls="mobile-menu" aria-expanded="false" title="Toggle menu">
             <span class="sr-only">Open main menu</span>
-            <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            <svg aria-hidden="true" class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
               stroke="currentColor" aria-hidden="true">
               <path id="mobile-menu-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 6h16M4 12h16M4 18h16" />
@@ -342,31 +348,31 @@
     <div class="hidden md:hidden border-t border-gray-200" id="mobile-menu">
       <div class="px-2 pt-2 pb-3 space-y-1">
         <button id="mobile-nav-setup"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-cyan-700 text-white nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-cyan-700 text-white nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Setup
         </button>
         <button id="mobile-nav-geometry"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Geometry
         </button>
         <button id="mobile-nav-meshing"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Meshing
         </button>
         <button id="mobile-nav-visualizer"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Visualizer
         </button>
         <button id="mobile-nav-run"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Run/Log
         </button>
         <button id="mobile-nav-plots"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Plots
         </button>
         <button id="mobile-nav-post"
-          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn">
+          class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-cyan-800 hover:bg-gray-50 nav-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white">
           Post
         </button>
       </div>
@@ -393,8 +399,8 @@
           <button id="refreshCaseListBtn" onclick="refreshCaseList(this)"
             class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 px-4 py-2 rounded transition-colors flex items-center gap-1"
             title="Refresh List" aria-label="Refresh case list">
-            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-              stroke="currentColor">
+            <svg aria-hidden="true" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+              stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round"
                 d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
@@ -418,12 +424,12 @@
 
             <button id="tab-btn-create" onclick="switchCaseCreationTab('create')" role="tab" aria-selected="true"
               aria-controls="tab-content-create"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
               Create Blank Case
             </button>
             <button id="tab-btn-import" onclick="switchCaseCreationTab('import')" role="tab" aria-selected="false"
               aria-controls="tab-content-import"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
               Import Tutorial
             </button>
           </div>
@@ -455,18 +461,20 @@
                         Case Name
                         <span class="text-red-500" title="Required">*</span>
                       </label>
-                      <p id="caseNameHelp" class="text-xs text-gray-500 mt-1">
+                      <p id="caseNameHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                         Alphanumeric characters, underscores, and dashes only.
                       </p>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-2">
                       <input type="text" id="newCaseName" placeholder="e.g. my_case" required pattern="^[a-zA-Z0-9_-]+$"
+                        spellcheck="false" autocorrect="off" autocapitalize="off"
                         title="Alphanumeric characters, underscores, and dashes only (no spaces)"
                         aria-describedby="caseNameHelp"
                         class="border border-gray-300 rounded-lg px-4 py-2 flex-1 w-full focus:outline-none focus:ring-2 focus:valid:ring-green-500 focus:valid:border-green-500 focus:[&:not(:placeholder-shown):invalid]:ring-red-500 focus:[&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-all" />
                       <button type="submit" id="createCaseBtn"
+                        aria-label="Create a new case" title="Create a new OpenFOAM case"
                         class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fill-rule="evenodd"
                             d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                             clip-rule="evenodd" />
@@ -499,19 +507,19 @@
                       <div class="relative flex-1 w-full">
                         <select id="tutorialSelect"
                           class="appearance-none border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white"
-                          aria-label="Select Tutorial">
+                          aria-label="Select Tutorial Source">
                           {{ options|safe }}
                         </select>
                         <div
                           class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-900">
-                          <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                          <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
                             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                           </svg>
                         </div>
                       </div>
-                      <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)"
-                        class="bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import selected tutorial"
+                        class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fill-rule="evenodd"
                             d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
                             clip-rule="evenodd" />
@@ -532,9 +540,9 @@
         <summary
           class="flex justify-between items-center cursor-pointer text-gray-900 font-medium hover:text-cyan-700 hover:bg-gray-50 p-2 rounded transition-colors list-none [&::-webkit-details-marker]:hidden focus:outline-none focus:ring-2 focus:ring-cyan-500">
           <span>Advanced Configuration (Case Root, Docker)</span>
-          <svg xmlns="http://www.w3.org/2000/svg"
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
             class="h-5 w-5 text-gray-500 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20"
-            fill="currentColor">
+            fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd"
               d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
               clip-rule="evenodd" />
@@ -543,29 +551,33 @@
         <div class="mt-4 space-y-4 pl-2">
           <!-- Case Directory -->
           <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label for="caseDir" class="w-32 font-medium text-gray-900">Case Root:</label>
+            <label for="caseDir" class="w-32 font-medium text-gray-900">
+              Case Root
+              <span class="text-red-500" title="Required">*</span>:
+            </label>
             <div class="relative flex-1">
               <input type="text" id="caseDir" name="caseDir" placeholder="e.g. /home/user/openfoam/run/my_case"
-                class="border border-gray-300 rounded px-3 py-2 w-full pr-8 text-gray-900" />
+                spellcheck="false" autocorrect="off" autocapitalize="off"
+                class="border border-gray-300 rounded px-3 py-2 w-full pr-8 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               <button onclick="copyInputToClipboard('caseDir', this)"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:text-cyan-600 transition-colors p-1 rounded"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
                 title="Copy Path" aria-label="Copy Case Root Path">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
             </div>
             <button id="setRootBtn" type="button" onclick="setCase(this)"
-              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[100px]"
+              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[100px] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               title="Set Case Root Directory (Enter)">
               Set Root
             </button>
             <button id="openRootBtn" type="button" onclick="openCaseRoot(this)"
-              class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded flex items-center justify-center transition-colors"
+              class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
               title="Open Case Root in File Explorer">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd"
                   d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z"
                   clip-rule="evenodd" />
@@ -580,27 +592,29 @@
             <label for="dockerImage" class="w-32 font-medium text-gray-900">Docker Image:</label>
             <div class="relative flex-1">
               <input type="text" id="dockerImage" name="dockerImage" placeholder="e.g. opencfd/openfoam-default"
-                class="border border-gray-300 rounded px-3 py-2 w-full pr-8" />
+                spellcheck="false" autocorrect="off" autocapitalize="off"
+                class="border border-gray-300 rounded px-3 py-2 w-full pr-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               <button onclick="copyInputToClipboard('dockerImage', this)"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:text-cyan-600 transition-colors p-1 rounded"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
                 title="Copy Docker Image" aria-label="Copy Docker Image">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
             </div>
             <input type="text" id="openfoamVersion" name="openfoamVersion" placeholder="Version"
-              class="border border-gray-300 rounded px-3 py-2 w-24" aria-label="OpenFOAM Version" />
-            <button id="setDockerConfigBtn" type="button" onclick="
+              spellcheck="false" autocorrect="off" autocapitalize="off"
+              class="border border-gray-300 rounded px-3 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" aria-label="OpenFOAM Version" />
+            <button id="setDockerConfigBtn" type="button" aria-label="Apply Docker configuration" title="Apply Docker configuration" onclick="
                   setDockerConfig(
                     document.getElementById('dockerImage').value,
                     document.getElementById('openfoamVersion').value,
                     this,
                   )
                 "
-              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[90px]">
+              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[90px] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
               Update
             </button>
           </div>
@@ -627,12 +641,12 @@
 
             <button onclick="switchGeometryTab('upload')" id="tab-btn-geo-upload" role="tab" aria-selected="true"
               aria-controls="tab-geo-upload"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
               Upload File
             </button>
             <button onclick="switchGeometryTab('resources')" id="tab-btn-geo-resources" role="tab" aria-selected="false"
               aria-controls="tab-geo-resources"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
               From Resources
             </button>
           </div>
@@ -648,10 +662,10 @@
                   <span class="text-sm font-medium text-gray-900">Upload Geometry File</span>
 
                   <label for="geometryUpload" id="geo-drop-zone"
-                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors focus-within:ring-2 focus-within:ring-cyan-500 focus-within:ring-offset-2 relative">
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6 text-gray-500 pointer-events-none">
-                      <svg class="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg">
+                    class="group flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors focus-within:ring-2 focus-within:ring-cyan-500 focus-within:ring-offset-2 relative overflow-hidden">
+                    <div id="geo-drop-content" class="flex flex-col items-center justify-center pt-5 pb-6 text-gray-500 pointer-events-none transition-opacity duration-300">
+                      <svg aria-hidden="true" class="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
                         </path>
@@ -660,6 +674,16 @@
                         drop
                       </p>
                       <p class="text-xs text-gray-500 mt-1" id="geometryUploadHelp">STL, OBJ, OBJ.GZ (MAX. 500MB)</p>
+                    </div>
+                    <div id="geo-drop-overlay"
+                      class="absolute inset-0 flex flex-col items-center justify-center bg-cyan-50/95 backdrop-blur-sm z-10 transition-all duration-300 opacity-0 pointer-events-none scale-95">
+                      <svg aria-hidden="true" class="w-10 h-10 text-cyan-600 mb-2 animate-bounce" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                        </path>
+                      </svg>
+                      <p class="text-lg font-semibold text-cyan-700">Drop file here</p>
                     </div>
                     <input type="file" id="geometryUpload" accept=".stl,.obj,.obj.gz" class="sr-only"
                       aria-describedby="geometryUploadHelp" />
@@ -670,7 +694,7 @@
                   </div>
 
                   <button id="uploadGeometryBtn" onclick="uploadGeometry(this)"
-                    class="bg-cyan-600 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded text-sm transition-colors flex items-center justify-center gap-2">
+                    class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded text-sm transition-colors flex items-center justify-center gap-2">
                     Upload
                   </button>
                 </div>
@@ -685,21 +709,21 @@
                     <button id="refreshResourceGeometryBtn" onclick="loadResourceGeometries(true)"
                       class="text-xs text-cyan-600 hover:text-cyan-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 rounded px-1"
                       aria-label="Refresh resource list">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                      <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                       Refresh
                     </button>
                   </div>
-                  <select id="resourceGeometrySelect"
-                    class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md bg-white bg-opacity-80">
+                  <select id="resourceGeometrySelect" aria-label="Select Resource Geometry"
+                    class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md bg-white bg-opacity-80">
                     <option value="" disabled selected>Loading...</option>
                   </select>
                   <button id="fetchResourceGeometryBtn" onclick="fetchResourceGeometry(this)"
-                    title="Fetch & Import (Enter)"
-                    class="bg-cyan-600 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded text-sm transition-colors flex items-center justify-center gap-2">
+                    title="Fetch & Import (Enter)" aria-label="Fetch and import the selected resource geometry"
+                    class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded text-sm transition-colors flex items-center justify-center gap-2">
                     Fetch & Import
                   </button>
                 </div>
@@ -714,15 +738,15 @@
               <button id="refreshGeometryBtn" onclick="refreshGeometryList(this)"
                 class="text-xs text-cyan-600 hover:text-cyan-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 rounded px-1"
                 aria-label="Refresh geometry list">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
               </button>
             </div>
-            <select id="geometrySelect"
+            <select id="geometrySelect" aria-label="Available Geometries"
               class="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
               size="5">
               <!-- Populated by JS -->
@@ -731,8 +755,8 @@
               <button id="viewGeometryBtn" onclick="loadGeometryView(this)"
                 class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-white px-4 py-2 rounded flex-1 text-sm flex items-center justify-center gap-2"
                 aria-label="View selected geometry" title="View selected geometry (Enter or Double-click)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -743,8 +767,8 @@
               <button id="deleteGeometryBtn" onclick="deleteGeometry(this)"
                 class="bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-white px-4 py-2 rounded flex-1 text-sm flex items-center justify-center gap-2"
                 aria-label="Delete selected geometry" title="Delete selected geometry">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -772,12 +796,12 @@
                     <div class="flex-1 font-mono text-black text-[11px] whitespace-nowrap">
                       <span class="text-gray-600">min</span>
                       <button type="button" id="geo-bound-x-min"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy X minimum"></button>
                       <span class="text-gray-500 mx-1">|</span>
                       <span class="text-gray-600">max</span>
                       <button type="button" id="geo-bound-x-max"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy X maximum"></button>
                     </div>
                     <div
@@ -785,7 +809,7 @@
                       title="Length">
                       Δ
                       <button type="button" id="geo-bound-x-len"
-                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy length" aria-label="Copy X length"></button>
                     </div>
                   </div>
@@ -797,12 +821,12 @@
                     <div class="flex-1 font-mono text-black text-[11px] whitespace-nowrap">
                       <span class="text-gray-600">min</span>
                       <button type="button" id="geo-bound-y-min"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy Y minimum"></button>
                       <span class="text-gray-500 mx-1">|</span>
                       <span class="text-gray-600">max</span>
                       <button type="button" id="geo-bound-y-max"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy Y maximum"></button>
                     </div>
                     <div
@@ -810,7 +834,7 @@
                       title="Length">
                       Δ
                       <button type="button" id="geo-bound-y-len"
-                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy length" aria-label="Copy Y length"></button>
                     </div>
                   </div>
@@ -822,12 +846,12 @@
                     <div class="flex-1 font-mono text-black text-[11px] whitespace-nowrap">
                       <span class="text-gray-600">min</span>
                       <button type="button" id="geo-bound-z-min"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy Z minimum"></button>
                       <span class="text-gray-500 mx-1">|</span>
                       <span class="text-gray-600">max</span>
                       <button type="button" id="geo-bound-z-max"
-                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-cyan-100 hover:text-cyan-800 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy value" aria-label="Copy Z maximum"></button>
                     </div>
                     <div
@@ -835,7 +859,7 @@
                       title="Length">
                       Δ
                       <button type="button" id="geo-bound-z-len"
-                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors"
+                        class="copyable-value cursor-pointer hover:bg-gray-300 px-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         title="Click to copy length" aria-label="Copy Z length"></button>
                     </div>
                   </div>
@@ -851,7 +875,7 @@
           <button onclick="toggleFullscreen('geometryViewerContainer', this)"
             class="absolute top-4 right-4 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-lg shadow-md backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500"
             aria-label="Enter Fullscreen" title="Enter Fullscreen">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
@@ -861,8 +885,8 @@
             class="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10">
             <div class="flex flex-col items-center justify-center h-full p-8 text-center">
               <div class="text-gray-600 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
@@ -914,43 +938,47 @@
           <div id="blockMeshSection" class="block space-y-3">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-900">Bounds (Min / Max)</label>
+                <label class="block text-sm font-medium text-gray-900">Bounds (Min / Max) <span class="text-red-500" title="Required">*</span></label>
                 <div class="grid grid-cols-2 gap-2">
                   <input type="text" id="bmMin" placeholder="-1 -1 -1" aria-describedby="bmBoundsHelp"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     aria-label="BlockMesh Min Bounds" />
                   <input type="text" id="bmMax" placeholder="1 1 1" aria-describedby="bmBoundsHelp"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     aria-label="BlockMesh Max Bounds" />
                 </div>
-                <p id="bmBoundsHelp" class="text-xs text-gray-500 mt-1">
+                <p id="bmBoundsHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                   Format: x y z (Space-separated coordinates)
                 </p>
-                <button onclick="fillBoundsFromGeometry(this)"
+                <button onclick="fillBoundsFromGeometry(this)" aria-label="Update blockMesh bounds based on geometry" title="Update blockMesh bounds"
                   class="text-xs text-cyan-600 hover:text-cyan-800 mt-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded px-1 transition-colors">
                   Auto-fill from selected Geometry
                 </button>
               </div>
               <div>
-                <label for="bmCells" class="block text-sm font-medium text-gray-900">Cells (x y z)</label>
+                <label for="bmCells" class="block text-sm font-medium text-gray-900">Cells (x y z) <span class="text-red-500" title="Required">*</span></label>
                 <input type="text" id="bmCells" value="20 20 20" aria-describedby="bmCellsHelp"
+                  spellcheck="false" autocorrect="off" autocapitalize="off" required
                   class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
-                <p id="bmCellsHelp" class="text-xs text-gray-500 mt-1">
+                <p id="bmCellsHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                   Format: 20 20 20 (Space-separated integers)
                 </p>
               </div>
               <div>
-                <label for="bmGrading" class="block text-sm font-medium text-gray-900">Grading (x y z)</label>
+                <label for="bmGrading" class="block text-sm font-medium text-gray-900">Grading (x y z) <span class="text-red-500" title="Required">*</span></label>
                 <input type="text" id="bmGrading" value="1 1 1" aria-describedby="bmGradingHelp"
+                  spellcheck="false" autocorrect="off" autocapitalize="off" required
                   class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
-                <p id="bmGradingHelp" class="text-xs text-gray-500 mt-1">
+                <p id="bmGradingHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                   Format: 1 1 1 (Space-separated expansion ratios)
                 </p>
               </div>
             </div>
             <div class="flex flex-col sm:flex-row gap-2 pt-2">
               <button id="genBlockMeshBtn" onclick="generateBlockMeshDict(this)"
-                class="bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2">
+                class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2">
                 Generate blockMeshDict
               </button>
               <button id="runBlockMeshBtn" onclick="runMeshingCommand('blockMesh', this)"
@@ -977,27 +1005,32 @@
                   Global Settings
                 </h4>
                 <div class="grid grid-cols-2 gap-3">
-                  <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="shmCastellated" checked class="rounded text-cyan-600" />
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="shmCastellated" checked class="cursor-pointer rounded text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
                     <span class="text-sm">Castellated Mesh</span>
                   </label>
-                  <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="shmSnap" checked class="rounded text-cyan-600" />
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="shmSnap" checked class="cursor-pointer rounded text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
                     <span class="text-sm">Snap</span>
                   </label>
-                  <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="shmLayers" class="rounded text-cyan-600" />
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="shmLayers" class="cursor-pointer rounded text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
                     <span class="text-sm">Add Layers</span>
                   </label>
                 </div>
                 <div class="mt-3">
                   <label for="shmLocation" class="block text-sm font-medium text-gray-900">Location In Mesh (x y
-                    z)</label>
-                  <input type="text" id="shmLocation" value="0 0 0" class="border rounded px-2 py-1 text-sm w-full"
+                    z) <span class="text-red-500" title="Required">*</span></label>
+                  <input type="text" id="shmLocation" value="0 0 0" class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" required
                     placeholder="e.g. 0.1 0.1 0.1" aria-describedby="shmLocationHelp" />
-                  <p id="shmLocationHelp" class="text-xs text-gray-500 mt-1">
+                  <p id="shmLocationHelp" class="text-xs text-gray-500 mt-1" aria-live="polite" aria-atomic="true">
                     Point inside the mesh region (Space-separated)
                   </p>
+                  <button onclick="fillLocationFromGeometry(this)"
+                    class="text-xs text-cyan-600 hover:text-cyan-800 mt-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded px-1 transition-colors">
+                    Auto-fill Center from selected Geometry
+                  </button>
                 </div>
               </div>
 
@@ -1006,9 +1039,9 @@
                 <summary
                   class="flex justify-between items-center px-3 py-2 cursor-pointer text-sm font-medium text-gray-900 hover:bg-gray-100 list-none [&::-webkit-details-marker]:hidden focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded">
                   <span>Advanced Global Settings</span>
-                  <svg xmlns="http://www.w3.org/2000/svg"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                     class="h-4 w-4 text-gray-500 transition-transform duration-200 group-open:rotate-180"
-                    viewBox="0 0 20 20" fill="currentColor">
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                       clip-rule="evenodd" />
@@ -1024,12 +1057,12 @@
                       <div>
                         <label for="shmMaxNonOrtho" class="block text-xs text-black">Max Non-Ortho</label>
                         <input type="number" id="shmMaxNonOrtho" value="65"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                       <div>
                         <label for="shmMinTriangleTwist" class="block text-xs text-black">Min Triangle Twist</label>
                         <input type="number" id="shmMinTriangleTwist" value="-1"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                     </div>
                   </div>
@@ -1043,22 +1076,22 @@
                       <div>
                         <label for="shmLayerFeatureAngle" class="block text-xs text-black">Feature Angle</label>
                         <input type="number" id="shmLayerFeatureAngle" value="130"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                       <div>
                         <label for="shmExpansionRatio" class="block text-xs text-black">Expansion Ratio</label>
                         <input type="number" id="shmExpansionRatio" value="1.2" step="0.1"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                       <div>
                         <label for="shmFinalThickness" class="block text-xs text-black">Final Thickness</label>
                         <input type="number" id="shmFinalThickness" value="0.3" step="0.1"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                       <div>
                         <label for="shmMinThickness" class="block text-xs text-black">Min Thickness</label>
                         <input type="number" id="shmMinThickness" value="0.1" step="0.01"
-                          class="border rounded px-2 py-1 text-sm w-full" />
+                          class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                       </div>
                     </div>
                   </div>
@@ -1072,7 +1105,7 @@
 
               <div class="flex flex-col gap-2 h-48">
                 <label for="shmObjectList" class="text-sm text-black">Loaded Geometry Objects</label>
-                <select id="shmObjectList" class="border border-gray-300 rounded px-2 py-2 flex-1 w-full" size="5"
+                <select id="shmObjectList" aria-label="Loaded Geometry Objects" class="border border-gray-300 rounded px-2 py-2 flex-1 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" size="5"
                   onchange="selectShmObject()">
                   <!-- Populated by JS -->
                 </select>
@@ -1090,11 +1123,11 @@
                     <label class="block text-xs font-medium text-gray-900">Refinement Level (Min / Max)</label>
                     <div class="flex items-center gap-2">
                       <input type="number" id="shmObjRefMin" min="0" max="10"
-                        class="border rounded px-2 py-1 text-sm w-20" onchange="updateShmObjectConfig()"
+                        class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()"
                         aria-label="Min Refinement Level" />
                       <span class="text-gray-900">-</span>
                       <input type="number" id="shmObjRefMax" min="0" max="10"
-                        class="border rounded px-2 py-1 text-sm w-20" onchange="updateShmObjectConfig()"
+                        class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()"
                         aria-label="Max Refinement Level" />
                     </div>
                   </div>
@@ -1102,8 +1135,8 @@
                     <label for="shmObjLayers" class="block text-xs font-medium text-gray-900">Number of Surface
                       Layers</label>
                     <input type="number" id="shmObjLayers" min="0" max="10"
-                      class="border rounded px-2 py-1 text-sm w-full" onchange="updateShmObjectConfig()" />
-                    <p class="text-xs text-gray-900 mt-1">
+                      class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()" aria-describedby="shmObjLayersHelp" />
+                    <p id="shmObjLayersHelp" class="text-xs text-gray-900 mt-1" aria-live="polite" aria-atomic="true">
                       Requires "Add Layers" to be enabled globally.
                     </p>
                   </div>
@@ -1113,7 +1146,7 @@
                 class="text-sm text-gray-600 p-6 text-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50/50 flex flex-col items-center justify-center gap-3 transition-all hover:bg-gray-50 hover:border-cyan-300">
 
                 <div class="text-gray-400" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
@@ -1138,7 +1171,7 @@
 
           <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t mt-4">
             <button id="genSnappyHexMeshBtn" onclick="generateSnappyHexMeshDict(this)"
-              class="bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2">
+              class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2">
               Generate snappyHexMeshDict
             </button>
             <button id="runSnappyHexMeshBtn" onclick="runMeshingCommand('snappyHexMesh', this)"
@@ -1157,8 +1190,8 @@
             <button onclick="clearMeshingOutput()"
               class="text-xs bg-red-100 hover:bg-red-200 text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               aria-label="Clear meshing output" title="Clear output">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -1167,8 +1200,8 @@
             <button onclick="copyMeshingOutput(this)"
               class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               title="Copy output to clipboard" aria-label="Copy output to clipboard">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -1177,8 +1210,8 @@
             <button onclick="downloadMeshingLog()"
               class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               aria-label="Download meshing log" title="Download Log">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1205,7 +1238,7 @@
             class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Execute full simulation sequence (Allrun script)"
             aria-label="Run Allrun script to execute the full simulation sequence">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
@@ -1217,7 +1250,7 @@
             class="bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Reset case: Delete mesh, results, and logs (Warning: Destructive)"
             aria-label="Run Allclean script to reset the case">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
                 d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
@@ -1226,9 +1259,9 @@
             Allclean
           </button>
           <button id="runBlockMeshBtnRun" onclick="runCommand('blockMesh', this)"
-            class="bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
+            class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Generate the background mesh" aria-label="Run blockMesh to generate the background mesh">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path
                 d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm8-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zM3 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm9-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
@@ -1238,7 +1271,7 @@
           <button id="runSimpleFoamBtn" onclick="runCommand('simpleFoam', this)"
             class="bg-purple-500 hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Run steady-state solver (simpleFoam)" aria-label="Run simpleFoam steady-state solver">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
                 d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
@@ -1249,7 +1282,7 @@
           <button id="runPimpleFoamBtn" onclick="runCommand('pimpleFoam', this)"
             class="bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Run transient solver (pimpleFoam)" aria-label="Run pimpleFoam transient solver">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
@@ -1264,7 +1297,10 @@
       <div class="glass-panel rounded-lg overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
           <h3 class="text-sm font-semibold text-gray-900">Run History</h3>
-          <button onclick="fetchRunHistory()" class="text-cyan-600 hover:text-cyan-800 text-xs font-medium focus:outline-none">
+          <button onclick="fetchRunHistory(this)" class="text-cyan-600 hover:text-cyan-800 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 rounded px-1 flex items-center gap-1" aria-label="Refresh run history">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             Refresh
           </button>
         </div>
@@ -1298,10 +1334,12 @@
               <button type="button" aria-describedby="console-log-tooltip"
                 class="text-cyan-500 cursor-help focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-full w-6 h-6 flex items-center justify-center text-sm"
                 aria-label="Information about Console Log">
-                ℹ️
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </button>
               <div id="console-log-tooltip" role="tooltip"
-                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 pointer-events-none">
+                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-gray-800">
                 Output from OpenFOAM is viewed here
               </div>
             </div>
@@ -1310,8 +1348,8 @@
             <button onclick="clearLog()"
               class="text-sm bg-red-100 hover:bg-red-200 text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               aria-label="Clear console log" title="Clear console output">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -1320,8 +1358,8 @@
             <button onclick="copyLogToClipboard(this)"
               class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               title="Copy console output to clipboard" aria-label="Copy console log to clipboard">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -1330,8 +1368,8 @@
             <button onclick="downloadLog()"
               class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
               aria-label="Download console log to file" title="Download Log">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1340,13 +1378,22 @@
           </div>
         </div>
         <div id="output" class="glass-plot rounded p-4 h-64 sm:h-80 overflow-auto text-sm font-mono" tabindex="0"
-          role="log" aria-label="Console Output Log"></div>
+          role="log" aria-label="Console Output Log">
+          <div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-400 select-none opacity-50">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-sm font-medium">Ready for output...</span>
+          </div>
+        </div>
 
         <!-- Scroll to Top Button -->
-        <button id="scrollToTopBtn" onclick="scrollToLogTop()"
+        <button id="scrollToTopBtn" onclick="scrollToLogTop()" tabindex="-1"
           class="absolute bottom-16 right-6 bg-cyan-600/90 hover:bg-cyan-700 text-white rounded-full p-2 shadow-lg transition-all duration-300 opacity-0 translate-y-2 pointer-events-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 z-10"
           aria-label="Scroll to top of log" title="Scroll to top">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd"
               d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
               clip-rule="evenodd" />
@@ -1354,10 +1401,10 @@
         </button>
 
         <!-- Scroll to Bottom Button -->
-        <button id="scrollToBottomBtn" onclick="scrollToLogBottom()"
+        <button id="scrollToBottomBtn" onclick="scrollToLogBottom()" tabindex="-1"
           class="absolute bottom-4 right-6 bg-cyan-600/90 hover:bg-cyan-700 text-white rounded-full p-2 shadow-lg transition-all duration-300 opacity-0 translate-y-2 pointer-events-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 z-10"
           aria-label="Scroll to bottom of log" title="Scroll to bottom">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd"
               d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z"
               clip-rule="evenodd" />
@@ -1398,8 +1445,8 @@
                 <button id="refreshMeshListBtn" onclick="refreshMeshList(this)"
                   class="bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-white px-4 py-2 rounded text-sm transition-opacity duration-300 flex items-center gap-1"
                   aria-label="Refresh mesh list">
-                  <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                    stroke-width="2" stroke="currentColor">
+                  <svg aria-hidden="true" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="2" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                   </svg>
@@ -1412,8 +1459,8 @@
                 aria-label="Select Mesh File">
                 <option value="">-- Select a mesh file --</option>
               </select>
-              <button id="loadMeshBtn" onclick="loadMeshVisualization()" title="Load Mesh (Enter)"
-                class="bg-cyan-600 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full flex items-center justify-center gap-2">
+              <button id="loadMeshBtn" onclick="loadMeshVisualization()" title="Load Mesh (Enter)" aria-label="Load selected mesh for visualization"
+                class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 text-white px-4 py-2 rounded w-full flex items-center justify-center gap-2">
                 Load Mesh
               </button>
             </div>
@@ -1421,13 +1468,13 @@
             <!-- Mesh Controls -->
             <div id="meshControls" class="hidden flex flex-col gap-3 bg-white p-3 rounded border border-gray-300">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="showEdges" checked class="rounded" />
+                <input type="checkbox" id="showEdges" checked class="cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" />
                 <label for="showEdges" class="text-sm cursor-pointer">Show Edges</label>
               </div>
 
               <div class="flex items-center gap-2">
                 <label for="meshColor" class="text-sm">Color:</label>
-                <select id="meshColor"
+                <select id="meshColor" aria-label="Select Mesh Color"
                   class="border border-gray-300 rounded px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                   <option value="lightblue">Light Blue</option>
                   <option value="white">White</option>
@@ -1440,7 +1487,7 @@
 
               <div class="flex items-center gap-2">
                 <label for="cameraPosition" class="text-sm">View:</label>
-                <select id="cameraPosition"
+                <select id="cameraPosition" aria-label="Select Camera View"
                   class="border border-gray-300 rounded px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                   <option value="">Auto</option>
                   <option value="xy">XY Plane</option>
@@ -1451,12 +1498,12 @@
               </div>
 
               <div class="flex gap-2">
-                <button onclick="updateMeshView()" id="updateViewBtn"
-                  class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm w-1/2">
+                <button onclick="updateMeshView()" id="updateViewBtn" aria-label="Update mesh view with selected properties" title="Update mesh view"
+                  class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm w-1/2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1">
                   Update View
                 </button>
-                <button onclick="toggleInteractiveMode()" id="toggleInteractiveBtn"
-                  class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm w-1/2">
+                <button onclick="toggleInteractiveMode()" id="toggleInteractiveBtn" aria-label="Toggle interactive mesh picking mode" title="Toggle interactive mode"
+                  class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm w-1/2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
                   Interactive Mode
                 </button>
               </div>
@@ -1468,7 +1515,7 @@
                 <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 items-center">
                   <!-- Rotate -->
                   <div class="flex justify-center">
-                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <rect x="1" y="1" width="12" height="18" rx="6" stroke="#9CA3AF" stroke-width="1.5" />
                       <path d="M7 1V8H1.5C1.5 4.5 3.5 1 7 1Z" fill="#3B82F6" />
                       <line x1="7" y1="1" x2="7" y2="8" stroke="#9CA3AF" stroke-width="1.5" />
@@ -1481,7 +1528,7 @@
                     <kbd
                       class="px-1.5 py-0.5 rounded bg-white border border-gray-300 font-sans text-[10px] text-gray-900 shadow-sm">Ctrl</kbd>
                     <span class="text-gray-600 text-[10px]">+</span>
-                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <rect x="1" y="1" width="12" height="18" rx="6" stroke="#9CA3AF" stroke-width="1.5" />
                       <path d="M7 1V8H1.5C1.5 4.5 3.5 1 7 1Z" fill="#3B82F6" />
                       <line x1="7" y1="1" x2="7" y2="8" stroke="#9CA3AF" stroke-width="1.5" />
@@ -1491,7 +1538,7 @@
 
                   <!-- Zoom -->
                   <div class="flex justify-center">
-                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <rect x="1" y="1" width="12" height="18" rx="6" stroke="#9CA3AF" stroke-width="1.5" />
                       <rect x="6" y="3" width="2" height="4" rx="1" fill="#EF4444" />
                     </svg>
@@ -1503,7 +1550,7 @@
                     <kbd
                       class="px-1.5 py-0.5 rounded bg-white border border-gray-300 font-sans text-[10px] text-gray-900 shadow-sm">Shift</kbd>
                     <span class="text-gray-600 text-[10px]">+</span>
-                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-4 h-5" viewBox="0 0 14 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <rect x="1" y="1" width="12" height="18" rx="6" stroke="#9CA3AF" stroke-width="1.5" />
                       <path d="M7 1V8H1.5C1.5 4.5 3.5 1 7 1Z" fill="#3B82F6" />
                       <line x1="7" y1="1" x2="7" y2="8" stroke="#9CA3AF" stroke-width="1.5" />
@@ -1527,7 +1574,7 @@
             <button onclick="toggleFullscreen('meshViewerContainer', this)"
               class="absolute top-4 right-4 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-lg shadow-md backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500"
               aria-label="Enter Fullscreen" title="Enter Fullscreen">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
@@ -1536,44 +1583,44 @@
             <div id="cameraControls"
               class="absolute bottom-4 right-4 z-10 flex flex-col gap-2 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 pointer-events-auto">
               <button onclick="setCameraView('xy')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Top View (XY)" aria-label="Top View (XY)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
               <button onclick="setCameraView('xz')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Front View (XZ)" aria-label="Front View (XZ)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
               </button>
               <button onclick="setCameraView('yz')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Side View (YZ)" aria-label="Side View (YZ)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
               <button onclick="setCameraView('iso')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Isometric View" aria-label="Isometric View">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
               </button>
               <button onclick="resetCamera()"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Reset Camera" aria-label="Reset Camera">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -1583,8 +1630,8 @@
             <!-- Viewer -->
             <div id="meshPlaceholder" class="flex flex-col items-center justify-center h-full p-8 text-center">
               <div class="text-gray-900 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                     d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
@@ -1616,8 +1663,9 @@
           <!-- Font Settings Button -->
           <div class="relative">
             <button onclick="toggleFontSettings()" id="fontSettingsBtn"
-              class="bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 px-4 py-2 rounded flex items-center gap-2 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              aria-haspopup="true" aria-expanded="false"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300 px-4 py-2 rounded flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd"
                   d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
                   clip-rule="evenodd" />
@@ -1626,13 +1674,13 @@
             </button>
 
             <!-- MegaMenu Popup -->
-            <div id="fontSettingsMenu"
+            <div id="fontSettingsMenu" role="menu" aria-labelledby="fontSettingsBtn"
               class="hidden absolute glass-panel right-0 mt-2 w-80 origin-top-right rounded-xl shadow-2xl z-50 p-4 flex flex-col gap-4 bg-white/40 border-cyan-300">
               <div class="flex justify-between items-center pb-2">
                 <h3 class="font-semibold text-black">Plot Appearance</h3>
-                <button onclick="toggleFontSettings()" class="text-gray-900 hover:text-gray-900"
-                  aria-label="Close font settings">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <button onclick="toggleFontSettings()" class="text-gray-900 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded"
+                  aria-label="Close font settings" title="Close font settings">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                       clip-rule="evenodd" />
@@ -1644,28 +1692,28 @@
               <div>
                 <label class="text-xs text-black font-medium mb-2 block uppercase tracking-wider">Presets</label>
                 <div class="grid grid-cols-2 gap-2">
-                  <button onclick="changePlotFont('Inter, sans-serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Inter']">
+                  <button onclick="changePlotFont('Inter, sans-serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Inter'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Inter
                   </button>
-                  <button onclick="changePlotFont('Roboto, sans-serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Roboto']">
+                  <button onclick="changePlotFont('Roboto, sans-serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Roboto'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Roboto
                   </button>
-                  <button onclick="changePlotFont('Open Sans, sans-serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Open_Sans']">
+                  <button onclick="changePlotFont('Open Sans, sans-serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Open_Sans'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Open Sans
                   </button>
-                  <button onclick="changePlotFont('Lato, sans-serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Lato']">
+                  <button onclick="changePlotFont('Lato, sans-serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Lato'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Lato
                   </button>
-                  <button onclick="changePlotFont('Montserrat, sans-serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Montserrat']">
+                  <button onclick="changePlotFont('Montserrat, sans-serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-['Montserrat'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Montserrat
                   </button>
-                  <button onclick="changePlotFont('Computer Modern Serif, serif')"
-                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-serif">
+                  <button onclick="changePlotFont('Computer Modern Serif, serif')" role="menuitem"
+                    class="text-sm p-2 rounded glass-panel hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-left font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
                     Times New Roman / Computer Modern Serif
                   </button>
                 </div>
@@ -1686,7 +1734,7 @@
 
           <!-- Show Aero Plots Button -->
           <button onclick="toggleAeroPlots()" id="toggleAeroBtn"
-            class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded shadow-sm">
+            class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
             Show Aero Plots
           </button>
         </div>
@@ -1715,10 +1763,10 @@
                     3000,
                   );
                 "
-              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Pressure Data as CSV">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
+              title="Download Pressure Data as CSV" aria-label="Download Pressure Data as CSV">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1726,12 +1774,12 @@
             </button>
 
             <button onclick="
-                  downloadPlotAsPNG('pressure-plot', 'pressure_plot.png')
+                  downloadPlotAsPNG('pressure-plot', 'pressure_plot.png', this)
                 "
-              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Plot as PNG">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
+              title="Download Plot as PNG" aria-label="Download Pressure Plot as PNG">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -1745,10 +1793,10 @@
             <div id="velocity-plot" class="w-full p-2" style="min-height: 300px"></div>
 
             <button onclick="downloadPlotData('velocity-plot', 'velocity_data.csv')"
-              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Velocity Data as separate CSV">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
+              title="Download Velocity Data as separate CSV" aria-label="Download Velocity Data as CSV">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1756,12 +1804,12 @@
             </button>
 
             <button onclick="
-                  downloadPlotAsPNG('velocity-plot', 'velocity_plot.png')
+                  downloadPlotAsPNG('velocity-plot', 'velocity_plot.png', this)
                 "
-              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Plot as PNG">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
+              title="Download Plot as PNG" aria-label="Download Velocity Plot as PNG">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -1777,10 +1825,10 @@
             <button onclick="
                   downloadPlotData('turbulence-plot', 'turbulence_data.csv')
                 "
-              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Turbulence Data as CSV">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
+              title="Download Turbulence Data as CSV" aria-label="Download Turbulence Data as CSV">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1788,12 +1836,12 @@
             </button>
 
             <button onclick="
-                  downloadPlotAsPNG('turbulence-plot', 'turbulence_plot.png')
+                  downloadPlotAsPNG('turbulence-plot', 'turbulence_plot.png', this)
                 "
-              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Plot as PNG">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
+              title="Download Plot as PNG" aria-label="Download Turbulence Plot as PNG">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -1809,10 +1857,10 @@
             <button onclick="
                   downloadPlotData('residuals-plot', 'residuals_data.csv')
                 "
-              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Residuals Data as CSV">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
+              title="Download Residuals Data as CSV" aria-label="Download Residuals Data as CSV">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -1820,12 +1868,12 @@
             </button>
 
             <button onclick="
-                  downloadPlotAsPNG('residuals-plot', 'residuals_plot.png')
+                  downloadPlotAsPNG('residuals-plot', 'residuals_plot.png', this)
                 "
-              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10"
-              title="Download Plot as PNG">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="absolute bottom-3 right-20 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
+              title="Download Plot as PNG" aria-label="Download Residuals Plot as PNG">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -1869,12 +1917,12 @@
       <div id="post-landing-view" class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <!-- Contour Card (Active) -->
         <button id="card-contour" onclick="switchPostView('contour')"
-          class="glass-panel p-4 text-left hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group border border-cyan-200 bg-white/40 flex flex-col h-full">
+          class="glass-panel p-4 text-left hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group border border-cyan-200 bg-white/40 flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:border-transparent">
           <div class="flex items-start justify-between mb-3">
             <div
-              class="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition-colors duration-300">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              class="p-2 rounded-lg bg-cyan-100 text-cyan-600 group-hover:bg-cyan-700 group-hover:text-white transition-colors duration-300">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
@@ -1891,12 +1939,12 @@
         </button>
 
         <!-- Slice Card (Coming Soon) -->
-        <div
-          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
+        <div title="Feature coming soon" aria-disabled="true" tabindex="0"
+          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
               </svg>
@@ -1911,12 +1959,12 @@
         </div>
 
         <!-- Streamline Card (Coming Soon) -->
-        <div
-          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
+        <div title="Feature coming soon" aria-disabled="true" tabindex="0"
+          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
@@ -1930,12 +1978,12 @@
         </div>
 
         <!-- Surface Projection Card (Coming Soon) -->
-        <div
-          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full">
+        <div title="Feature coming soon" aria-disabled="true" tabindex="0"
+          class="glass-panel p-4 text-left opacity-75 border border-gray-200 bg-gray-50/50 cursor-not-allowed flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2">
           <div class="flex items-start justify-between mb-3">
             <div class="p-2 rounded-lg bg-gray-200 text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
@@ -1956,9 +2004,9 @@
       <div id="post-contour-view" class="hidden mb-8 animate-[slideIn_0.3s_ease-out]">
         <div class="flex items-center gap-2 mb-4">
           <button onclick="switchPostView('landing')"
-            class="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-cyan-700 transition-colors"
-            aria-label="Back to selection">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            class="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            aria-label="Back to selection" title="Back to selection">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd"
                 d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
                 clip-rule="evenodd" />
@@ -1977,15 +2025,15 @@
                 <button id="refreshPostVTKBtn" onclick="refreshPostList(this)"
                   class="text-xs text-cyan-600 hover:text-cyan-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 rounded px-1"
                   aria-label="Refresh VTK file list">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Refresh
                 </button>
               </div>
-              <select id="vtkFileSelect"
+              <select id="vtkFileSelect" aria-label="Select VTK File"
                 class="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                 <option value="">-- Select a VTK file --</option>
               </select>
@@ -1996,8 +2044,8 @@
               <summary
                 class="flex items-center justify-between px-4 py-2 text-sm font-medium text-left text-gray-900 bg-gray-50 hover:bg-gray-100 cursor-pointer list-none [&::-webkit-details-marker]:hidden focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 <span>Load custom VTK file</span>
-                <svg class="w-4 h-4 transform transition-transform duration-200 group-open:rotate-180" fill="none"
-                  stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg aria-hidden="true" class="w-4 h-4 transform transition-transform duration-200 group-open:rotate-180" fill="none"
+                  stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </summary>
@@ -2007,10 +2055,10 @@
                     <div class="flex-1 min-w-0">
                       <input type="file" id="vtkFileBrowser" accept=".vtk,.vtp,.vtu,.vtm,.pvtu"
                         aria-label="Upload custom VTK file"
-                        class="w-full border border-gray-300 rounded px-3 py-2 text-sm truncate" />
+                        class="w-full border border-gray-300 rounded px-3 py-2 text-sm truncate focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
                     </div>
                     <button onclick="loadCustomVTKFile()"
-                      class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium whitespace-nowrap w-full sm:w-auto">
+                      class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium whitespace-nowrap w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                       Load File
                     </button>
                   </div>
@@ -2020,8 +2068,8 @@
             </details>
 
             <!-- Load Selected VTK Button -->
-            <button id="loadContourVTKBtn" onclick="loadContourVTK()" title="Load for Contour (Enter)"
-              class="bg-cyan-600 hover:bg-cyan-600 text-white px-4 py-2 rounded w-full font-medium">
+            <button id="loadContourVTKBtn" onclick="loadContourVTK()" title="Load for Contour (Enter)" aria-label="Load selected VTK file for contour generation"
+              class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded w-full font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2">
               Load for Contour
             </button>
 
@@ -2036,7 +2084,7 @@
             <!-- Scalar Field Selection -->
             <div class="flex flex-col gap-2">
               <label for="scalarField" class="text-sm font-medium">Scalar Field</label>
-              <select id="scalarField"
+              <select id="scalarField" aria-label="Select Scalar Field"
                 class="border border-gray-300 rounded px-3 py-2 [&_.point-data-option]:text-cyan-500 [&_.cell-data-option]:text-green-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                 <style>
                   option.point-data-option {
@@ -2057,7 +2105,7 @@
             <!-- Color Map Selection -->
             <div class="flex flex-col gap-2">
               <label for="colorMap" class="text-sm font-medium">Color Map</label>
-              <select id="colorMap"
+              <select id="colorMap" aria-label="Select Color Map"
                 class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                 <option value="viridis">Viridis</option>
                 <option value="plasma">Plasma</option>
@@ -2075,10 +2123,10 @@
                   Scalar Range
                 </h3>
                 <button type="button" id="resetRangeBtn" onclick="resetScalarRange()"
-                  class="text-xs text-cyan-600 hover:text-cyan-800 focus:outline-none focus:underline flex items-center gap-1"
+                  class="text-xs text-cyan-600 hover:text-cyan-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:underline flex items-center gap-1"
                   title="Reset to data bounds" aria-label="Reset scalar range to data bounds">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -2105,8 +2153,8 @@
             <!-- Show Isovalue Widget Toggle -->
             <div class="flex items-center gap-2 mt-2">
               <input type="checkbox" id="showIsovalueWidget"
-                class="w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:ring-cyan-500" checked />
-              <label for="showIsovalueWidget" class="text-sm font-medium text-gray-900">Enable Interactive
+                class="cursor-pointer w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" checked />
+              <label for="showIsovalueWidget" class="cursor-pointer text-sm font-medium text-gray-900">Enable Interactive
                 Slider</label>
             </div>
 
@@ -2121,8 +2169,8 @@
             </div>
 
             <!-- Generate Contours Button -->
-            <button id="generateContoursBtn" onclick="generateContours()"
-              class="bg-cyan-600 hover:bg-cyan-600 text-white px-4 py-2 rounded w-full mt-2">
+            <button id="generateContoursBtn" onclick="generateContours()" aria-label="Generate contours from loaded VTK data" title="Generate contours"
+              class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded w-full mt-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2">
               Generate Contours
             </button>
 
@@ -2141,7 +2189,7 @@
             <button onclick="toggleFullscreen('contourViewerContainer', this)"
               class="absolute top-4 right-4 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-lg shadow-md backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500"
               aria-label="Enter Fullscreen" title="Enter Fullscreen">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
@@ -2150,44 +2198,44 @@
             <div id="contourCameraControls"
               class="absolute bottom-4 right-4 z-10 flex flex-col gap-2 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 pointer-events-auto">
               <button onclick="setCameraView('xy')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Top View (XY)" aria-label="Top View (XY)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
               <button onclick="setCameraView('xz')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Front View (XZ)" aria-label="Front View (XZ)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
               </button>
               <button onclick="setCameraView('yz')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Side View (YZ)" aria-label="Side View (YZ)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
               <button onclick="setCameraView('iso')"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Isometric View" aria-label="Isometric View">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
               </button>
               <button onclick="resetCamera()"
-                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm"
+                class="bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-1"
                 title="Reset Camera" aria-label="Reset Camera">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -2197,8 +2245,8 @@
             <!-- Viewer -->
             <div id="contourPlaceholder" class="flex flex-col items-center justify-center h-full p-8 text-center">
               <div class="text-gray-900 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                     d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
@@ -2229,8 +2277,8 @@
       class="hidden max-w-2xl mx-auto glass rounded-lg p-8 text-center mt-12 animate-[fadeIn_0.3s_ease-out]">
       <div
         class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-cyan-100/50 mb-6 shadow-sm ring-1 ring-cyan-200">
-        <svg class="w-10 h-10 text-cyan-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-          stroke="currentColor">
+        <svg aria-hidden="true" class="w-10 h-10 text-cyan-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
@@ -2240,8 +2288,8 @@
         You need to select or create a case to access Geometry, Meshing, and Simulation tools.
       </p>
       <button onclick="switchPage('setup')"
-        class="bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-500/30 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 inline-flex items-center gap-2">
-        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 inline-flex items-center gap-2">
+        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         Go to Setup
@@ -2250,17 +2298,9 @@
   </div>
   <!-- End Main Content Area -->
 
-  <!-- Plotly.js - Load synchronously to ensure it's available when needed -->
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <script>
-    // Initialize after both DOM and Plotly are loaded
+    // Initialize after DOM is loaded
     document.addEventListener("DOMContentLoaded", function () {
-      // Check if Plotly is loaded
-      if (typeof Plotly === "undefined") {
-        console.error("Plotly.js not loaded!");
-        return;
-      }
-
       // Initialize modebar styling
       const observer = new MutationObserver(() => {
         document.querySelectorAll(".modebar").forEach((bar) => {
@@ -2271,16 +2311,6 @@
 
       // Observe the document for Plotly plot creation
       observer.observe(document.body, { childList: true, subtree: true });
-
-      // Initialize plots if we're on the plots page
-      if (
-        document.getElementById("page-plots") &&
-        !document.getElementById("page-plots").classList.contains("hidden")
-      ) {
-        if (typeof startPlotUpdates === "function") {
-          startPlotUpdates();
-        }
-      }
     });
   </script>
 
@@ -2300,26 +2330,26 @@
           <div class="text-xs mt-1 text-black font-medium">
             Licensed under
             <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
-              class="text-black underline decoration-cyan-700 hover:text-cyan-900">GNU GPLv3</a>
+              class="text-black underline decoration-cyan-700 hover:text-cyan-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">GNU GPLv3</a>
           </div>
         </div>
         <div class="flex items-center space-x-4">
           <span>Powered by:</span>
 
           <a href="https://pyvista.org/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors">
+            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Pyvista-logo.avif') }}" alt="PyVista" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
           <a href="https://plotly.com/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors">
+            class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Plotly-logo.avif') }}" alt="Plotly" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
           <a href="https://docker.com/" target="_blank" rel="noopener noreferrer"
-            class="flex items-center text-cyan-600 hover:text-cyan-800 transition-colors">
+            class="flex items-center text-cyan-600 hover:text-cyan-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/docker-logo.avif') }}" alt="Docker" class="h-8 w-auto" />
           </a>
         </div>

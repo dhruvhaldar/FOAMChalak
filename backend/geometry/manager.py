@@ -65,9 +65,6 @@ class GeometryManager:
             path = Path(case_path).resolve()
             tri_surface_dir = path / "constant" / "triSurface"
 
-            if not tri_surface_dir.exists():
-                return {"success": True, "files": []}
-
             # List .stl, .obj, and .gz files
             # ⚡ Bolt Optimization: Use os.scandir instead of Path.iterdir()
             # Significantly faster for directories with many files
@@ -86,6 +83,8 @@ class GeometryManager:
                                     "name": name,
                                     "size": entry.stat().st_size
                                 })
+            except FileNotFoundError:
+                return {"success": True, "files": []}
             except OSError:
                 pass # Directory might have been deleted concurrently
 
@@ -113,10 +112,11 @@ class GeometryManager:
             path = Path(case_path).resolve()
             filepath = path / "constant" / "triSurface" / secure_filename(filename)
 
-            if not filepath.exists():
+            # ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
                 return {"success": False, "message": "File not found."}
-
-            os.remove(filepath)
             logger.info(f"Deleted STL {filepath}")
             return {"success": True, "message": "File deleted successfully."}
 

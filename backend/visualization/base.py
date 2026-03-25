@@ -63,10 +63,6 @@ class BaseVisualizer:
                 logger.error(f"Security: Invalid file extension: {ext}")
                 return None
 
-            if not path.exists():
-                logger.error(f"File not found: {path}")
-                return None
-
             return path
         except Exception as e:
             logger.error(f"Error validating file: {e}")
@@ -108,7 +104,7 @@ class BaseVisualizer:
             logger.error(f"Error loading mesh {file_path}: {e}")
             return None
         finally:
-            if temp_read_path and os.path.exists(temp_read_path):
+            if temp_read_path:
                 try:
                     os.remove(temp_read_path)
                 except OSError:
@@ -197,9 +193,13 @@ class BaseVisualizer:
             # Export
             plotter.export_html(temp_output_path)
 
-            if not os.path.exists(temp_output_path) or os.path.getsize(temp_output_path) == 0:
-                 logger.error("HTML output file is empty or missing")
-                 return None
+            try:
+                if os.path.getsize(temp_output_path) == 0:
+                    logger.error("HTML output file is empty")
+                    return None
+            except OSError:
+                logger.error("HTML output file is missing")
+                return None
 
             with open(temp_output_path, "r", encoding="utf-8") as f:
                 html_content = f.read()
@@ -212,7 +212,7 @@ class BaseVisualizer:
         finally:
             if plotter is not None:
                 plotter.close()
-            if 'temp_output_path' in locals() and os.path.exists(temp_output_path):
+            if 'temp_output_path' in locals():
                 try:
                     os.remove(temp_output_path)
                 except OSError:
