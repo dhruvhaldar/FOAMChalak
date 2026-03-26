@@ -56,6 +56,10 @@
 **Learning:** `focus:outline-none` removes the default browser focus ring, rendering elements invisible to keyboard users if not replaced with a custom focus style (e.g., `focus:ring`). Several interactive elements were using this anti-pattern.
 **Action:** Audit all uses of `focus:outline-none` and ensure they are immediately followed by `focus:ring-*` or equivalent visual indicators to maintain accessibility.
 
-## $(date +%Y-%m-%d) - Standardize Form Field Focus States
+## 2026-06-15 - Standardize Form Field Focus States
 **Learning:** In a heavily utility-styled UI, form fields and interactive components (like select menus and inputs) often lack the default browser focus ring, rendering keyboard navigation nearly invisible for users. Applying standard Tailwind focus states makes a dramatic impact on accessibility.
 **Action:** Consistently apply `focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500` (or `focus:ring-2 focus:ring-cyan-500` for checkboxes) to all form inputs, and test via keyboard tabbing to ensure the active element is always obvious.
+
+## 2027-03-26 - [Custom Tooltip Clipping]
+**Learning:** When styling custom CSS tooltips in Tailwind, combining center-alignment (`left-1/2 -translate-x-1/2`) with `whitespace-nowrap` causes severe horizontal clipping when the tooltip is placed near screen edges (e.g., in a left-aligned container like the main body padding).
+**Action:** Always use edge-aligned positioning (e.g., `left-0 translate-x-0` or `right-0`) combined with `whitespace-normal` and a reasonable max width (e.g., `max-w-xs` or `w-max`) to ensure tooltips wrap gracefully and remain fully readable without horizontal clipping.

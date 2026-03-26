@@ -1185,7 +1185,22 @@
       <!-- Meshing Output -->
       <div class="mt-6">
         <div class="flex justify-between items-center mb-1">
-          <h3 class="text-sm font-semibold">Meshing Output</h3>
+          <h3 class="text-sm font-semibold flex items-center">
+            Meshing Output
+            <div class="relative group ml-1">
+              <button type="button" aria-describedby="meshing-output-tooltip"
+                class="text-cyan-500 cursor-help focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                aria-label="Information about Meshing Output">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              <div id="meshing-output-tooltip" role="tooltip"
+                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-normal w-max max-w-xs z-10 pointer-events-none after:content-[''] after:absolute after:top-full after:left-2 after:border-4 after:border-transparent after:border-t-gray-800">
+                Output from blockMesh and snappyHexMesh is viewed here
+              </div>
+            </div>
+          </h3>
           <div class="flex gap-2">
             <button onclick="clearMeshingOutput()"
               class="text-xs bg-red-100 hover:bg-red-200 text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
@@ -1296,7 +1311,22 @@
       <!-- Run History -->
       <div class="glass-panel rounded-lg overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-          <h3 class="text-sm font-semibold text-gray-900">Run History</h3>
+          <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+            Run History
+            <div class="relative group ml-1">
+              <button type="button" aria-describedby="run-history-tooltip"
+                class="text-cyan-500 cursor-help focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                aria-label="Information about Run History">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              <div id="run-history-tooltip" role="tooltip"
+                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-normal w-max max-w-xs z-10 pointer-events-none after:content-[''] after:absolute after:top-full after:left-2 after:border-4 after:border-transparent after:border-t-gray-800">
+                View past commands and their execution status
+              </div>
+            </div>
+          </h3>
           <button onclick="fetchRunHistory(this)" class="text-cyan-600 hover:text-cyan-800 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-cyan-500 rounded px-1 flex items-center gap-1" aria-label="Refresh run history">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1339,7 +1369,7 @@
                 </svg>
               </button>
               <div id="console-log-tooltip" role="tooltip"
-                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-gray-800">
+                class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-normal w-max max-w-xs z-10 pointer-events-none after:content-[''] after:absolute after:top-full after:left-2 after:border-4 after:border-transparent after:border-t-gray-800">
                 Output from OpenFOAM is viewed here
               </div>
             </div>
