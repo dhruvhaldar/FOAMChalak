@@ -1,0 +1,14 @@
+<Configuration>
+  <Virtualization>Enable</Virtualization>
+  <MappedFolders>
+    <MappedFolder>
+      <!-- IMPORTANT: Update HostFolder path if you move FOAMFlask to a different location -->
+      <HostFolder>e:\Misc\FOAMFlask</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\FOAMFlask</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Users\WDAGUtilityAccount\Desktop\FOAMFlask\install.ps1</Command>
+  </LogonCommand>
+</Configuration>

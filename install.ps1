@@ -1,4 +1,15 @@
 Write-Host ""
+# 0. Early Sandbox Detection
+if ($env:USERNAME -eq 'WDAGUtilityAccount') {
+    Write-Host "Windows Sandbox detected. Docker Desktop cannot be installed here due to DISM limitations (Error 12006)." -ForegroundColor Red
+    Write-Host "To make it work, you must enable nested virtualization for the Sandbox." -ForegroundColor Yellow
+    Write-Host "`nI have created a config file for you: FOAMFlask.wsb" -ForegroundColor Cyan
+    Write-Host "1. Close this Sandbox session." -ForegroundColor Yellow
+    Write-Host "2. Double-click 'FOAMFlask.wsb' on your HOST machine." -ForegroundColor Yellow
+    Write-Host "3. This will launch a new Sandbox with virtualization enabled and auto-run the installer.`n" -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "--- FOAMFlask Installer ---" -ForegroundColor Cyan
 Write-Host "GPLv3 License" -ForegroundColor Cyan
 Write-Host ""
