@@ -11,16 +11,16 @@ Write-Host ""
 
 # 1. Check for Winget
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: 'winget' not found. Please ensure App Installer is installed from the Microsoft Store." -ForegroundColor Red
+    Write-Host "Error: winget not found. Please ensure App Installer is installed from the Microsoft Store." -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ Winget found" -ForegroundColor Green
+Write-Host "Winget found" -ForegroundColor Green
 
 # 2. Check & Install System Tools (Python, Node, Docker)
 
 # --- Python ---
 if (Get-Command python -ErrorAction SilentlyContinue) {
-    Write-Host "✓ Python found" -ForegroundColor Green
+    Write-Host "Python found" -ForegroundColor Green
 } else {
     Write-Host "Python not found. Installing..." -ForegroundColor Yellow
     winget install Python.Python.3.13 -e --source winget
@@ -34,7 +34,7 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
 
 # --- Node.js ---
 if (Get-Command node -ErrorAction SilentlyContinue) {
-    Write-Host "✓ Node.js found" -ForegroundColor Green
+    Write-Host "Node.js found" -ForegroundColor Green
 } else {
     Write-Host "Node.js not found. Installing..." -ForegroundColor Yellow
     winget install OpenJS.NodeJS.LTS -e --source winget
@@ -47,7 +47,7 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 
 # --- Docker ---
 if (Get-Command docker -ErrorAction SilentlyContinue) {
-    Write-Host "✓ Docker found" -ForegroundColor Green
+    Write-Host "Docker found" -ForegroundColor Green
 } else {
     Write-Host "Docker not found. Installing Docker Desktop..." -ForegroundColor Yellow
     winget install Docker.DockerDesktop -e --source winget
@@ -61,7 +61,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 
 # 3. Check & Install pnpm
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-    Write-Host "✓ pnpm found" -ForegroundColor Green
+    Write-Host "pnpm found" -ForegroundColor Green
 } else {
     Write-Host "pnpm not found. Installing..." -ForegroundColor Yellow
     # Try enabling corepack first
@@ -76,7 +76,7 @@ if (Get-Command pnpm -ErrorAction SilentlyContinue) {
 
 # --- uv ---
 if (Get-Command uv -ErrorAction SilentlyContinue) {
-    Write-Host "✓ uv found" -ForegroundColor Green
+    Write-Host "uv found" -ForegroundColor Green
 } else {
     Write-Host "uv not found. Installing..." -ForegroundColor Yellow
     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -103,7 +103,7 @@ if (Test-Path "backend/accelerator") {
     Write-Host "Building Rust Accelerator..." -ForegroundColor Cyan
     if (Get-Command cargo -ErrorAction SilentlyContinue) {
         uv add ./backend/accelerator
-        Write-Host "✓ Rust Accelerator installed" -ForegroundColor Green
+        Write-Host "Rust Accelerator installed" -ForegroundColor Green
     } else {
         Write-Host "Warning: Cargo not found. Rust accelerator will be skipped." -ForegroundColor Yellow
     }
