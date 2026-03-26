@@ -5,10 +5,27 @@ Write-Host ""
 
 function Assert-WinGet {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-        Write-Host "Error: winget not found. This is required to install missing dependencies." -ForegroundColor Red
-        Write-Host "In Windows Sandbox, you can initialize it by running:" -ForegroundColor Yellow
-        Write-Host "Install-Module -Name Microsoft.WinGet.Client -Force -AllowClobber; Repair-WinGetPackageManager" -ForegroundColor Cyan
-        exit 1
+        Write-Host "Winget is missing, but is required to install dependencies." -ForegroundColor Red
+        $response = Read-Host "Would you like to attempt to install Winget now? (Recommended for Windows Sandbox) [Y/N]"
+        if ($response -eq 'y' -or $response -eq 'Y') {
+            Write-Host "Installing Microsoft.WinGet.Client module..." -ForegroundColor Yellow
+            Install-Module -Name Microsoft.WinGet.Client -Force -AllowClobber -Scope CurrentUser
+            Write-Host "Repairing WinGet Package Manager..." -ForegroundColor Yellow
+            Repair-WinGetPackageManager
+            # Check again
+            if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+                # Force refresh path for current session
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+                    Write-Host "Failed to initialize winget automatically. Please install it manually." -ForegroundColor Red
+                    exit 1
+                }
+            }
+            Write-Host "Winget initialized successfully!" -ForegroundColor Green
+        } else {
+            Write-Host "Installation aborted. Please install dependencies manually." -ForegroundColor Red
+            exit 1
+        }
     }
 }
 
