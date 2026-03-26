@@ -55,12 +55,12 @@ git clone https://github.com/dhruvhaldar/FOAMFlask
 cd FOAMFlask
 .\install.ps1
 ```
+</details>
 
 > [!WARNING]
 > If you get an error stating that "cannot be loaded because running scripts is disabled on this system", run the script with the bypass flag:
 > `powershell -ExecutionPolicy Bypass -File .\install.ps1`
 
-</details>
 
 <details>
 <summary><strong>Linux / macOS</strong></summary>
