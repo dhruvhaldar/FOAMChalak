@@ -56,6 +56,10 @@ cd FOAMFlask
 .\install.ps1
 ```
 
+> [!NOTE]
+> If you get an error stating that "cannot be loaded because running scripts is disabled on this system", run the script with the bypass flag:
+> `powershell -ExecutionPolicy Bypass -File .\install.ps1`
+
 </details>
 
 <details>
