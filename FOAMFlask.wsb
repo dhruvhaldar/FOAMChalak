@@ -9,6 +9,6 @@
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Users\WDAGUtilityAccount\Desktop\FOAMFlask\install.ps1</Command>
+    <Command>powershell.exe -ExecutionPolicy Bypass -NoExit -File C:\Users\WDAGUtilityAccount\Desktop\FOAMFlask\install.ps1 -SkipSandboxCheck</Command>
   </LogonCommand>
 </Configuration>
