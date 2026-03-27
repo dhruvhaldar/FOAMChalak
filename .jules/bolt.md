@@ -84,3 +84,6 @@
 ## 2026-04-03 - Approximate Mean and Std Dev with Striding
 **Learning:** For visualization statistics like mean and standard deviation, exact precision isn't required down to the last element. Calculating exact `np.mean()` and `np.std()` on large PyVista mesh point arrays (e.g., millions of elements) incurs unnecessary O(N) overhead.
 **Action:** Downsample the array via striding first (e.g., `sample = data[::max(1, len(data) // 10000)]`) and compute the mean and standard deviation on the sample. This provides an extremely fast O(1) approximation that is virtually indistinguishable for visualization purposes while significantly reducing processing time on large datasets.
+## 2024-03-27 - Defer Square Roots on Large Arrays
+**Learning:** Computing `np.sqrt` over millions of elements is expensive. When calculating only statistical metrics like min, max, mean, and std, we can avoid the O(N) `np.sqrt` cost. Min and max can be found on the squared magnitudes (then square-rooted). Mean and std can be calculated on a bounded downsampled array of squared magnitudes that is square-rooted.
+**Action:** Defer `np.sqrt` operations until after aggregation (like min/max) or downsampling when calculating statistics on Euclidean magnitudes.

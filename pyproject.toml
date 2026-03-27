@@ -66,6 +66,7 @@ dependencies = [
     "mypy-extensions==1.1.0",
     "nest-asyncio==1.6.0",
     "netcdf4==1.7.3",
+    "numba>=0.64.0",
     "numpy==2.3.4",
     "orjson==3.11.6",
     "packaging==25.0",
