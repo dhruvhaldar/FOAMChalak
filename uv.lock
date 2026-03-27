@@ -6,6 +6,16 @@ resolution-markers = [
     "platform_python_implementation == 'PyPy'",
 ]
 
+[manifest]
+members = [
+    "accelerator",
+    "foamflask",
+]
+
+[[package]]
+name = "accelerator"
+source = { editable = "backend/accelerator" }
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -632,6 +642,7 @@ name = "foamflask"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "accelerator" },
     { name = "aiohappyeyeballs" },
     { name = "aiohttp" },
     { name = "aiosignal" },
@@ -767,6 +778,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "accelerator", editable = "backend/accelerator" },
     { name = "aiohappyeyeballs", specifier = "==2.6.1" },
     { name = "aiohttp", specifier = "==3.13.3" },
     { name = "aiosignal", specifier = "==1.4.0" },

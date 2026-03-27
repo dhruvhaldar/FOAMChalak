@@ -1588,7 +1588,7 @@ def load_tutorial() -> Union[Response, Tuple[Response, int]]:
             output = (
                 f"INFO::[FOAMFlask] Tutorial loaded::{tutorial}\n"
                 f"Source: $FOAM_TUTORIALS/{tutorial}\n"
-                f"Copied to: {CASE_ROOT}/{tutorial}\n"
+                f"Copied to: {CASE_ROOT}/{tutorial_name}\n"
             )
         else:
             output = f"[FOAMFlask] [Error] Failed to load tutorial {tutorial}\n{logs}"
@@ -1736,9 +1736,15 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
         )
 
         # DEBUG: Check if we are pointing to the case itself or its parent
-        tutorial_name = Path(tutorial).name
-        # If case_dir ends with the tutorial name, we assume it IS the case directory
-        is_direct_case_path = host_path.name == tutorial_name
+        tutorial_name = posixpath.basename(tutorial)
+        
+        # Robust check for direct case path:
+        # 1. The name matches the tutorial leaf name
+        # 2. OR it contains OpenFOAM structure (system/controlDict is the gold standard)
+        has_foam_structure = (host_path / "system" / "controlDict").exists() or \
+                             (host_path / "system").exists() and (host_path / "constant").exists()
+        
+        is_direct_case_path = (host_path.name == tutorial_name) or has_foam_structure
 
         logger.info(
             f"[FOAMFlask] run_case: tutorial='{tutorial}', case_dir='{case_dir}'"
@@ -1796,10 +1802,11 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
                     return
 
                 # Security: Use positional arguments for bash -c to prevent injection
+                # DEBUG: List directory contents before running for troubleshooting
                 docker_cmd = [
                     "bash",
                     "-c",
-                    'source "$1" && cd "$2" && chmod +x "$3" && ./"$3"',
+                    'source "$1" && cd "$2" && echo "[FOAMFlask] [Debug] Executing in: $(pwd)" && ls -F && chmod +x "$3" && ./"$3"',
                     "run_script",  # $0
                     bashrc,  # $1
                     container_case_path,  # $2
@@ -1827,7 +1834,7 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             docker_cmd = [
                 "bash",
                 "-c",
-                'source "$1" && cd "$2" && chmod +x "$3" && ./"$3"',
+                'source "$1" && cd "$2" && echo "[FOAMFlask] [Debug] Executing in: $(pwd)" && ls -F && chmod +x "$3" && ./"$3"',
                 "run_script_fallback",  # $0
                 bashrc,  # $1
                 container_case_path,  # $2

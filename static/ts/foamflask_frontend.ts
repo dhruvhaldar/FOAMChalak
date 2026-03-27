@@ -1996,6 +1996,7 @@ const runCommand = async (cmd: string, btnElement?: HTMLElement): Promise<void> 
 
   try {
     showNotification(`Running ${cmd}...`, "info");
+    console.log(`[FOAMFlask] runCommand: tutorial=${selectedTutorial}, caseDir=${caseDir}, command=${cmd}`);
     const response = await fetch("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseDir, tutorial: selectedTutorial, command: cmd }) });
     if (!response.ok) throw new Error();
     const reader = response.body?.getReader();

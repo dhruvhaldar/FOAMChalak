@@ -23,3 +23,5 @@ playwright-report/
 test-results/
 misc_code/test_basic_coverage.py
 .venv/*
+instance/simulation_runs.db
+uv.lock
