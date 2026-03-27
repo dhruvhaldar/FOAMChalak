@@ -709,7 +709,7 @@ def get_tutorials() -> Tuple[List[str], Optional[str]]:
         - Error message if fetching failed, None otherwise.
     """
     # ⚡ Bolt Optimization: Mock for testing/development if requested
-    if os.environ.get("FOAMFLASK_MOCK_DOCKER"):
+    if os.environ.get("FOAMFLASK_MOCK_DOCKER") or os.environ.get("FOAMFLASK_SANDBOX_MODE"):
         return ["basic/pitzDaily", "incompressible/simpleFoam/pitzDaily"], None
 
     global _TUTORIALS_CACHE
@@ -919,7 +919,15 @@ def index() -> str:
 
     # ⚡ Bolt Optimization: Use pre-compiled template rendering
     # We must manually update the context with Flask globals (url_for, request, etc.)
-    context = {"options": options_html, "CASE_ROOT": CASE_ROOT, "startup_error": error}
+    sandbox_mode = bool(os.environ.get("FOAMFLASK_SANDBOX_MODE"))
+    docker_host = os.environ.get("DOCKER_HOST")
+    context = {
+        "options": options_html,
+        "CASE_ROOT": CASE_ROOT,
+        "startup_error": error,
+        "sandbox_mode": sandbox_mode,
+        "docker_host": docker_host,
+    }
     app.update_template_context(context)
     return COMPILED_TEMPLATE.render(context)
 

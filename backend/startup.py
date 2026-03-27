@@ -48,8 +48,11 @@ def run_initial_setup_checks(
     # 2. Check if docker executable exists
     if not shutil.which("docker"):
         msg = "Docker is not installed or not in PATH. Please install Docker first."
-        logger.error(f"[FOAMFlask] {msg}")
-        return {"status": "failed", "message": msg}
+        if os.environ.get("FOAMFLASK_SANDBOX_MODE"):
+            logger.warning(f"[FOAMFlask] Sandbox Mode: {msg} Still proceeding...")
+        else:
+            logger.error(f"[FOAMFlask] {msg}")
+            return {"status": "failed", "message": msg}
 
     # 3. Check if we can connect to Docker daemon (permission check)
     try:
@@ -64,7 +67,7 @@ def run_initial_setup_checks(
             try:
                 temp_client = docker.from_env()
                 temp_client.ping()
-            except docker.errors.DockerException as e:
+            except Exception as e:
                 err_str = str(e).lower()
                 if "permission denied" in err_str or "eacces" in err_str:
                     msg = "Docker exists but permission denied. Please add your user to the 'docker' group and re-login."
@@ -72,8 +75,13 @@ def run_initial_setup_checks(
                     return {"status": "failed", "message": msg}
                 else:
                     msg = f"Docker is installed but not running or not accessible: {e}"
-                    logger.error(f"[FOAMFlask] {msg}")
-                    return {"status": "failed", "message": msg}
+                    if os.environ.get("FOAMFLASK_SANDBOX_MODE"):
+                        logger.warning(f"[FOAMFlask] Sandbox Mode: {msg} Still proceeding...")
+                        save_config_func({"initial_setup_done": True, "sandbox_mode": True})
+                        return {"status": "completed", "message": "Sandbox Mode: Docker unavailable, but proceeding anyway."}
+                    else:
+                        logger.error(f"[FOAMFlask] {msg}")
+                        return {"status": "failed", "message": msg}
     except Exception as e:
         msg = f"Unexpected error checking Docker: {e}"
         logger.error(f"[FOAMFlask] {msg}")

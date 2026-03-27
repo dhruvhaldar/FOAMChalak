@@ -90,7 +90,26 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
          Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
          Write-Host "Visit: https://www.docker.com/products/docker-desktop/"
          if ($SkipSandboxCheck) {
-             Write-Host "Proceeding with the rest of the installation anyway (Sandbox Mode)..." -ForegroundColor Yellow
+             Write-Host "Proceeding with 'Remote Docker' workaround for Sandbox Mode..." -ForegroundColor Yellow
+             
+             # Attempt to install only Docker CLI
+             Write-Host "Installing Docker CLI..." -ForegroundColor Yellow
+             winget install Docker.Docker -e --source winget
+             
+             # Prompt for Remote Docker Host
+             Write-Host "`nTo use FOAMFlask in the Sandbox, you must connect to a Remote Docker Engine." -ForegroundColor Cyan
+             Write-Host "Please ensure your Host machine exposes the Docker daemon on a TCP socket (e.g., tcp://localhost:2375 without TLS)." -ForegroundColor Yellow
+             
+             # Try to guess the gateway IP
+             $gateway = (Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object RouteMetric | Select-Object -First 1).NextHop
+             $defaultHost = "tcp://$gateway:2375"
+             
+             $remoteHost = Read-Host "Enter Remote Docker Host [$defaultHost]"
+             if (-not $remoteHost) { $remoteHost = $defaultHost }
+             
+             $env:DOCKER_HOST = $remoteHost
+             $env:FOAMFLASK_SANDBOX_MODE = "1"
+             Write-Host "DOCKER_HOST set to: $remoteHost" -ForegroundColor Green
          } else {
              exit 1
          }
