@@ -89,7 +89,11 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -ne 0) {
          Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
          Write-Host "Visit: https://www.docker.com/products/docker-desktop/"
-         exit 1
+         if ($SkipSandboxCheck) {
+             Write-Host "Proceeding with the rest of the installation anyway (Sandbox Mode)..." -ForegroundColor Yellow
+         } else {
+             exit 1
+         }
     }
     Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
 }
