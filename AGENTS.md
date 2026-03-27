@@ -16,6 +16,10 @@ This document consolidates key learnings from the Sentinel (Security), Bolt (Per
 **Problem:** Single Page Applications (SPAs) often initialize page logic (e.g., polling) effectively in parallel with state restoration (reading `localStorage`), leading to race conditions where components act on default/stale state before the saved state is applied.
 **Decision:** Frontend initialization must strictly serialize state restoration *before* triggering any business logic or network calls. Using explicit ordering in a central `init` function is safer than relying on event listener registration order.
 
+### 2026-03-27 - [Robust Case Path Resolution]
+**Problem:** The `run_case` endpoint naively compared the host directory name to the tutorial name to decide volume mounting strategies. This failed if the host folder name didn't match the tutorial leaf exactly, or if the user refreshed the page and the frontend's path state was reset.
+**Decision:** Command execution must use structural validation (e.g., checking for the existence of `system/controlDict` or the `constant` folder) rather than string matching to identify an OpenFOAM case directory. Internal shell logging (`$(pwd)`, `ls -F`) should be injected into container commands to provide immediate diagnostic context for volume mount failures.
+
 ## 🛡️ Sentinel's Security Journal
 
 ### 2026-03-01 - [Path Leakage in Docker Exceptions]
