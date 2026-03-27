@@ -904,15 +904,16 @@ class IsosurfaceVisualizer:
                 # Handle vector fields vs scalar fields
                 if len(data.shape) > 1:
                     # ⚡ Bolt Optimization: Use einsum for ~3x faster magnitude calculation on large arrays
-                    magnitude = np.sqrt(np.einsum('ij,ij->i', data, data))
+                    # ⚡ Bolt Optimization: Defer np.sqrt to avoid O(N) overhead on large meshes
+                    magnitude_sq = np.einsum('ij,ij->i', data, data)
                     # ⚡ Bolt Optimization: Downsample via striding for ~20x faster approximate mean and std on large meshes
-                    sample = magnitude[::max(1, len(magnitude) // 10000)]
+                    sample = np.sqrt(magnitude_sq[::max(1, len(magnitude_sq) // 10000)])
                     result[field] = {
                         "type": "vector",
                         "shape": data.shape,
                         "magnitude_stats": {
-                            "min": float(np.min(magnitude)),
-                            "max": float(np.max(magnitude)),
+                            "min": float(np.sqrt(np.min(magnitude_sq))),
+                            "max": float(np.sqrt(np.max(magnitude_sq))),
                             "mean": float(np.mean(sample)),
                             "std": float(np.std(sample)),
                         },
