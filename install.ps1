@@ -94,14 +94,18 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
              
              # Attempt to install only Docker CLI
              Write-Host "Installing Docker CLI..." -ForegroundColor Yellow
-             winget install Docker.Docker -e --source winget
+             winget install Docker.DockerCLI -e --source winget
              
              # Prompt for Remote Docker Host
              Write-Host "`nTo use FOAMFlask in the Sandbox, you must connect to a Remote Docker Engine." -ForegroundColor Cyan
              Write-Host "Please ensure your Host machine exposes the Docker daemon on a TCP socket (e.g., tcp://localhost:2375 without TLS)." -ForegroundColor Yellow
              
-             # Try to guess the gateway IP
-             $gateway = (Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object RouteMetric | Select-Object -First 1).NextHop
+             # Try to guess the gateway IP (Host machine's IP from Sandbox perspective)
+             $gateway = (Get-NetIPConfiguration | Select-Object -ExpandProperty IPv4DefaultGateway -ErrorAction SilentlyContinue).NextHop
+             if (-not $gateway) {
+                 # Fallback guess
+                 $gateway = "172.16.0.1" 
+             }
              $defaultHost = "tcp://$gateway:2375"
              
              $remoteHost = Read-Host "Enter Remote Docker Host [$defaultHost]"
