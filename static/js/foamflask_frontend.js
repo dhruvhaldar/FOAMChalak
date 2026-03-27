@@ -1704,6 +1704,7 @@ const runCommand = async (cmd, btnElement)=>{
     updatePageTitle("running");
     try {
         showNotification(`Running ${cmd}...`, "info");
+        console.log(`[FOAMFlask] runCommand: tutorial=${selectedTutorial}, caseDir=${caseDir}, command=${cmd}`);
         const response = await fetch("/run", {
             method: "POST",
             headers: {
