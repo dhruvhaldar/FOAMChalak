@@ -445,12 +445,12 @@
 
             <button id="tab-btn-create" onclick="switchCaseCreationTab('create')" role="tab" aria-selected="true"
               aria-controls="tab-content-create"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 bg-transparent">
               Create Blank Case
             </button>
             <button id="tab-btn-import" onclick="switchCaseCreationTab('import')" role="tab" aria-selected="false"
               aria-controls="tab-content-import"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 bg-transparent">
               Import Tutorial
             </button>
           </div>
@@ -493,7 +493,7 @@
                         aria-describedby="caseNameHelp"
                         class="border border-gray-300 rounded-lg px-4 py-2 flex-1 w-full focus:outline-none focus:ring-2 focus:valid:ring-green-500 focus:valid:border-green-500 focus:[&:not(:placeholder-shown):invalid]:ring-red-500 focus:[&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-all" />
                       <button type="submit" id="createCaseBtn"
-                        aria-label="Create a new case" title="Create a new OpenFOAM case"
+                        aria-label="Create Case" title="Create a new OpenFOAM case"
                         class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fill-rule="evenodd"
@@ -538,7 +538,7 @@
                           </svg>
                         </div>
                       </div>
-                      <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import selected tutorial"
+                      <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import Tutorial"
                         class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fill-rule="evenodd"
@@ -628,7 +628,7 @@
             <input type="text" id="openfoamVersion" name="openfoamVersion" placeholder="Version"
               spellcheck="false" autocorrect="off" autocapitalize="off"
               class="border border-gray-300 rounded px-3 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" aria-label="OpenFOAM Version" />
-            <button id="setDockerConfigBtn" type="button" aria-label="Apply Docker configuration" title="Apply Docker configuration" onclick="
+            <button id="setDockerConfigBtn" type="button" aria-label="Update Docker configuration" title="Apply Docker configuration" onclick="
                   setDockerConfig(
                     document.getElementById('dockerImage').value,
                     document.getElementById('openfoamVersion').value,
@@ -662,12 +662,12 @@
 
             <button onclick="switchGeometryTab('upload')" id="tab-btn-geo-upload" role="tab" aria-selected="true"
               aria-controls="tab-geo-upload"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-semibold text-cyan-800 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 bg-transparent">
               Upload File
             </button>
             <button onclick="switchGeometryTab('resources')" id="tab-btn-geo-resources" role="tab" aria-selected="false"
               aria-controls="tab-geo-resources"
-              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-transparent">
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-black hover:text-black transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 bg-transparent">
               From Resources
             </button>
           </div>
