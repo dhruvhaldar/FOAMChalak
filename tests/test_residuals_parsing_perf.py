@@ -24,7 +24,7 @@ Solving for Ux, Initial residual = 0.123, Final residual = 0.001, No Iterations 
         residuals = parser.get_residuals_from_log("log.foamRun")
 
         # Check results - verify parsing works
-        assert residuals["Ux"] == [0.123]
+        assert list(residuals["Ux"]) == [0.123]
 
         # Verify regex usage
         # After fix: Should NOT be called
