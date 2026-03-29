@@ -70,13 +70,15 @@ class SliceVisualizer:
     def _resolve_target_file(self, path_str: str) -> Optional[str]:
         """Helper to find a VTK file if a directory is passed."""
         import os
+        import itertools
         from pathlib import Path
         path = Path(path_str)
         if path.is_file():
             return str(path)
 
         # If directory, find latest VTK
-        vtk_files = list(path.rglob("*.vtk")) + list(path.rglob("*.vtp")) + list(path.rglob("*.vtu"))
+        # ⚡ Bolt Optimization: Use itertools.chain to avoid multiple list concatenations and memory allocations
+        vtk_files = list(itertools.chain(path.rglob("*.vtk"), path.rglob("*.vtp"), path.rglob("*.vtu")))
         if not vtk_files:
             return None
         # Sort by mtime
