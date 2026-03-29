@@ -919,6 +919,7 @@
                 Select a geometry file and click "View" to visualize
               </p>
               <button onclick="document.getElementById('geometrySelect').focus()"
+                aria-label="Select File: Focus the geometry selection list"
                 class="px-4 py-2 bg-cyan-600 text-white rounded-md shadow hover:bg-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 text-sm font-medium">
                 Select File
               </button>
@@ -1694,6 +1695,7 @@
                 Select a mesh file and click "Load Mesh" to visualize
               </p>
               <button onclick="document.getElementById('meshSelect').focus()"
+                aria-label="Select Mesh File: Focus the mesh selection list"
                 class="px-4 py-2 bg-cyan-600 text-white rounded-md shadow hover:bg-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 text-sm font-medium">
                 Select Mesh File
               </button>
@@ -2309,6 +2311,7 @@
                 Click "Generate Contours" to visualize the data
               </p>
               <button onclick="document.getElementById('vtkFileSelect').focus()"
+                aria-label="Select VTK File: Focus the VTK selection list"
                 class="px-4 py-2 bg-cyan-600 text-white rounded-md shadow hover:bg-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 text-sm font-medium">
                 Select VTK File
               </button>
@@ -2339,6 +2342,7 @@
         You need to select or create a case to access Geometry, Meshing, and Simulation tools.
       </p>
       <button onclick="switchPage('setup')"
+        aria-label="Go to Setup: Navigate to the Setup page to select a case"
         class="bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 inline-flex items-center gap-2">
         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
