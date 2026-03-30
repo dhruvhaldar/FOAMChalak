@@ -24,12 +24,12 @@ def _get_cache_dir() -> Path:
     cache_dir = Path(tempfile.gettempdir()) / "foamflask_geometry_cache"
 
     # Security: Ensure directory exists with secure permissions (0700)
-    if not cache_dir.exists():
-        try:
-            cache_dir.mkdir(parents=True, mode=0o700)
-        except OSError:
-            # If mkdir fails (e.g. race condition), check permissions below
-            pass
+    # ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+    try:
+        cache_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+    except OSError:
+        # If mkdir fails (e.g. race condition), check permissions below
+        pass
 
     # Ensure permissions are set (mkdir mode might be ignored or modified by umask)
     # We do this always to ensure security even if directory already existed
