@@ -87,3 +87,7 @@
 ## 2024-03-27 - Defer Square Roots on Large Arrays
 **Learning:** Computing `np.sqrt` over millions of elements is expensive. When calculating only statistical metrics like min, max, mean, and std, we can avoid the O(N) `np.sqrt` cost. Min and max can be found on the squared magnitudes (then square-rooted). Mean and std can be calculated on a bounded downsampled array of squared magnitudes that is square-rooted.
 **Action:** Defer `np.sqrt` operations until after aggregation (like min/max) or downsampling when calculating statistics on Euclidean magnitudes.
+
+## 2026-04-04 - Remove Redundant Path.exists() for Directory Creation
+**Learning:** Checking `path.exists()` before calling `path.mkdir(parents=True, mode=0o700)` is a "Look Before You Leap" (LBYL) anti-pattern that introduces a redundant system call (`stat` followed by `mkdir`).
+**Action:** Remove the `exists()` check and use the "Easier to Ask for Forgiveness than Permission" (EAFP) approach by passing `exist_ok=True` to `mkdir()`. Catch and ignore any `OSError` if directory creation fails due to other reasons.
