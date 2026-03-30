@@ -10,3 +10,7 @@
 ## 2026-03-29 - [WCAG 2.5.3 Empty State Action Buttons Context]
 **Learning:** Action buttons located within empty states (e.g., `#geometryPlaceholder`, `#meshPlaceholder`) often exist simply to jump focus to a related element (like a dropdown) rather than immediately performing the action their label suggests. Screen reader users navigating by interactive elements may lose the surrounding descriptive context, finding "Select File" ambiguous when it merely focuses another element.
 **Action:** When empty state buttons only shift focus or navigate, append a colon and descriptive context to their `aria-label` while preserving their exact visible text (e.g., `aria-label="Select File: Focus the geometry selection list"`). This clarifies their behavior while adhering to WCAG 2.5.3.
+
+## 2026-03-31 - [Decorative SVG aria-hidden Duplication]
+**Learning:** Decorative `<svg>` icons should include `aria-hidden="true"` exactly once. Duplicating this attribute is a common issue when dynamically generating HTML strings or copy-pasting code, and can cause standard compliance warnings and potential screen reader verbosity issues.
+**Action:** Always verify that dynamically injected UI elements (e.g. loading spinners, icons) and statically defined HTML SVGs have exactly one `aria-hidden="true"` attribute to maintain clean and accessible DOM structures.
