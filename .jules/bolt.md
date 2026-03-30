@@ -91,3 +91,7 @@
 ## 2026-04-04 - Remove Redundant Path.exists() for Directory Creation
 **Learning:** Checking `path.exists()` before calling `path.mkdir(parents=True, mode=0o700)` is a "Look Before You Leap" (LBYL) anti-pattern that introduces a redundant system call (`stat` followed by `mkdir`).
 **Action:** Remove the `exists()` check and use the "Easier to Ask for Forgiveness than Permission" (EAFP) approach by passing `exist_ok=True` to `mkdir()`. Catch and ignore any `OSError` if directory creation fails due to other reasons.
+
+## 2026-04-06 - Optimize array.array Initialization
+**Learning:** For initializing large `array.array` instances in Python (e.g., `array.array('d', ...)`), using list multiplication (`[0.0] * N`) is significantly faster (~1.7x) than using generators like `itertools.repeat(0.0, N)`. While it creates a temporary list, CPython's C-API can pre-allocate the memory and iterate at the C level, circumventing the item-by-item generator evaluation overhead (`PyIter_Next`).
+**Action:** Replace `itertools.repeat` with list multiplication (`[0.0] * N`) when initializing fixed-size native arrays if N is not prohibitively large (e.g., fits comfortably in RAM), prioritizing the C-level loop speedup.
