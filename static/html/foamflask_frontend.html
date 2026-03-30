@@ -592,12 +592,12 @@
             </div>
             <button id="setRootBtn" type="button" onclick="setCase(this)"
               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center min-w-[100px] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              title="Set Case Root Directory (Enter)">
+              title="Set Case Root Directory (Enter)" aria-label="Set Root: Set Case Root Directory">
               Set Root
             </button>
             <button id="openRootBtn" type="button" onclick="openCaseRoot(this)"
               class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
-              title="Open Case Root in File Explorer">
+              title="Open Case Root in File Explorer" aria-label="Open Case Root in File Explorer">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd"
                   d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z"
@@ -1274,7 +1274,7 @@
           <button id="runAllrunBtn" onclick="runCommand('./Allrun', this)"
             class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
             title="Execute full simulation sequence (Allrun script)"
-            aria-label="Run Allrun script to execute the full simulation sequence">
+            aria-label="Allrun: Execute full simulation sequence">
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
@@ -1285,8 +1285,8 @@
           </button>
           <button id="runAllcleanBtn" onclick="confirmRunCommand('./Allclean', this)"
             class="bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-white px-4 py-2 rounded w-full sm:flex-1 flex items-center justify-center gap-2"
-            title="Reset case: Delete mesh, results, and logs (Warning: Destructive)"
-            aria-label="Run Allclean script to reset the case">
+            title="Reset case: Delete mesh, results, and logs (Warning: Destructive)" aria-label="Allclean: Reset case (Warning: Destructive)"
+            >
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
               aria-hidden="true">
               <path fill-rule="evenodd"
