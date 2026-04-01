@@ -84,7 +84,7 @@ dependencies = [
     "propcache==0.4.1",
     "psutil==7.0.0",
     "pure-eval==0.2.3",
-    "pygments==2.19.2",
+    "pygments==2.20.0",
     "pyparsing==3.2.5",
     "pytest==8.2.1",
     "pytest-cov==5.0.0",
