@@ -98,21 +98,22 @@ If you prefer to manage the environment yourself:
 
 Windows
 ```powershell
-uv run app.py 2>&1 | Tee-Object -FilePath app.log
+.\run.ps1
 ```
 
 Linux / macOS
 ```bash
-uv run app.py 2>&1 | tee app.log
+uv run python -m app 2>&1 | tee app.log
 ```
 ```bash
-pkill -f "uv run app.py"; sleep 1; uv run app.py > app_output.log 2>&1 &
+pkill -f "uv run python -m app"; sleep 1; uv run python -m app > app_output.log 2>&1 &
 ```
 ## <span style="color:blue">Stage 3 : Usage</span>
 
 1. **Start the Application**:
    - If using the binary, just double-click it.
-   - If using source, run `uv run app.py`.
+   - If using source on Windows: `.\run.ps1`.
+   - If using source on Linux: `uv run python -m app`.
 
 2. **Access the web interface**:
    Open your browser and navigate to `http://localhost:5000`.
