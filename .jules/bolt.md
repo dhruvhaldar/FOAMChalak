@@ -95,3 +95,7 @@
 ## 2026-04-06 - Optimize array.array Initialization
 **Learning:** For initializing large `array.array` instances in Python (e.g., `array.array('d', ...)`), using list multiplication (`[0.0] * N`) is significantly faster (~1.7x) than using generators like `itertools.repeat(0.0, N)`. While it creates a temporary list, CPython's C-API can pre-allocate the memory and iterate at the C level, circumventing the item-by-item generator evaluation overhead (`PyIter_Next`).
 **Action:** Replace `itertools.repeat` with list multiplication (`[0.0] * N`) when initializing fixed-size native arrays if N is not prohibitively large (e.g., fits comfortably in RAM), prioritizing the C-level loop speedup.
+
+## 2026-04-08 - Use np.min/np.max for standalone computed arrays
+**Learning:** Injecting standalone computed NumPy arrays temporarily into PyVista mesh `point_data` solely to utilize `get_data_range()` is an anti-pattern due to VTK object synchronization overhead. 
+**Action:** Use `get_data_range()` only for pre-existing mesh fields. For newly computed arrays, hold a direct reference to the NumPy array and use `np.min()`/`np.max()` to find bounds, avoiding the VTK layer overhead entirely.
