@@ -87,3 +87,15 @@
 ## 2024-03-27 - Defer Square Roots on Large Arrays
 **Learning:** Computing `np.sqrt` over millions of elements is expensive. When calculating only statistical metrics like min, max, mean, and std, we can avoid the O(N) `np.sqrt` cost. Min and max can be found on the squared magnitudes (then square-rooted). Mean and std can be calculated on a bounded downsampled array of squared magnitudes that is square-rooted.
 **Action:** Defer `np.sqrt` operations until after aggregation (like min/max) or downsampling when calculating statistics on Euclidean magnitudes.
+
+## 2026-04-04 - Remove Redundant Path.exists() for Directory Creation
+**Learning:** Checking `path.exists()` before calling `path.mkdir(parents=True, mode=0o700)` is a "Look Before You Leap" (LBYL) anti-pattern that introduces a redundant system call (`stat` followed by `mkdir`).
+**Action:** Remove the `exists()` check and use the "Easier to Ask for Forgiveness than Permission" (EAFP) approach by passing `exist_ok=True` to `mkdir()`. Catch and ignore any `OSError` if directory creation fails due to other reasons.
+
+## 2026-04-06 - Optimize array.array Initialization
+**Learning:** For initializing large `array.array` instances in Python (e.g., `array.array('d', ...)`), using list multiplication (`[0.0] * N`) is significantly faster (~1.7x) than using generators like `itertools.repeat(0.0, N)`. While it creates a temporary list, CPython's C-API can pre-allocate the memory and iterate at the C level, circumventing the item-by-item generator evaluation overhead (`PyIter_Next`).
+**Action:** Replace `itertools.repeat` with list multiplication (`[0.0] * N`) when initializing fixed-size native arrays if N is not prohibitively large (e.g., fits comfortably in RAM), prioritizing the C-level loop speedup.
+
+## 2026-04-08 - Use np.min/np.max for standalone computed arrays
+**Learning:** Injecting standalone computed NumPy arrays temporarily into PyVista mesh `point_data` solely to utilize `get_data_range()` is an anti-pattern due to VTK object synchronization overhead. 
+**Action:** Use `get_data_range()` only for pre-existing mesh fields. For newly computed arrays, hold a direct reference to the NumPy array and use `np.min()`/`np.max()` to find bounds, avoiding the VTK layer overhead entirely.

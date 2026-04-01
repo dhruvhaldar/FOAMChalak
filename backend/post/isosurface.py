@@ -126,17 +126,23 @@ def _run_trame_process(mesh_path: str, params: Dict, port_queue: multiprocessing
          scalar_field = params.get("scalar_field", "U_Magnitude")
 
          # Compute U_Magnitude (or other derived fields) if missing
+         computed_array = None
          if scalar_field == "U_Magnitude" and scalar_field not in mesh.point_data and "U" in mesh.point_data:
              logger.info(f"Computing {scalar_field} from U field in Trame process")
              # ⚡ Bolt Optimization: Use einsum for ~3x faster magnitude calculation on large arrays
              u_data = mesh.point_data["U"]
-             mesh.point_data[scalar_field] = np.sqrt(np.einsum('ij,ij->i', u_data, u_data))
+             computed_array = np.sqrt(np.einsum('ij,ij->i', u_data, u_data))
+             mesh.point_data[scalar_field] = computed_array
 
          if scalar_field not in mesh.point_data:
              raise RuntimeError(f"Data array ({scalar_field}) not present in this dataset. Available: {mesh.point_data.keys()}")
 
          # Get range for slider
-         rng = mesh.get_data_range(scalar_field)
+         # ⚡ Bolt Optimization: Fallback to np.min and np.max for standalone computed arrays to avoid VTK synchronization overhead
+         if computed_array is not None:
+             rng = (float(np.min(computed_array)), float(np.max(computed_array)))
+         else:
+             rng = mesh.get_data_range(scalar_field)
          
          # Initial value (center of range or from params)
          # ⚡ Bolt Optimization: Avoid np.mean on 2-element tuple to prevent unnecessary array instantiation
@@ -379,12 +385,12 @@ def _get_cache_dir() -> Path:
     cache_dir = Path(tempfile.gettempdir()) / "foamflask_isosurface_cache"
 
     # Security: Ensure directory exists with secure permissions (0700)
-    if not cache_dir.exists():
-        try:
-            cache_dir.mkdir(parents=True, mode=0o700)
-        except OSError:
-            # If mkdir fails (e.g. race condition), check permissions below
-            pass
+    # ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+    try:
+        cache_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+    except OSError:
+        # If mkdir fails (e.g. race condition), check permissions below
+        pass
 
     # Ensure permissions are set (mkdir mode might be ignored or modified by umask)
     # We do this always to ensure security even if directory already existed
@@ -727,9 +733,8 @@ class IsosurfaceVisualizer:
             if "U_Magnitude" in self.mesh.point_data:
                 u_mag = self.mesh.point_data["U_Magnitude"]
 
-                # ⚡ Bolt Optimization: Replace np.percentile with get_data_range for faster min/max calculation
-                _min, _max = self.mesh.get_data_range("U_Magnitude")
-                p0, p100 = float(_min), float(_max)
+                # ⚡ Bolt Optimization: Fallback to np.min and np.max for standalone computed arrays to avoid VTK synchronization overhead
+                p0, p100 = float(np.min(u_mag)), float(np.max(u_mag))
 
                 # ⚡ Bolt Optimization: For large arrays, downsample via striding to compute approximate inner percentiles
                 # This achieves O(1) sampling and reduces the O(N log N) sorting overhead from ~150ms to ~0.5ms on large meshes.
