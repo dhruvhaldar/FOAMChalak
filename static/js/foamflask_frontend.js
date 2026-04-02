@@ -3164,11 +3164,20 @@ const refreshMeshList = async (btnElement)=>{
         const data = await res.json();
         const select = document.getElementById("meshSelect");
         if (select && data.meshes) {
-            if (data.meshes.length === 0) {
+            // ⚡ Bolt Optimization: Filter only mesh files (exclude geometry like STL/OBJ)
+            const meshExtensions = [
+                '.vtk',
+                '.vtp',
+                '.vtu',
+                '.vtm',
+                '.pvtu'
+            ];
+            const filteredMeshes = data.meshes.filter((m)=>meshExtensions.some((ext)=>m.name.toLowerCase().endsWith(ext)));
+            if (filteredMeshes.length === 0) {
                 select.innerHTML = '<option value="" disabled selected>No mesh files found</option>';
             } else {
                 select.innerHTML = '<option value="">-- Select a mesh file --</option>';
-                data.meshes.forEach((m)=>{
+                filteredMeshes.forEach((m)=>{
                     const opt = document.createElement("option");
                     opt.value = m.path;
                     opt.textContent = m.size ? `${m.name} (${formatBytes(m.size)})` : m.name;
@@ -3608,11 +3617,20 @@ const refreshPostListVTK = async (btnElement)=>{
         const data = await res.json();
         const select = document.getElementById("vtkFileSelect");
         if (select && data.meshes) {
-            if (data.meshes.length === 0) {
+            // ⚡ Bolt Optimization: Filter only mesh files (exclude geometry like STL/OBJ)
+            const meshExtensions = [
+                '.vtk',
+                '.vtp',
+                '.vtu',
+                '.vtm',
+                '.pvtu'
+            ];
+            const filteredMeshes = data.meshes.filter((m)=>meshExtensions.some((ext)=>m.name.toLowerCase().endsWith(ext)));
+            if (filteredMeshes.length === 0) {
                 select.innerHTML = '<option value="" disabled selected>No VTK files found</option>';
             } else {
                 select.innerHTML = '<option value="">-- Select a VTK file --</option>';
-                data.meshes.forEach((m)=>{
+                filteredMeshes.forEach((m)=>{
                     const opt = document.createElement("option");
                     opt.value = m.path;
                     opt.textContent = m.name;
