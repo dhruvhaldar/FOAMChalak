@@ -11,7 +11,8 @@ class SnappyHexMeshGenerator:
     @staticmethod
     def generate_dict(
         case_path: Path,
-        config: Dict[str, Any]
+        config: Dict[str, Any],
+        openfoam_version: str = "12"
     ) -> bool:
         """
         Generates the snappyHexMeshDict file.
@@ -127,12 +128,25 @@ class SnappyHexMeshGenerator:
             relaxed_max_non_ortho = get_safe(global_settings, "relaxed_max_non_ortho", int, 75)
 
             # Construct Geometry Section
+            is_esi = openfoam_version.startswith('v') and len(openfoam_version) >= 5 and openfoam_version[1:5].isdigit()
+            
             geometry_str = ""
             for obj in objects:
                 name = obj["name"]
                 if name.lower().endswith(".stl"):
-                    region_name = name
-                    geometry_str += f"""
+                    if not is_esi:
+                        # OpenFOAM Foundation (e.g. 12) requires 'file' keyword
+                        geometry_str += f"""
+    {name}
+    {{
+        type triSurfaceMesh;
+        file "{name}";
+    }}
+"""
+                    else:
+                        # ESI OpenCFD (e.g. v2012)
+                        region_name = name
+                        geometry_str += f"""
     {name}
     {{
         type triSurfaceMesh;
@@ -179,11 +193,15 @@ class SnappyHexMeshGenerator:
 """
 
             # Build the file content
+            header_version = f"v{openfoam_version}" if not openfoam_version.startswith('v') else openfoam_version
+            header_website = "www.openfoam.com" if is_esi else "www.openfoam.org"
+            header_org = "OpenCFD" if is_esi else "The Open Source CFD Toolbox"
+            
             content = f"""/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
-| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\\\    /   O peration     | Version:  v2012                                 |
-|   \\\\  /    A nd           | Website:  www.openfoam.com                      |
+| \\\\      /  F ield         | OpenFOAM: {header_org}           |
+|  \\\\    /   O peration     | Version:  {header_version}                                 |
+|   \\\\  /    A nd           | Website:  {header_website}                      |
 |    \\\\/     M anipulation  |                                                 |
 \\*---------------------------------------------------------------------------*/
 FoamFile

@@ -1391,7 +1391,7 @@ def api_meshing_snappyhexmesh_config() -> Union[Response, Tuple[Response, int]]:
     except ValueError as e:
         return fast_jsonify({"success": False, "message": str(e)}), 400
 
-    result = MeshingRunner.configure_snappyhexmesh(case_path, config)
+    result = MeshingRunner.configure_snappyhexmesh(case_path, config, OPENFOAM_VERSION)
 
     if result["success"]:
         return fast_jsonify(result)

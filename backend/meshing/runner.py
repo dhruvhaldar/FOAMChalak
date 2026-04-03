@@ -50,20 +50,21 @@ class MeshingRunner:
             return {"success": False, "message": str(e)}
 
     @staticmethod
-    def configure_snappyhexmesh(case_path: Path, config: Dict[str, Any]) -> Dict[str, Any]:
+    def configure_snappyhexmesh(case_path: Path, config: Dict[str, Any], openfoam_version: str = "12") -> Dict[str, Any]:
         """
         Configures snappyHexMeshDict.
-
+ 
         Args:
             case_path: Path to the case directory.
             config: Configuration dictionary (new complex structure or legacy).
-
+            openfoam_version: OpenFOAM version string.
+ 
         Returns:
             Dict with success status and message.
         """
         try:
             # Pass the full config to the generator
-            success = SnappyHexMeshGenerator.generate_dict(case_path, config)
+            success = SnappyHexMeshGenerator.generate_dict(case_path, config, openfoam_version)
 
             if success:
                 return {"success": True, "message": "snappyHexMeshDict generated successfully"}
