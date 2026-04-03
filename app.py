@@ -906,11 +906,24 @@ def index() -> str:
     Returns:
         Rendered HTML template with tutorials and case root.
     """
-    global COMPILED_TEMPLATE
+    global COMPILED_TEMPLATE, TEMPLATE
 
-    # Lazy initialization of compiled template
-    if COMPILED_TEMPLATE is None:
-        COMPILED_TEMPLATE = app.jinja_env.from_string(TEMPLATE)
+    # ⚡ Bolt Optimization: Dynamic reloading in debug mode
+    # This allows reflecting HTML changes without manual restarts
+    if app.debug:
+        try:
+            with TEMPLATE_FILE.open("r", encoding="utf-8") as f:
+                TEMPLATE = f.read()
+            # In debug mode, we always re-compile to pick up changes
+            current_template = app.jinja_env.from_string(TEMPLATE)
+        except Exception as e:
+            logger.error(f"Error reloading template: {e}")
+            current_template = COMPILED_TEMPLATE or app.jinja_env.from_string(TEMPLATE)
+    else:
+        # Lazy initialization of compiled template for production
+        if COMPILED_TEMPLATE is None:
+            COMPILED_TEMPLATE = app.jinja_env.from_string(TEMPLATE)
+        current_template = COMPILED_TEMPLATE
 
     tutorials, error = get_tutorials()
     # 🎨 Palette UX: Group tutorials by category
@@ -929,7 +942,7 @@ def index() -> str:
         "docker_host": docker_host,
     }
     app.update_template_context(context)
-    return COMPILED_TEMPLATE.render(context)
+    return current_template.render(context)
 
 
 @app.route("/api/startup_status", methods=["GET"])
@@ -3121,8 +3134,23 @@ def main() -> None:
 
     host = os.environ.get("FLASK_HOST", "127.0.0.1")
     port = 5000
-    print(f"FOAMFlask listening on: {host}:{port}")
-    app.run(host=host, port=port, debug=False, threaded=True)
+    
+    # ⚡ Bolt Optimization: Enable debug mode via environment variable
+    # This enables the reloader and debugger, which is useful for development
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    
+    print(f"FOAMFlask listening on: {host}:{port} (Debug: {debug_mode})")
+    
+    # Add HTML template to watched files for automatic server restart on change
+    extra_files = [str(TEMPLATE_FILE)] if debug_mode else None
+    
+    app.run(
+        host=host, 
+        port=port, 
+        debug=debug_mode, 
+        threaded=True, 
+        extra_files=extra_files
+    )
 
 
 if __name__ == "__main__":

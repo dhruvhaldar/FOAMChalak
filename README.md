@@ -226,8 +226,12 @@ FOAMFlask/
    - Import them in `app.py`.
 2. **Add Endpoints**:
    - Define new routes in `app.py` using `@app.route`.
-3. **Restart the server**:
-   - Flask's debug mode (default) usually auto-reloads on python file changes.
+3. **Hot Reload / Debug Mode**:
+   - To enable the Flask reloader and automatic template refreshing for the frontend, run with the `FLASK_DEBUG` environment variable set to `1`:
+     ```powershell
+     $env:FLASK_DEBUG="1"; uv run python -m app
+     ```
+   - When enabled, the server will automatically restart when you modify Python files or the `static/html/foamflask_frontend.html` template.
 
 ---
 
