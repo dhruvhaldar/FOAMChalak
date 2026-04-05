@@ -99,3 +99,7 @@
 ## 2026-04-08 - Use np.min/np.max for standalone computed arrays
 **Learning:** Injecting standalone computed NumPy arrays temporarily into PyVista mesh `point_data` solely to utilize `get_data_range()` is an anti-pattern due to VTK object synchronization overhead. 
 **Action:** Use `get_data_range()` only for pre-existing mesh fields. For newly computed arrays, hold a direct reference to the NumPy array and use `np.min()`/`np.max()` to find bounds, avoiding the VTK layer overhead entirely.
+
+## 2024-04-05 - Use endswith instead of splitext for file extension checking
+**Learning:** For checking file extensions in performance-sensitive Python code (like directory scanning loops), using `str.endswith` with a tuple of allowed extensions is significantly faster (~5x) than using `os.path.splitext(filename)[1].lower()`, as it avoids string slicing and allocation overhead.
+**Action:** Replace `os.path.splitext(filename)[1].lower() in allowed_extensions` with `filename.lower().endswith(tuple(allowed_extensions))` inside hot loops. Pre-allocate the tuple outside the loop if possible.
