@@ -70,6 +70,7 @@ class GeometryManager:
             # Significantly faster for directories with many files
             files = []
             allowed_extensions = {".stl", ".obj", ".gz"}
+            allowed_ext_tuple = tuple(allowed_extensions)
 
             try:
                 with os.scandir(str(tri_surface_dir)) as entries:
@@ -77,8 +78,7 @@ class GeometryManager:
                         if entry.is_file():
                             # Check extension efficiently
                             name = entry.name
-                            ext = os.path.splitext(name)[1].lower()
-                            if ext in allowed_extensions:
+                            if name.lower().endswith(allowed_ext_tuple):
                                 files.append({
                                     "name": name,
                                     "size": entry.stat().st_size
