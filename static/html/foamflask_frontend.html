@@ -948,6 +948,97 @@
       </div>
 
       <div class="flex flex-col gap-6">
+        <!-- Common Object Selection & Settings -->
+        <div class="glass-panel rounded-lg p-5 shadow-sm border-l-4 border-l-cyan-500">
+          <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Geometry Selection -->
+            <div class="w-full lg:w-1/3 flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <h4 class="font-bold text-black flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  Selected Geometry
+                </h4>
+                <button onclick="switchPage('geometry')" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium hover:underline">
+                  Add New
+                </button>
+              </div>
+              
+              <div class="flex flex-col gap-2">
+                <select id="shmObjectList" aria-label="Loaded Geometry Objects" 
+                  class="border border-gray-300 rounded-lg px-3 py-2.5 w-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all font-medium text-sm" 
+                  size="1" onchange="selectShmObject()">
+                  <!-- Populated by JS -->
+                  <option value="">-- Select a geometry object --</option>
+                </select>
+                <p class="text-[11px] text-gray-500 italic">
+                  Selection will automatically suggest blockMesh bounds.
+                </p>
+              </div>
+            </div>
+
+            <!-- Configuration (Visible when selected) -->
+            <div class="flex-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6">
+              <div id="shmObjectProps" class="hidden animate-[fadeIn_0.2s_ease-out]">
+                <div class="flex justify-between items-center mb-4">
+                  <h5 class="font-bold text-sm text-cyan-900 px-2 py-1 bg-cyan-50 rounded border border-cyan-100 inline-block" id="shmSelectedObjectName">
+                    Object Name
+                  </h5>
+                  <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Settings</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-tight">Refinement Level (Min / Max)</label>
+                    <div class="flex items-center gap-3">
+                      <div class="relative flex-1">
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">MIN</span>
+                        <input type="number" id="shmObjRefMin" min="0" max="10" value="0"
+                          class="pl-10 border rounded-lg px-2 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50 font-mono" onchange="updateShmObjectConfig()"
+                          aria-label="Min Refinement Level" />
+                      </div>
+                      <div class="text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </div>
+                      <div class="relative flex-1">
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">MAX</span>
+                        <input type="number" id="shmObjRefMax" min="0" max="10" value="2"
+                          class="pl-10 border rounded-lg px-2 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50 font-mono" onchange="updateShmObjectConfig()"
+                          aria-label="Max Refinement Level" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <label for="shmObjLayers" class="block text-xs font-bold text-gray-700 uppercase tracking-tight">Surface Layers</label>
+                    <div class="relative">
+                      <input type="number" id="shmObjLayers" min="0" max="10" value="0"
+                        class="border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50 font-mono" 
+                        onchange="updateShmObjectConfig()" aria-describedby="shmObjLayersHelp" />
+                      <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100">
+                        OPC
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Placeholder -->
+              <div id="shmObjectPlaceholder" class="flex flex-col items-center justify-center p-4 text-center h-full">
+                <div class="p-4 rounded-full bg-gray-50 border border-dashed border-gray-200 mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                  </svg>
+                </div>
+                <h4 class="text-sm font-semibold text-gray-400">Select an object to synchronize bounds</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- BlockMesh Config -->
         <div class="glass-panel rounded-lg p-4 shadow-sm">
           <button
@@ -1121,71 +1212,17 @@
               </details>
             </div>
 
-            <!-- Right: Object Settings -->
+            <!-- Right: Meshing Summary/Status (Placeholder for now) -->
             <div class="w-full lg:w-1/2 flex flex-col gap-4 border-l pl-0 lg:pl-6 border-gray-200">
-              <h4 class="font-medium text-black">Object Settings</h4>
-
-              <div class="flex flex-col gap-2 h-48">
-                <label for="shmObjectList" class="text-sm text-black">Loaded Geometry Objects</label>
-                <select id="shmObjectList" aria-label="Loaded Geometry Objects" class="border border-gray-300 rounded px-2 py-2 flex-1 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" size="5"
-                  onchange="selectShmObject()">
-                  <!-- Populated by JS -->
-                </select>
-              </div>
-
-              <!-- Selected Object Properties -->
-              <div id="shmObjectProps" class="glass-panel p-3 rounded hidden">
-                <div class="flex justify-between items-center mb-2">
-                  <h5 class="font-semibold text-sm" id="shmSelectedObjectName">
-                    Object Name
-                  </h5>
-                </div>
-                <div class="space-y-3">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-900">Refinement Level (Min / Max)</label>
-                    <div class="flex items-center gap-2">
-                      <input type="number" id="shmObjRefMin" min="0" max="10"
-                        class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()"
-                        aria-label="Min Refinement Level" />
-                      <span class="text-gray-900">-</span>
-                      <input type="number" id="shmObjRefMax" min="0" max="10"
-                        class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()"
-                        aria-label="Max Refinement Level" />
-                    </div>
-                  </div>
-                  <div>
-                    <label for="shmObjLayers" class="block text-xs font-medium text-gray-900">Number of Surface
-                      Layers</label>
-                    <input type="number" id="shmObjLayers" min="0" max="10"
-                      class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" onchange="updateShmObjectConfig()" aria-describedby="shmObjLayersHelp" />
-                    <p id="shmObjLayersHelp" class="text-xs text-gray-900 mt-1" aria-live="polite" aria-atomic="true">
-                      Requires "Add Layers" to be enabled globally.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div id="shmObjectPlaceholder"
-                class="text-sm text-gray-600 p-6 text-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50/50 flex flex-col items-center justify-center gap-3 transition-all hover:bg-gray-50 hover:border-cyan-300">
-
-                <div class="text-gray-400" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center gap-3">
+                <div class="p-3 bg-white rounded-full shadow-sm border border-gray-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-
                 <div>
-                  <h4 class="font-medium text-gray-900 mb-1">No Object Selected</h4>
-                  <p class="text-xs text-gray-500 max-w-xs mx-auto">
-                    Select a geometry object from the list above to configure its mesh refinement levels and layers.
-                  </p>
-                </div>
-
-                <div class="text-xs text-gray-500 border-t border-gray-200 pt-3 w-full mt-1">
-                  <span>Missing geometry?</span>
-                  <button onclick="switchPage('geometry')"
-                    class="text-cyan-600 hover:text-cyan-800 font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded px-1 transition-colors ml-1">
-                    Go to Geometry
-                  </button>
+                  <h4 class="text-sm font-bold text-gray-900">SnappyHexMesh Ready</h4>
+                  <p class="text-xs text-gray-500">Refinement levels will be applied to the common object selected above.</p>
                 </div>
               </div>
             </div>
