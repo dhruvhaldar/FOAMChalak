@@ -871,7 +871,11 @@ const switchPage = (pageName, updateUrl = true)=>{
                 const shmSelect = document.getElementById("shmObjectList");
                 const geoSelect = document.getElementById("geometrySelect");
                 if (shmSelect && geoSelect) {
-                    shmSelect.innerHTML = geoSelect.innerHTML;
+                    const currentVal = shmSelect.value;
+                    // Preserve placeholder if present
+                    const placeholder = shmSelect.options[0]?.value === "" ? shmSelect.options[0].outerHTML : '<option value="">-- Select a geometry object --</option>';
+                    shmSelect.innerHTML = placeholder + geoSelect.innerHTML;
+                    if (currentVal) shmSelect.value = currentVal;
                 }
             });
             break;
@@ -3015,7 +3019,9 @@ const selectShmObject = ()=>{
         if (props) props.classList.remove("hidden");
         if (placeholder) placeholder.classList.add("hidden");
         if (nameLabel) nameLabel.textContent = list.value;
-    // In a real app, we would fetch existing config for this object here
+        // Palette UX Sync: Automatically trigger blockMesh bounds update
+        console.log(`Synchronizing selection for: ${list.value}`);
+        fillBoundsFromGeometry();
     } else {
         if (props) props.classList.add("hidden");
         if (placeholder) placeholder.classList.remove("hidden");
