@@ -1,0 +1,3 @@
+## 2025-04-07 - Added focus ring to navigation button
+**Learning:** Found a custom button that handles view navigation in the Meshing tab that lacked focus-ring styling, a critical requirement for keyboard accessibility. Unlike standard form inputs which easily inherit standard focus rings, inline text-link buttons require specific `focus:outline-none focus:ring-2 focus:ring-cyan-500` tailwind classes.
+**Action:** Always verify that every interactive custom button or link, especially those disguised as text or inline elements, explicitly defines `focus` or `focus-visible` ring utilities to remain discoverable via keyboard navigation.
