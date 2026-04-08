@@ -3979,7 +3979,17 @@ const init = ()=>{
     // Auto-format case name
     setupCaseNameAutoFormat('newCaseName');
     // Scroll Listener for Navbar
-    window.addEventListener("scroll", handleScroll);
+    // ⚡ Bolt Optimization: Throttle scroll events to prevent layout thrashing on the main thread
+    let scrollTicking = false;
+    window.addEventListener("scroll", ()=>{
+        if (!scrollTicking) {
+            window.requestAnimationFrame(()=>{
+                handleScroll();
+                scrollTicking = false;
+            });
+            scrollTicking = true;
+        }
+    });
     initLogScrollObserver();
     setupQuickActions();
     setupCopyableValues();
