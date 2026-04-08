@@ -2913,9 +2913,9 @@ def upload_vtk() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify({"success": False, "error": "Invalid filename"}), 400
 
     # Security: Validate file extension
-    allowed_extensions = {".vtk", ".vtp", ".vtu", ".vtm", ".pvtu"}
-    ext = os.path.splitext(safe_filename)[1].lower()
-    if ext not in allowed_extensions:
+    # ⚡ Bolt Optimization: Use tuple and str.endswith for faster extension validation
+    allowed_extensions = (".vtk", ".vtp", ".vtu", ".vtm", ".pvtu")
+    if not safe_filename.lower().endswith(allowed_extensions):
         return (
             fast_jsonify(
                 {
