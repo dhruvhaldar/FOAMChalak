@@ -34,10 +34,10 @@ class GeometryManager:
                 return {"success": False, "message": "Invalid filename."}
 
             # Security: Strict extension validation
-            allowed_extensions = {".stl", ".obj", ".gz"}
+            # ⚡ Bolt Optimization: Use tuple and str.endswith for faster extension validation
+            allowed_extensions = (".stl", ".obj", ".gz")
             # Check the final extension
-            ext = os.path.splitext(safe_filename)[1].lower()
-            if ext not in allowed_extensions:
+            if not safe_filename.lower().endswith(allowed_extensions):
                  return {"success": False, "message": "Only .stl, .obj, and .gz files are allowed."}
 
             filepath = tri_surface_dir / safe_filename
