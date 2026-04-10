@@ -1,1 +1,0 @@
-Initial residual = 0.123,
