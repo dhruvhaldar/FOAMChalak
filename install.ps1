@@ -51,19 +51,22 @@ function Assert-WinGet {
 # 2. Check & Install System Tools (Python, Node, Docker)
 
 # --- Python ---
+# We specifically need 3.13 for VTK compatibility (3.14 is currently incompatible)
 if (Get-Command python -ErrorAction SilentlyContinue) {
-    Write-Host "Python found" -ForegroundColor Green
-} else {
-    Assert-WinGet
-    Write-Host "Python not found. Installing..." -ForegroundColor Yellow
-    winget install Python.Python.3.13 -e --source winget
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Failed to install Python. Please install manually." -ForegroundColor Red
-        exit 1
-    }
-    # Refresh env vars for current session
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    $pyVersion = python --version
+    Write-Host "Found $pyVersion" -ForegroundColor Green
 }
+
+# Always attempt to ensure 3.13 is available if we don't explicitly have it and functioning
+Assert-WinGet
+Write-Host "Ensuring Python 3.13 is installed (required for VTK compatibility)..." -ForegroundColor Yellow
+winget install Python.Python.3.13 -e --source winget --accept-package-agreements --accept-source-agreements
+if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 0x8A150039) { # 0x8A150039 is "already installed"
+    Write-Host "Warning: Winget returned code $LASTEXITCODE during Python installation." -ForegroundColor Gray
+}
+
+# Refresh env vars for current session to find the newly installed Python
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
 # --- Node.js ---
 if (Get-Command node -ErrorAction SilentlyContinue) {
@@ -121,18 +124,37 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
 }
 
-# 3. Check & Install pnpm
+# 3. Check & Install Rust (Cargo)
+if (Get-Command cargo -ErrorAction SilentlyContinue) {
+    Write-Host "Rust (Cargo) found" -ForegroundColor Green
+} else {
+    Assert-WinGet
+    Write-Host "Rust (Cargo) not found. Installing Rustup..." -ForegroundColor Yellow
+    winget install Rust.Rustup -e --source winget --accept-package-agreements --accept-source-agreements
+    # Refresh Path to find cargo
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+
+# 4. Check & Install pnpm
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
     Write-Host "pnpm found" -ForegroundColor Green
 } else {
     Write-Host "pnpm not found. Installing..." -ForegroundColor Yellow
     # Try enabling corepack first
     try {
+        Write-Host "Attempting to enable corepack..." -ForegroundColor Yellow
         corepack enable
-        Write-Host "Enabled pnpm via corepack" -ForegroundColor Green
+        # Refresh path in case corepack added shims
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+            Write-Host "Enabled pnpm via corepack" -ForegroundColor Green
+        } else {
+             throw "pnpm still not found after corepack enable"
+        }
     } catch {
-        # Fallback to npm install
+        Write-Host "Corepack failed or pnpm not found. Falling back to npm install..." -ForegroundColor Yellow
         npm install -g pnpm
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     }
 }
 
@@ -150,15 +172,16 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
 }
 
-# 4. Setup Python Environment
-Write-Host "Setting up Python environment with uv..." -ForegroundColor Cyan
+# 5. Setup Python Environment
+Write-Host "Setting up Python environment with uv (Targeting Python 3.13)..." -ForegroundColor Cyan
 
-uv venv --clear
+# Force usage of Python 3.13 to avoid issues with 3.14/VTK
+uv venv --python 3.13 --clear
 
 Write-Host "Created virtual environment with uv" -ForegroundColor Green
 
 Write-Host "Installing Python dependencies with uv..."
-uv sync --link-mode copy
+uv sync --python 3.13 --link-mode copy
 
 # Install Rust Accelerator
 if (Test-Path "backend/accelerator") {
@@ -171,12 +194,12 @@ if (Test-Path "backend/accelerator") {
     }
 }
 
-# 5. Build Frontend
+# 6. Build Frontend
 Write-Host "Building Frontend..." -ForegroundColor Cyan
 pnpm install
 pnpm run build
 
-# 6. Launch Application
+# 7. Launch Application
 Write-Host "Installation Complete!" -ForegroundColor Cyan
 Write-Host "Starting FOAMFlask..." -ForegroundColor Green
 Write-Host "Access the app at: http://localhost:5000"
