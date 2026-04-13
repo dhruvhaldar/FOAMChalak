@@ -48,6 +48,22 @@ function Assert-WinGet {
     }
 }
 
+# Checks the winget exit code and only warns on genuine errors.
+# Winget returns non-zero codes for benign outcomes (already installed, newer version present, etc.)
+function Assert-WinGetSuccess {
+    param([string]$PackageName)
+    $benignCodes = @(
+        0,            # Success
+        0x8A150039,   # APPINSTALLER_CLI_ERROR_PACKAGE_ALREADY_INSTALLED
+        0x8A150077,   # No applicable upgrade found (newer version already installed)
+        0x8A15007B,   # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE (already up-to-date)
+        3010          # ERROR_SUCCESS_REBOOT_REQUIRED (installed, reboot needed)
+    )
+    if ($LASTEXITCODE -notin $benignCodes) {
+        Write-Host "Warning: winget returned unexpected code $LASTEXITCODE for '$PackageName'." -ForegroundColor Yellow
+    }
+}
+
 # 1. Pre-seed known tool paths so they are available if already installed but not in PATH yet
 # This is important for uv which installs to a user-local bin dir that may not be in the system PATH
 $uvBinPath = "$env:USERPROFILE\.local\bin"
@@ -62,18 +78,23 @@ if (Test-Path $uvBinPath) {
 
 # --- Python ---
 # We specifically need 3.13 for VTK compatibility (3.14 is currently incompatible)
-if (Get-Command python -ErrorAction SilentlyContinue) {
-    $pyVersion = python --version
-    Write-Host "Found $pyVersion" -ForegroundColor Green
+# Note: Windows has a fake "python" stub that opens the Microsoft Store - we must detect and skip it.
+$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+$isStub = $pythonCmd -and ($pythonCmd.Source -like "*WindowsApps*")
+if ($pythonCmd -and -not $isStub) {
+    $pyVersion = python --version 2>&1
+    Write-Host "Python found: $pyVersion" -ForegroundColor Green
+} elseif ($isStub) {
+    Write-Host "Python not found (Windows Store stub detected - ignored)." -ForegroundColor Yellow
+} else {
+    Write-Host "Python not found." -ForegroundColor Yellow
 }
 
-# Always attempt to ensure 3.13 is available if we don't explicitly have it and functioning
+# Always ensure Python 3.13 is installed (required for VTK compatibility)
 Assert-WinGet
 Write-Host "Ensuring Python 3.13 is installed (required for VTK compatibility)..." -ForegroundColor Yellow
 winget install Python.Python.3.13 -e --source winget --accept-package-agreements --accept-source-agreements
-if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 0x8A150039) { # 0x8A150039 is "already installed"
-    Write-Host "Warning: Winget returned code $LASTEXITCODE during Python installation." -ForegroundColor Gray
-}
+Assert-WinGetSuccess "Python.Python.3.13"
 
 # Refresh env vars for current session to find the newly installed Python
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
@@ -84,7 +105,8 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 } else {
     Assert-WinGet
     Write-Host "Node.js not found. Installing..." -ForegroundColor Yellow
-    winget install OpenJS.NodeJS.LTS -e --source winget
+    winget install OpenJS.NodeJS.LTS -e --source winget --accept-package-agreements --accept-source-agreements
+    Assert-WinGetSuccess "OpenJS.NodeJS.LTS"
     if ($LASTEXITCODE -ne 0) {
          Write-Host "Failed to install Node.js. Please install manually." -ForegroundColor Red
          exit 1
@@ -98,7 +120,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 } else {
     Assert-WinGet
     Write-Host "Docker not found. Installing Docker Desktop..." -ForegroundColor Yellow
-    winget install Docker.DockerDesktop -e --source winget
+    winget install Docker.DockerDesktop -e --source winget --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) {
          Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
          Write-Host "Visit: https://www.docker.com/products/docker-desktop/"
@@ -141,6 +163,7 @@ if (Get-Command cargo -ErrorAction SilentlyContinue) {
     Assert-WinGet
     Write-Host "Rust (Cargo) not found. Installing Rustup..." -ForegroundColor Yellow
     winget install Rustlang.Rustup -e --source winget --accept-package-agreements --accept-source-agreements
+    Assert-WinGetSuccess "Rustlang.Rustup"
     # Refresh Path to find cargo
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
