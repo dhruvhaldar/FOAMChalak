@@ -48,6 +48,16 @@ function Assert-WinGet {
     }
 }
 
+# 1. Pre-seed known tool paths so they are available if already installed but not in PATH yet
+# This is important for uv which installs to a user-local bin dir that may not be in the system PATH
+$uvBinPath = "$env:USERPROFILE\.local\bin"
+if (Test-Path $uvBinPath) {
+    if ($env:Path -notlike "*$uvBinPath*") {
+        $env:Path = "$uvBinPath;$env:Path"
+        Write-Host "Pre-seeded uv path: $uvBinPath" -ForegroundColor Gray
+    }
+}
+
 # 2. Check & Install System Tools (Python, Node, Docker)
 
 # --- Python ---
@@ -130,7 +140,7 @@ if (Get-Command cargo -ErrorAction SilentlyContinue) {
 } else {
     Assert-WinGet
     Write-Host "Rust (Cargo) not found. Installing Rustup..." -ForegroundColor Yellow
-    winget install Rust.Rustup -e --source winget --accept-package-agreements --accept-source-agreements
+    winget install Rustlang.Rustup -e --source winget --accept-package-agreements --accept-source-agreements
     # Refresh Path to find cargo
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
@@ -168,8 +178,17 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
         Write-Host "Failed to install uv. Please install manually." -ForegroundColor Red
         exit 1
     }
-    # Update Path for current session
-    $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
+    # Add uv's user-local bin dir to the current session path
+    # We do this explicitly (not via full system path refresh) to avoid clobbering the uv path
+    $uvBinPath = "$env:USERPROFILE\.local\bin"
+    if ($env:Path -notlike "*$uvBinPath*") {
+        $env:Path = "$uvBinPath;$env:Path"
+    }
+    Write-Host "uv installed and added to session path." -ForegroundColor Green
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Host "ERROR: uv still not found after installation. Please restart your shell and re-run the installer." -ForegroundColor Red
+        exit 1
+    }
 }
 
 # 5. Setup Python Environment
