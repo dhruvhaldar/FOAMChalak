@@ -76,7 +76,7 @@ dependencies = [
     "parso==0.8.5",
     "pathspec==0.12.1",
     "pdoc==16.0.0",
-    "pillow==12.1.1",
+    "pillow==12.2.0",
     "platformdirs==4.5.0",
     "pluggy==1.6.0",
     "pooch==1.8.2",
