@@ -154,6 +154,28 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
          }
     }
     Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
+# --- Visual Studio Build Tools (Required for Rust) ---
+$vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$hasMSVC = $false
+
+if (Test-Path $vswherePath) {
+    $msvcPath = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if ($msvcPath) { $hasMSVC = $true }
+}
+
+if (-not $hasMSVC) {
+    Write-Host "C++ Build Tools not found. These are REQUIRED to build the Rust accelerator." -ForegroundColor Yellow
+    $response = Read-Host "Would you like to install Visual Studio Build Tools 2022? (Large download ~2GB) [Y/N]"
+    if ($response -eq 'y' -or $response -eq 'Y') {
+        Assert-WinGet
+        Write-Host "Installing Visual Studio Build Tools with C++ workload..." -ForegroundColor Yellow
+        winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
+        Write-Host "Build Tools installation initiated. Please wait for it to finish and restart your shell if necessary." -ForegroundColor Cyan
+    } else {
+         Write-Host "Warning: Without C++ Build Tools, the Rust accelerator will fail to build." -ForegroundColor Red
+    }
+} else {
+    Write-Host "C++ Build Tools found" -ForegroundColor Green
 }
 
 # 3. Check & Install Rust (Cargo)
@@ -161,11 +183,27 @@ if (Get-Command cargo -ErrorAction SilentlyContinue) {
     Write-Host "Rust (Cargo) found" -ForegroundColor Green
 } else {
     Assert-WinGet
-    Write-Host "Rust (Cargo) not found. Installing Rustup..." -ForegroundColor Yellow
+    Write-Host "Rust (Cargo) not found. Attempting to install Rustup..." -ForegroundColor Yellow
+    
+    # Try winget first (sometimes fails due to source naming)
     winget install Rustlang.Rustup -e --source winget --accept-package-agreements --accept-source-agreements
-    Assert-WinGetSuccess "Rustlang.Rustup"
-    # Refresh Path to find cargo
+    
+    # Refresh Path to check if winget succeeded
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+        Write-Host "Winget failed or cargo not in path. Falling back to direct download..." -ForegroundColor Yellow
+        $rustupUrl = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+        $rustupExe = "$env:TEMP\rustup-init.exe"
+        Invoke-WebRequest -Uri $rustupUrl -OutFile $rustupExe
+        & $rustupExe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable --profile minimal
+        Remove-Item $rustupExe
+        
+        # Refresh Path again
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        $cargoBin = "$env:USERPROFILE\.cargo\bin"
+        if ($env:Path -notlike "*$cargoBin*") { $env:Path = "$cargoBin;$env:Path" }
+    }
 }
 
 # 4. Check & Install pnpm
@@ -229,8 +267,14 @@ uv sync --python 3.13 --link-mode copy
 if (Test-Path "backend/accelerator") {
     Write-Host "Building Rust Accelerator..." -ForegroundColor Cyan
     if (Get-Command cargo -ErrorAction SilentlyContinue) {
-        uv add ./backend/accelerator
-        Write-Host "Rust Accelerator installed" -ForegroundColor Green
+        try {
+            uv add ./backend/accelerator
+            Write-Host "Rust Accelerator installed" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to build Rust Accelerator. Error: $_" -ForegroundColor Red
+            Write-Host "This usually means C++ Build Tools (link.exe) are missing or outdated." -ForegroundColor Yellow
+            Write-Host "Try running 'winget install --id Microsoft.VisualStudio.2022.BuildTools --override \"--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended\"' manually." -ForegroundColor Gray
+        }
     } else {
         Write-Host "Warning: Cargo not found. Rust accelerator will be skipped." -ForegroundColor Yellow
     }
