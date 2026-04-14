@@ -120,6 +120,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 } else {
     Assert-WinGet
     Write-Host "Docker not found. Installing Docker Desktop..." -ForegroundColor Yellow
+    Write-Host "(Docker Desktop is required on Windows to provide the Linux kernel environment and file-sharing integration needed to run OpenFOAM containers.)" -ForegroundColor Gray
     winget install Docker.DockerDesktop -e --source winget --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) {
          Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
