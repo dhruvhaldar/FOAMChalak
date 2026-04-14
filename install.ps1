@@ -154,6 +154,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
          }
     }
     Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
+}
 # --- Visual Studio Build Tools (Required for Rust) ---
 $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $hasMSVC = $false
