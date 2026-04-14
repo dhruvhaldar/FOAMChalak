@@ -154,7 +154,13 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
              exit 1
          }
     }
-    Write-Host "Docker installed. You may need to restart your computer and start Docker Desktop." -ForegroundColor Yellow
+    Write-Host "Docker installed. Starting Docker Desktop in the background..." -ForegroundColor Yellow
+    $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerExe) {
+        Start-Process -FilePath $dockerExe
+    } else {
+        Write-Host "Could not find Docker Desktop executable. Please start it manually." -ForegroundColor Red
+    }
 }
 # --- Visual Studio Build Tools (Required for Rust) ---
 $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
