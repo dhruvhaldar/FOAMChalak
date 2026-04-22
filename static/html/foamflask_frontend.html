@@ -524,28 +524,36 @@
                     <label for="tutorialSelect" class="text-sm font-medium text-gray-900">
                       Select Tutorial Source
                     </label>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                      <div class="relative flex-1 w-full">
-                        <select id="tutorialSelect" aria-label="Select Tutorial Source"
-                          class="appearance-none border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white">
-                          {{ options|safe }}
-                        </select>
-                        <div
-                          class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-900">
-                          <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
-                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                    <div class="flex flex-col gap-2 p-0.5">
+                      <!-- Search Input -->
+                      <div class="relative w-full">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <svg class="w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
-                        </div>
+                        </span>
+                        <input type="text" id="tutorialSearch" placeholder="Search tutorials..." 
+                          class="border border-gray-300 rounded-lg pl-10 pr-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all text-sm bg-white" />
                       </div>
-                      <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import Tutorial"
-                        class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fill-rule="evenodd"
-                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                            clip-rule="evenodd" />
-                        </svg>
-                        Import Tutorial
-                      </button>
+                      
+                      <!-- Tutorial Listbox -->
+                      <div class="flex flex-col md:flex-row gap-2">
+                        <div class="relative flex-1">
+                          <select id="tutorialSelect" aria-label="Select Tutorial Source" size="6"
+                            class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white scrollbar-thin scrollbar-thumb-cyan-200">
+                            {{ options|safe }}
+                          </select>
+                        </div>
+                        <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import Tutorial"
+                          class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap self-start md:self-auto">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd"
+                              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                              clip-rule="evenodd" />
+                          </svg>
+                          Import Tutorial
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

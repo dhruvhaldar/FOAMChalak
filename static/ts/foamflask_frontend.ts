@@ -4265,25 +4265,109 @@ const init = () => {
   }
   updateActiveCaseBadge();
 
-  // Persist Tutorial Selection - Restore FIRST before any page logic runs
+  // Tutorial Selection Search & Persistence
   const tutorialSelect = document.getElementById('tutorialSelect') as HTMLSelectElement;
+  const tutorialSearch = document.getElementById('tutorialSearch') as HTMLInputElement;
+
   if (tutorialSelect) {
-    // Restore
+    // Capture groups and options for filtering while preserving hierarchy
+    const originalGroups: { label: string; options: { value: string; text: string }[] }[] = [];
+    Array.from(tutorialSelect.children).forEach(child => {
+      if (child.tagName === 'OPTGROUP') {
+        const group = child as HTMLOptGroupElement;
+        originalGroups.push({
+          label: group.label,
+          options: Array.from(group.querySelectorAll('option')).map(opt => ({
+            value: opt.value,
+            text: opt.textContent || ""
+          }))
+        });
+      } else if (child.tagName === 'OPTION') {
+        const opt = child as HTMLOptionElement;
+        originalGroups.push({
+          label: "",
+          options: [{ value: opt.value, text: opt.textContent || "" }]
+        });
+      }
+    });
+
+    if (tutorialSearch) {
+      tutorialSearch.addEventListener('input', () => {
+        const query = tutorialSearch.value.toLowerCase().trim();
+        const currentVal = tutorialSelect.value;
+        
+        // Clear current options
+        tutorialSelect.innerHTML = '';
+        
+        let firstMatch: string | null = null;
+        
+        originalGroups.forEach(group => {
+          // Filter options within this group
+          const matchingOptions = group.options.filter(opt => 
+            opt.text.toLowerCase().includes(query) || group.label.toLowerCase().includes(query)
+          );
+          
+          if (matchingOptions.length > 0) {
+            if (group.label) {
+              const optGroup = document.createElement('optgroup');
+              optGroup.label = group.label;
+              optGroup.classList.add('font-bold', 'text-black');
+              // Native optgroups are limited, so we keep these for compatibility
+              optGroup.style.fontWeight = 'bold';
+              optGroup.style.color = '#000000';
+              matchingOptions.forEach(opt => {
+                const newOpt = document.createElement('option');
+                newOpt.value = opt.value;
+                newOpt.textContent = opt.text;
+                if (opt.value === currentVal) newOpt.selected = true;
+                optGroup.appendChild(newOpt);
+                if (!firstMatch) firstMatch = opt.value;
+              });
+              tutorialSelect.appendChild(optGroup);
+            } else {
+              matchingOptions.forEach(opt => {
+                const newOpt = document.createElement('option');
+                newOpt.value = opt.value;
+                newOpt.textContent = opt.text;
+                if (opt.value === currentVal) newOpt.selected = true;
+                tutorialSelect.appendChild(newOpt);
+                if (!firstMatch) firstMatch = opt.value;
+              });
+            }
+          }
+        });
+        
+        // If nothing matches, add a placeholder
+        if (tutorialSelect.options.length === 0) {
+          const noMatch = document.createElement('option');
+          noMatch.disabled = true;
+          noMatch.textContent = "No matching tutorials found";
+          tutorialSelect.appendChild(noMatch);
+        } else if (query && !tutorialSelect.value && firstMatch) {
+          // Auto-select first match if search is active and nothing is selected
+          tutorialSelect.value = firstMatch;
+        }
+      });
+
+      // Handle Enter key in search box
+      tutorialSearch.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (tutorialSelect.value && !tutorialSelect.selectedOptions[0]?.disabled) {
+            (window as any).loadTutorial();
+          }
+        }
+      });
+    }
+
+    // Restore saved selection
     const savedTutorial = localStorage.getItem('lastSelectedTutorial');
     if (savedTutorial) {
-      // Check if option exists
-      let exists = false;
-      for (let i = 0; i < tutorialSelect.options.length; i++) {
-        if (tutorialSelect.options[i].value === savedTutorial) {
-          exists = true;
-          break;
-        }
-      }
+      // Check if option exists in any group
+      const exists = originalGroups.some(g => g.options.some(opt => opt.value === savedTutorial));
       if (exists) {
         tutorialSelect.value = savedTutorial;
         console.log("DEBUG: Restored tutorial selection:", savedTutorial);
-      } else {
-        console.warn("DEBUG: Saved tutorial not found in options:", savedTutorial);
       }
     }
 
