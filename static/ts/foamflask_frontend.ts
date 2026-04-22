@@ -4360,6 +4360,22 @@ const init = () => {
       });
     }
 
+    // Handle Enter key and Double Click on the select listbox
+    tutorialSelect.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (tutorialSelect.value && !tutorialSelect.selectedOptions[0]?.disabled) {
+          (window as any).loadTutorial();
+        }
+      }
+    });
+
+    tutorialSelect.addEventListener('dblclick', () => {
+      if (tutorialSelect.value && !tutorialSelect.selectedOptions[0]?.disabled) {
+        (window as any).loadTutorial();
+      }
+    });
+
     // Restore saved selection
     const savedTutorial = localStorage.getItem('lastSelectedTutorial');
     if (savedTutorial) {
@@ -4425,6 +4441,27 @@ const init = () => {
         handler();
         setMobileMenuState(false);
       });
+    }
+  });
+
+  // Global Keyboard Shortcuts for Tab Switching
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+    
+    const key = e.key.toLowerCase();
+    
+    // Trigger if Alt is held, OR if user is just pressing the key and not currently typing
+    if (e.altKey || !isTyping) {
+      switch (key) {
+        case 's': document.getElementById('nav-setup')?.click(); break;
+        case 'g': document.getElementById('nav-geometry')?.click(); break;
+        case 'm': document.getElementById('nav-meshing')?.click(); break;
+        case 'v': document.getElementById('nav-visualizer')?.click(); break;
+        case 'r': document.getElementById('nav-run')?.click(); break;
+        case 'p': document.getElementById('nav-plots')?.click(); break;
+        case 'o': document.getElementById('nav-post')?.click(); break;
+      }
     }
   });
 
