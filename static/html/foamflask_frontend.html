@@ -456,7 +456,7 @@
           </div>
 
           <!-- Slider Mask -->
-          <div class="overflow-hidden">
+          <div class="overflow-hidden p-1">
             <!-- Slider Track -->
             <div id="case-creation-track" class="flex transition-transform duration-300 ease-in-out">
               <!-- Create New Case Tab Pane -->
@@ -508,9 +508,9 @@
               </div>
 
               <!-- Import Tutorial Tab Pane -->
-              <div class="w-full flex-shrink-0">
+              <div class="w-full flex-shrink-0 overflow-visible">
                 <div id="tab-content-import" role="tabpanel" aria-labelledby="tab-btn-import"
-                  class="flex flex-col gap-4">
+                  class="flex flex-col gap-4 p-2 overflow-visible">
                   <div class="mb-2">
                     <h3 class="text-xl font-bold mb-2 text-black">
                       Import Tutorial
@@ -521,12 +521,12 @@
                   </div>
 
                   <div class="flex flex-col gap-1 w-full overflow-visible">
-                    <label for="tutorialSelect" class="text-sm font-medium text-gray-900 px-1">
+                    <label for="tutorialSelect" class="text-sm font-medium text-gray-900 px-4">
                       Select Tutorial Source
                     </label>
-                    <div class="flex flex-col gap-2 p-1.5 overflow-visible">
+                    <div class="flex flex-col gap-2 p-4 overflow-visible">
                       <!-- Search Input -->
-                      <div class="relative w-full">
+                      <div class="relative w-full overflow-visible">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                           <svg class="w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -538,9 +538,9 @@
                       
                       <!-- Tutorial Listbox -->
                       <div class="flex flex-col md:flex-row gap-2 overflow-visible">
-                        <div class="relative flex-1">
+                        <div class="relative flex-1 p-1 overflow-visible">
                           <select id="tutorialSelect" aria-label="Select Tutorial Source" size="6"
-                            class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white scrollbar-thin scrollbar-thumb-cyan-200">
+                            class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white scrollbar-thin scrollbar-thumb-cyan-200 overflow-hidden">
                             {{ options|safe }}
                           </select>
                         </div>
