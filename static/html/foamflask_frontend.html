@@ -460,9 +460,9 @@
             <!-- Slider Track -->
             <div id="case-creation-track" class="flex transition-transform duration-300 ease-in-out">
               <!-- Create New Case Tab Pane -->
-              <div class="w-full flex-shrink-0">
+              <div class="w-full flex-shrink-0 overflow-visible">
                 <div id="tab-content-create" role="tabpanel" aria-labelledby="tab-btn-create"
-                  class="flex flex-col gap-4">
+                  class="flex flex-col gap-4 p-3 overflow-visible">
                   <div class="mb-2">
                     <h3 class="text-xl font-bold mb-2 text-black">
                       Create New Case
@@ -540,7 +540,7 @@
                       <div class="flex flex-col md:flex-row gap-2 overflow-visible">
                         <div class="relative flex-1 p-1 overflow-visible">
                           <select id="tutorialSelect" aria-label="Select Tutorial Source" size="6"
-                            class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white scrollbar-thin scrollbar-thumb-cyan-200 overflow-hidden">
+                            class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all bg-white scrollbar-thin scrollbar-thumb-cyan-200">
                             {{ options|safe }}
                           </select>
                         </div>
