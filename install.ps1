@@ -7,7 +7,8 @@ param(
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "This script needs to be run as Administrator to install system dependencies." -ForegroundColor Yellow
     Write-Host "Attempting to restart with elevated privileges..." -ForegroundColor Cyan
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    # Use -NoExit so the window stays open for debugging if an error occurs
+    Start-Process powershell -ArgumentList "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     exit
 }
 
