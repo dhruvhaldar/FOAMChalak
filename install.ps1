@@ -221,8 +221,8 @@ if (-not $hasMSVC) {
             Write-Host "An existing installation was detected." -ForegroundColor Cyan
             $cleanReinstall = Read-Host "Perform a CLEAN REINSTALL? (Recommended if build is failing) [Y/N]"
             if ($cleanReinstall -eq 'y' -or $cleanReinstall -eq 'Y') {
-                Write-Host "Uninstalling existing Build Tools..." -ForegroundColor Yellow
-                winget uninstall --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements
+                Write-Host "Uninstalling existing Build Tools (All Versions)..." -ForegroundColor Yellow
+                winget uninstall --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements --all-versions
                 Write-Host "Waiting for cleanup..." -ForegroundColor Gray
                 Start-Sleep -Seconds 5
                 $vsInstallPath = ""
