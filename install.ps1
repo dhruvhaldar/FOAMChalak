@@ -223,7 +223,9 @@ if (-not $hasMSVC) {
             if ($cleanReinstall -eq 'y' -or $cleanReinstall -eq 'Y') {
                 Write-Host "Uninstalling existing Build Tools (All Versions)..." -ForegroundColor Yellow
                 winget uninstall --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements --all-versions
-                Write-Host "Waiting for cleanup..." -ForegroundColor Gray
+                Write-Host "Uninstallation initiated. If a separate window opened, please wait for it to finish." -ForegroundColor Cyan
+                Read-Host "Press ENTER once the uninstallation is complete to continue"
+                Write-Host "Waiting for final cleanup..." -ForegroundColor Gray
                 Start-Sleep -Seconds 5
                 $vsInstallPath = ""
                 $wingetInstalled = $false
