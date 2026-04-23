@@ -240,7 +240,14 @@ if (-not $hasMSVC) {
             Write-Host "Installing Visual Studio Build Tools with C++ workload..." -ForegroundColor Yellow
             winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
         }
-        Write-Host "Build Tools installation/modification initiated. Please wait for it to finish and restart your shell if necessary." -ForegroundColor Cyan
+        Write-Host "Build Tools installation/modification finished. Refreshing state..." -ForegroundColor Cyan
+        
+        # Re-check paths after installation
+        if (Test-Path $vswherePath) {
+            $vsInstallPath = &$vswherePath -latest -products * -property installationPath
+            $compCheck = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if ($compCheck) { $hasMSVC = $true }
+        }
     } else {
          Write-Host "Warning: Without C++ Build Tools, the Rust accelerator will fail to build." -ForegroundColor Red
     }
@@ -249,7 +256,7 @@ if (-not $hasMSVC) {
 }
 
 # --- MSVC Linker Auto-Discovery ---
-# Even if VS is installed, link.exe might not be in the PATH of the current session.
+# Re-run discovery to ensure we have the linker in the session PATH
 if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
     if (Test-Path $vswherePath) {
         $vsInstallPath = &$vswherePath -latest -products * -property installationPath
@@ -258,7 +265,6 @@ if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
             if (Test-Path $msvcBase) {
                 $latestMsvc = Get-ChildItem $msvcBase | Sort-Object Name -Descending | Select-Object -First 1
                 if ($latestMsvc) {
-                    # Prefer Hostx64\x64 for modern systems
                     $linkerPath = Join-Path $latestMsvc.FullName "bin\Hostx64\x64"
                     if (-not (Test-Path $linkerPath)) {
                         $linkerPath = Join-Path $latestMsvc.FullName "bin\Hostx64\x86"
@@ -271,7 +277,7 @@ if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
                     }
                 }
             } else {
-                Write-Host "Found Visual Studio but 'VC\Tools\MSVC' directory is missing. C++ components are likely not installed." -ForegroundColor Yellow
+                Write-Host "Found Visual Studio but 'VC\Tools\MSVC' directory is missing. C++ components may still be installing in the background." -ForegroundColor Yellow
             }
         }
     }
