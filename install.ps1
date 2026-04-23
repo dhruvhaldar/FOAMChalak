@@ -61,16 +61,18 @@ try {
     if ($vmpFeature -and $vmpFeature.State -ne "Enabled") { $missing += "VirtualMachinePlatform" }
 
     if ($missing.Count -gt 0) {
-        Write-Host "Required Windows Features are missing: $($missing -join ', ')" -ForegroundColor Yellow
-        $response = Read-Host "Would you like to enable these features now? (Requires REBOOT) [Y/N]"
+        Write-Host "Required Windows Features (WSL2) are missing." -ForegroundColor Yellow
+        $response = Read-Host "Would you like to automatically install WSL2 now? (Requires REBOOT) [Y/N]"
         if ($response -eq 'y' -or $response -eq 'Y') {
-            foreach ($f in $missing) {
-                Write-Host "Enabling $f..." -ForegroundColor Yellow
-                Enable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart
-            }
-            Write-Host "`nFeatures enabled successfully!" -ForegroundColor Green
-            Write-Host "You MUST RESTART your computer before Docker Desktop will work." -ForegroundColor Red
-            Read-Host "Press Enter to exit..."
+            Write-Host "Installing WSL2 components..." -ForegroundColor Yellow
+            # Modern way to install WSL and features
+            wsl --install --no-distribution
+            
+            Write-Host "`nWSL2 installation initiated!" -ForegroundColor Green
+            Write-Host "--- IMPORTANT ---" -ForegroundColor Red
+            Write-Host "You MUST RESTART your computer now." -ForegroundColor Red
+            Write-Host "After restarting, run this script again to finish the FOAMFlask setup." -ForegroundColor Red
+            Read-Host "Press ENTER to exit and then restart your PC manually"
             exit
         }
     } else {
