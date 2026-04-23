@@ -36,6 +36,51 @@ Write-Host "--- FOAMFlask Installer ---" -ForegroundColor Cyan
 Write-Host "GPLv3 License" -ForegroundColor Cyan
 Write-Host ""
 
+# --- Virtualization Check ---
+Write-Host "Checking system virtualization support..." -ForegroundColor Cyan
+try {
+    $virtEnabled = (Get-CimInstance Win32_Processor | Select-Object -First 1).VirtualizationFirmwareEnabled
+    if ($null -ne $virtEnabled -and -not $virtEnabled) {
+        Write-Host "CRITICAL: Hardware Virtualization (VT-x/AMD-V) is DISABLED in your BIOS/UEFI." -ForegroundColor Red
+        Write-Host "Docker Desktop cannot run without this enabled at the hardware level." -ForegroundColor Yellow
+        Write-Host "Action Needed: Restart your computer, enter BIOS/UEFI settings, and enable 'Virtualization Technology'." -ForegroundColor White
+    } else {
+        Write-Host "Hardware Virtualization is enabled." -ForegroundColor Green
+    }
+} catch {
+    Write-Host "Could not verify BIOS virtualization state via software. Please ensure VT-x/AMD-V is enabled in BIOS." -ForegroundColor Gray
+}
+
+# Check Windows Features (WSL2 / Virtual Machine Platform)
+try {
+    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName "Microsoft-Windows-Subsystem-Linux" -ErrorAction SilentlyContinue
+    $vmpFeature = Get-WindowsOptionalFeature -Online -FeatureName "VirtualMachinePlatform" -ErrorAction SilentlyContinue
+    
+    $missing = @()
+    if ($wslFeature -and $wslFeature.State -ne "Enabled") { $missing += "Microsoft-Windows-Subsystem-Linux" }
+    if ($vmpFeature -and $vmpFeature.State -ne "Enabled") { $missing += "VirtualMachinePlatform" }
+
+    if ($missing.Count -gt 0) {
+        Write-Host "Required Windows Features are missing: $($missing -join ', ')" -ForegroundColor Yellow
+        $response = Read-Host "Would you like to enable these features now? (Requires REBOOT) [Y/N]"
+        if ($response -eq 'y' -or $response -eq 'Y') {
+            foreach ($f in $missing) {
+                Write-Host "Enabling $f..." -ForegroundColor Yellow
+                Enable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart
+            }
+            Write-Host "`nFeatures enabled successfully!" -ForegroundColor Green
+            Write-Host "You MUST RESTART your computer before Docker Desktop will work." -ForegroundColor Red
+            Read-Host "Press Enter to exit..."
+            exit
+        }
+    } else {
+        Write-Host "Windows Virtualization features are enabled." -ForegroundColor Green
+    }
+} catch {
+    Write-Host "Could not verify Windows Features. If Docker fails, ensure 'WSL2' and 'Virtual Machine Platform' are enabled in 'Turn Windows features on or off'." -ForegroundColor Gray
+}
+Write-Host ""
+
 function Assert-WinGet {
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Host "Winget is missing, but is required to install dependencies." -ForegroundColor Red
