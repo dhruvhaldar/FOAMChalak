@@ -226,6 +226,32 @@ if (-not $hasMSVC) {
     Write-Host "C++ Build Tools found" -ForegroundColor Green
 }
 
+# --- MSVC Linker Auto-Discovery ---
+# Even if VS is installed, link.exe might not be in the PATH of the current session.
+if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
+    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswherePath) {
+        $vsInstallPath = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($vsInstallPath) {
+            $msvcBase = Join-Path $vsInstallPath "VC\Tools\MSVC"
+            if (Test-Path $msvcBase) {
+                $latestMsvc = Get-ChildItem $msvcBase | Sort-Object Name -Descending | Select-Object -First 1
+                if ($latestMsvc) {
+                    # Prefer Hostx64\x64 for modern systems
+                    $linkerPath = Join-Path $latestMsvc.FullName "bin\Hostx64\x64"
+                    if (-not (Test-Path $linkerPath)) {
+                        $linkerPath = Join-Path $latestMsvc.FullName "bin\Hostx64\x86"
+                    }
+                    if (Test-Path (Join-Path $linkerPath "link.exe")) {
+                        $env:Path = "$linkerPath;$env:Path"
+                        Write-Host "Auto-discovered MSVC Linker: $linkerPath" -ForegroundColor Gray
+                    }
+                }
+            }
+        }
+    }
+}
+
 # 3. Check & Install Rust (Cargo)
 if (Get-Command cargo -ErrorAction SilentlyContinue) {
     Write-Host "Rust (Cargo) found" -ForegroundColor Green
