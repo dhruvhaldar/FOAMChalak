@@ -101,7 +101,7 @@ def run_initial_setup_checks(
             dockerfile_path = Path(__file__).resolve().parent.parent / "Dockerfile"
 
             if dockerfile_path.exists():
-                msg = f"Docker image '{docker_image}' not found. Building from Dockerfile... (Warning: This may take a while)"
+                msg = f"Docker image '{docker_image}' not found.\nBuilding from Dockerfile... (Warning: This may take a while)"
                 logger.info(f"[FOAMFlask] {msg}")
                 print(f"INFO::[FOAMFlask] {msg}")
 
@@ -123,7 +123,7 @@ def run_initial_setup_checks(
                     raise build_err
 
             else:
-                msg = f"Docker image '{docker_image}' not found. Pulling now... (Warning: Large download, check for metered connection)"
+                msg = f"Docker image '{docker_image}' not found.\nPulling now... (Warning: Large download, check for metered connection)"
                 logger.info(f"[FOAMFlask] {msg}")
                 print(f"INFO::[FOAMFlask] {msg}") # Console output
 
