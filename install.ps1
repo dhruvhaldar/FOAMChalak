@@ -210,6 +210,18 @@ if (-not $hasMSVC) {
     if ($response -eq 'y' -or $response -eq 'Y') {
         Assert-WinGet
         
+        if ($existingPath) {
+            $cleanReinstall = Read-Host "Existing installation found. Perform a CLEAN REINSTALL? (Uninstalls old version first) [Y/N]"
+            if ($cleanReinstall -eq 'y' -or $cleanReinstall -eq 'Y') {
+                Write-Host "Uninstalling existing Build Tools..." -ForegroundColor Yellow
+                winget uninstall --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements
+                Write-Host "Waiting for cleanup..." -ForegroundColor Gray
+                Start-Sleep -Seconds 5
+                # Reset existingPath so it triggers a fresh install below
+                $existingPath = ""
+            }
+        }
+
         if ($existingPath -and (Test-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe")) {
             Write-Host "Found existing installation at $existingPath. Adding C++ workload..." -ForegroundColor Yellow
             $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
