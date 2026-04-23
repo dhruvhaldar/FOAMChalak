@@ -191,41 +191,49 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 # --- Visual Studio Build Tools (Required for Rust) ---
 $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $hasMSVC = $false
+$vsInstallPath = ""
 
 if (Test-Path $vswherePath) {
-    $msvcPath = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-    if ($msvcPath) { $hasMSVC = $true }
+    $vsInstallPath = &$vswherePath -latest -products * -property installationPath
+    if ($vsInstallPath) {
+        # Check if the specific C++ tools component is installed
+        $compCheck = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($compCheck) { $hasMSVC = $true }
+    }
 }
 
 if (-not $hasMSVC) {
-    Write-Host "C++ Build Tools not found. These are REQUIRED to build the Rust accelerator." -ForegroundColor Yellow
-    
-    # Check if we have an existing (potentially partial) installation that we can modify
-    $existingPath = ""
-    if (Test-Path $vswherePath) {
-        $existingPath = &$vswherePath -latest -products * -property installationPath
+    if ($vsInstallPath) {
+        Write-Host "Visual Studio found at $vsInstallPath, but C++ Build Tools component is MISSING." -ForegroundColor Yellow
+    } else {
+        Write-Host "C++ Build Tools not found. These are REQUIRED to build the Rust accelerator." -ForegroundColor Yellow
     }
-
+    
     $response = Read-Host "Would you like to install/fix Visual Studio Build Tools 2022? (Large download ~2GB) [Y/N]"
     if ($response -eq 'y' -or $response -eq 'Y') {
         Assert-WinGet
         
-        if ($existingPath) {
-            $cleanReinstall = Read-Host "Existing installation found. Perform a CLEAN REINSTALL? (Uninstalls old version first) [Y/N]"
+        # Check if winget thinks it's already there (even if vswhere is confused)
+        $wingetCheck = winget list --id Microsoft.VisualStudio.2022.BuildTools -e --source winget 2>&1
+        $wingetInstalled = $wingetCheck -like "*Microsoft.VisualStudio.2022.BuildTools*"
+
+        if ($vsInstallPath -or $wingetInstalled) {
+            Write-Host "An existing installation was detected." -ForegroundColor Cyan
+            $cleanReinstall = Read-Host "Perform a CLEAN REINSTALL? (Recommended if build is failing) [Y/N]"
             if ($cleanReinstall -eq 'y' -or $cleanReinstall -eq 'Y') {
                 Write-Host "Uninstalling existing Build Tools..." -ForegroundColor Yellow
                 winget uninstall --id Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements
                 Write-Host "Waiting for cleanup..." -ForegroundColor Gray
                 Start-Sleep -Seconds 5
-                # Reset existingPath so it triggers a fresh install below
-                $existingPath = ""
+                $vsInstallPath = ""
+                $wingetInstalled = $false
             }
         }
 
-        if ($existingPath -and (Test-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe")) {
-            Write-Host "Found existing installation at $existingPath. Adding C++ workload..." -ForegroundColor Yellow
+        if ($vsInstallPath -and (Test-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe")) {
+            Write-Host "Adding C++ workload to existing installation..." -ForegroundColor Yellow
             $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-            Start-Process -FilePath $vsInstaller -ArgumentList "modify --installPath `"$existingPath`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart" -Wait
+            Start-Process -FilePath $vsInstaller -ArgumentList "modify --installPath `"$vsInstallPath`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart" -Wait
         } else {
             Write-Host "Installing Visual Studio Build Tools with C++ workload..." -ForegroundColor Yellow
             winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
@@ -241,9 +249,8 @@ if (-not $hasMSVC) {
 # --- MSVC Linker Auto-Discovery ---
 # Even if VS is installed, link.exe might not be in the PATH of the current session.
 if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
-    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
     if (Test-Path $vswherePath) {
-        $vsInstallPath = &$vswherePath -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        $vsInstallPath = &$vswherePath -latest -products * -property installationPath
         if ($vsInstallPath) {
             $msvcBase = Join-Path $vsInstallPath "VC\Tools\MSVC"
             if (Test-Path $msvcBase) {
@@ -257,8 +264,12 @@ if (-not (Get-Command link -ErrorAction SilentlyContinue)) {
                     if (Test-Path (Join-Path $linkerPath "link.exe")) {
                         $env:Path = "$linkerPath;$env:Path"
                         Write-Host "Auto-discovered MSVC Linker: $linkerPath" -ForegroundColor Gray
+                    } else {
+                        Write-Host "Found MSVC directory but could not locate link.exe in $linkerPath" -ForegroundColor Yellow
                     }
                 }
+            } else {
+                Write-Host "Found Visual Studio but 'VC\Tools\MSVC' directory is missing. C++ components are likely not installed." -ForegroundColor Yellow
             }
         }
     }
