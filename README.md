@@ -51,9 +51,11 @@ Clone the repository and run the installer script. This will automatically check
 <summary><strong>Windows</strong></summary>
 
 ```powershell
-git clone https://github.com/dhruvhaldar/FOAMFlask
-cd FOAMFlask
+# 1. One-time setup and build
 .\install.ps1
+
+# 2. Run the application
+.\run.ps1
 ```
 </details>
 
@@ -98,6 +100,7 @@ If you prefer to manage the environment yourself:
 
 Windows
 ```powershell
+# Run the application after installation
 .\run.ps1
 ```
 

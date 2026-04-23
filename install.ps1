@@ -455,9 +455,41 @@ Write-Host "Building Frontend..." -ForegroundColor Cyan
 pnpm install
 pnpm run build
 
-# 7. Launch Application
+# 7. Final Verification (Dry Run)
 Write-Host "Installation Complete!" -ForegroundColor Cyan
-Write-Host "Starting FOAMFlask..." -ForegroundColor Green
-Write-Host "Access the app at: http://localhost:5000"
+Write-Host "Performing final environment verification..." -ForegroundColor Cyan
 
-uv run app.py
+$success = $true
+
+# Check Python Environment
+if (-not (Test-Path ".venv\Scripts\python.exe")) {
+    Write-Host "[FAIL] Python virtual environment missing." -ForegroundColor Red
+    $success = $false
+} else {
+    Write-Host "[OK] Python virtual environment verified." -ForegroundColor Green
+}
+
+# Check Frontend Assets
+if (-not (Test-Path "static/js/foamflask_frontend.js")) {
+    Write-Host "[FAIL] Frontend build artifacts missing." -ForegroundColor Red
+    $success = $false
+} else {
+    Write-Host "[OK] Frontend build artifacts verified." -ForegroundColor Green
+}
+
+# Check Docker (Non-blocking check)
+if (docker version 2>&1 | Select-String "Server:") {
+    Write-Host "[OK] Docker engine is ready." -ForegroundColor Green
+} else {
+    Write-Host "[WARNING] Docker engine is not yet responsive. Ensure Docker Desktop is running." -ForegroundColor Yellow
+}
+
+if ($success) {
+    Write-Host "`nSetup verified successfully!" -ForegroundColor Green
+    Write-Host "--------------------------------------------------" -ForegroundColor White
+    Write-Host "To start the application, run:" -ForegroundColor White
+    Write-Host ".\run.ps1" -ForegroundColor Cyan
+    Write-Host "--------------------------------------------------" -ForegroundColor White
+} else {
+    Write-Host "`nSetup failed verification. Please check the errors above." -ForegroundColor Red
+}
