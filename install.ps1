@@ -12,6 +12,10 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit
 }
 
+# --- Directory Context ---
+# Ensure we are running from the script's directory (important after elevation which defaults to System32)
+Set-Location $PSScriptRoot
+
 Write-Host ""
 # 0. Early Sandbox Detection
 if ($env:USERNAME -eq 'WDAGUtilityAccount' -and -not $SkipSandboxCheck) {
