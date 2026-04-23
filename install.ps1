@@ -69,7 +69,11 @@ function Assert-WinGetSuccess {
         0x8A15007B,   # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE (already up-to-date)
         3010          # ERROR_SUCCESS_REBOOT_REQUIRED (installed, reboot needed)
     )
-    if ($LASTEXITCODE -notin $benignCodes) {
+    if ($LASTEXITCODE -eq -1978335189) {
+        Write-Host "Error: winget could not reach its package sources (Network/CDN issue)." -ForegroundColor Red
+        Write-Host "Try running 'winget source update' in a separate terminal, then restart this installer." -ForegroundColor Yellow
+    }
+    elseif ($LASTEXITCODE -notin $benignCodes) {
         Write-Host "Warning: winget returned unexpected code $LASTEXITCODE for '$PackageName'." -ForegroundColor Yellow
     }
 }
