@@ -3,13 +3,35 @@
 
 # Ensure uv is installed and in the PATH
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    # Check if it's in the default local bin folder (installed by install.ps1)
     $uvPath = "$env:USERPROFILE\.local\bin\uv.exe"
     if (Test-Path $uvPath) {
         $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
     } else {
         Write-Host "Error: 'uv' not found. Please run .\install.ps1 first to set up the environment." -ForegroundColor Red
         exit 1
+    }
+}
+
+# --- Docker Auto-Start ---
+# Check if Docker is running
+if (-not (docker version 2>&1 | Select-String "Server:")) {
+    Write-Host "Docker is not running. Attempting to start Docker Desktop..." -ForegroundColor Yellow
+    # Try to find Docker Desktop installation path from Registry
+    $dockerReg = Get-ItemProperty "HKLM:\SOFTWARE\Docker Inc.\Docker\1.0" -ErrorAction SilentlyContinue
+    if ($dockerReg -and $dockerReg.InstallPath) {
+        $dockerExe = Join-Path $dockerReg.InstallPath "Docker Desktop.exe"
+    } else {
+        # Fallback to default
+        $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    }
+    
+    if (Test-Path $dockerExe) {
+        Start-Process -FilePath $dockerExe
+        Write-Host "Docker Desktop launch initiated. Waiting for startup..." -ForegroundColor Cyan
+        # Give it a few seconds to at least start the process before moving on
+        Start-Sleep -Seconds 20
+    } else {
+        Write-Host "Warning: Docker Desktop executable not found at $dockerExe. Please start it manually." -ForegroundColor Yellow
     }
 }
 

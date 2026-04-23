@@ -233,7 +233,15 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
          }
     }
     Write-Host "Docker installed. Starting Docker Desktop in the background..." -ForegroundColor Yellow
-    $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    # Try to find Docker Desktop installation path from Registry
+    $dockerReg = Get-ItemProperty "HKLM:\SOFTWARE\Docker Inc.\Docker\1.0" -ErrorAction SilentlyContinue
+    if ($dockerReg -and $dockerReg.InstallPath) {
+        $dockerExe = Join-Path $dockerReg.InstallPath "Docker Desktop.exe"
+    } else {
+        # Fallback to default
+        $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    }
+    
     if (Test-Path $dockerExe) {
         Start-Process -FilePath $dockerExe
         

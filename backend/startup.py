@@ -74,7 +74,10 @@ def run_initial_setup_checks(
                     logger.error(f"[FOAMFlask] {msg}")
                     return {"status": "failed", "message": msg}
                 else:
-                    msg = f"Docker is installed but not running or not accessible: {e}"
+                    if "createfile" in err_str and "system cannot find the file specified" in err_str:
+                        msg = "Docker Desktop is NOT running. Please launch Docker Desktop from your Start Menu and wait for the 'running' status."
+                    else:
+                        msg = f"Docker is installed but not running or not accessible: {e}"
                     if os.environ.get("FOAMFLASK_SANDBOX_MODE"):
                         logger.warning(f"[FOAMFlask] Sandbox Mode: {msg} Still proceeding...")
                         save_config_func({"initial_setup_done": True, "sandbox_mode": True})
