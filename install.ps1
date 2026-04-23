@@ -2,6 +2,15 @@ param(
     [switch]$SkipSandboxCheck
 )
 
+# --- Elevation Check ---
+# This script must run as Administrator to install system-level dependencies (Docker, Node, MSVC)
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "This script needs to be run as Administrator to install system dependencies." -ForegroundColor Yellow
+    Write-Host "Attempting to restart with elevated privileges..." -ForegroundColor Cyan
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+
 Write-Host ""
 # 0. Early Sandbox Detection
 if ($env:USERNAME -eq 'WDAGUtilityAccount' -and -not $SkipSandboxCheck) {
@@ -121,6 +130,14 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     Assert-WinGet
     Write-Host "Docker not found. Installing Docker Desktop..." -ForegroundColor Yellow
     Write-Host "(Docker Desktop is required on Windows to provide the Linux kernel environment and file-sharing integration needed to run OpenFOAM containers.)" -ForegroundColor Gray
+    
+    # Fix for common "C:\ProgramData\DockerDesktop must be owned by an elevated account" error
+    $programDataDocker = "C:\ProgramData\DockerDesktop"
+    if (Test-Path $programDataDocker) {
+        Write-Host "Cleaning up existing Docker metadata to prevent ownership errors..." -ForegroundColor Gray
+        Remove-Item -Path $programDataDocker -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     winget install Docker.DockerDesktop -e --source winget --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) {
          Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
