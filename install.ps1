@@ -73,6 +73,7 @@ try {
             Write-Host "You MUST RESTART your computer now." -ForegroundColor Red
             Write-Host "After restarting, run this script again to finish the FOAMFlask setup." -ForegroundColor Red
             Read-Host "Press ENTER to exit and then restart your PC manually"
+            Read-Host "After restarting, you can manually run Docker Desktop to verify that it launches successfully."
             exit
         }
     } else {
