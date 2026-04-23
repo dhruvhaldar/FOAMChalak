@@ -184,6 +184,23 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     if (Test-Path $dockerExe) {
         Start-Process -FilePath $dockerExe
+        
+        # Wait for Docker to actually be responsive
+        Write-Host "Waiting for Docker Engine to be ready (this may take a minute)..." -ForegroundColor Yellow
+        $dockerReady = $false
+        for ($i = 0; $i -lt 20; $i++) {
+            if (docker version 2>&1 | Select-String "Server:") {
+                $dockerReady = $true
+                break
+            }
+            Write-Host "." -NoNewline -ForegroundColor Gray
+            Start-Sleep -Seconds 5
+        }
+        if ($dockerReady) {
+            Write-Host "`nDocker Engine is ready!" -ForegroundColor Green
+        } else {
+            Write-Host "`nDocker Engine is still starting. You may need to wait a moment before running FOAMFlask." -ForegroundColor Yellow
+        }
     } else {
         Write-Host "Could not find Docker Desktop executable. Please start it manually." -ForegroundColor Red
     }
