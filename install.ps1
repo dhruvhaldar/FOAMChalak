@@ -39,16 +39,20 @@ Write-Host ""
 # --- Virtualization Check ---
 Write-Host "Checking system virtualization support..." -ForegroundColor Cyan
 try {
+    $compSystem = Get-CimInstance Win32_ComputerSystem | Select-Object -First 1
     $virtEnabled = (Get-CimInstance Win32_Processor | Select-Object -First 1).VirtualizationFirmwareEnabled
-    if ($null -ne $virtEnabled -and -not $virtEnabled) {
+    
+    if ($compSystem.HypervisorPresent) {
+        Write-Host "Virtualization is active (Hypervisor detected)." -ForegroundColor Green
+    } elseif ($null -ne $virtEnabled -and -not $virtEnabled) {
         Write-Host "CRITICAL: Hardware Virtualization (VT-x/AMD-V) is DISABLED in your BIOS/UEFI." -ForegroundColor Red
         Write-Host "Docker Desktop cannot run without this enabled at the hardware level." -ForegroundColor Yellow
         Write-Host "Action Needed: Restart your computer, enter BIOS/UEFI settings, and enable 'Virtualization Technology'." -ForegroundColor White
     } else {
-        Write-Host "Hardware Virtualization is enabled." -ForegroundColor Green
+        Write-Host "Hardware Virtualization is likely enabled." -ForegroundColor Green
     }
 } catch {
-    Write-Host "Could not verify BIOS virtualization state via software. Please ensure VT-x/AMD-V is enabled in BIOS." -ForegroundColor Gray
+    Write-Host "Could not verify virtualization state via software. Please ensure VT-x/AMD-V is enabled in BIOS." -ForegroundColor Gray
 }
 
 # Check Windows Features (WSL2 / Virtual Machine Platform)

@@ -21,6 +21,10 @@ Write-Host "Logs are being written to: app.log"
 Write-Host "Press Ctrl+C to stop the server."
 Write-Host ""
 
-# Run the application using python -m app as per project architecture guidelines
-# We use Tee-Object to show output in the console and also save to a log file
-uv run python -m app 2>&1 | Tee-Object -FilePath app.log
+# Set Docker context to default to ensure we look for the correct named pipe
+# This fixes "The system cannot find the file specified" errors if the context was swapped
+docker context use default 2>$null | Out-Null
+
+# Run the application using python -m app
+# We use --no-python-downloads to ensure we use the local environment
+uv run python -m app
