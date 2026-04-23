@@ -190,12 +190,26 @@ if (Test-Path $vswherePath) {
 
 if (-not $hasMSVC) {
     Write-Host "C++ Build Tools not found. These are REQUIRED to build the Rust accelerator." -ForegroundColor Yellow
-    $response = Read-Host "Would you like to install Visual Studio Build Tools 2022? (Large download ~2GB) [Y/N]"
+    
+    # Check if we have an existing (potentially partial) installation that we can modify
+    $existingPath = ""
+    if (Test-Path $vswherePath) {
+        $existingPath = &$vswherePath -latest -products * -property installationPath
+    }
+
+    $response = Read-Host "Would you like to install/fix Visual Studio Build Tools 2022? (Large download ~2GB) [Y/N]"
     if ($response -eq 'y' -or $response -eq 'Y') {
         Assert-WinGet
-        Write-Host "Installing Visual Studio Build Tools with C++ workload..." -ForegroundColor Yellow
-        winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
-        Write-Host "Build Tools installation initiated. Please wait for it to finish and restart your shell if necessary." -ForegroundColor Cyan
+        
+        if ($existingPath -and (Test-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe")) {
+            Write-Host "Found existing installation at $existingPath. Adding C++ workload..." -ForegroundColor Yellow
+            $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+            Start-Process -FilePath $vsInstaller -ArgumentList "modify --installPath `"$existingPath`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart" -Wait
+        } else {
+            Write-Host "Installing Visual Studio Build Tools with C++ workload..." -ForegroundColor Yellow
+            winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
+        }
+        Write-Host "Build Tools installation/modification initiated. Please wait for it to finish and restart your shell if necessary." -ForegroundColor Cyan
     } else {
          Write-Host "Warning: Without C++ Build Tools, the Rust accelerator will fail to build." -ForegroundColor Red
     }
