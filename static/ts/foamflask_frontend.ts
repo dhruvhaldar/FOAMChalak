@@ -4122,40 +4122,59 @@ const loadContourVTK = async () => {
 
 // Check startup status
 const checkStartupStatus = async (): Promise<void> => {
+  // First check without showing modal to avoid flicker if already done
+  try {
+    const response = await fetch("/api/startup_status");
+    const data = await response.json();
+    if (data.status === "completed") return;
+  } catch (e) {
+    // If request fails, we probably need the modal to show something is wrong
+  }
+
   const modal = document.createElement("div");
   modal.id = "startup-modal";
   modal.className = "fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50";
   modal.innerHTML = `
     <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
-      <div class="mb-4"><svg aria-hidden="true" class="animate-spin h-10 w-10 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
+      <div class="mb-4"><svg aria-hidden="true" class="animate-spin h-10 w-10 text-cyan-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
       <h2 class="text-xl font-bold mb-2">System Check</h2>
       <p id="startup-message" class="text-gray-600">Checking Docker permissions...</p>
+      <p class="text-xs text-gray-400 mt-4">This only happens on the first run or if Docker is restarting.</p>
     </div>
   `;
   document.body.appendChild(modal);
 
-  const pollStatus = async () => {
-    try {
-      const response = await fetch("/api/startup_status");
-      const data = await response.json();
-      const messageEl = document.getElementById("startup-message");
-      if (messageEl) messageEl.textContent = data.message;
-      if (data.status === "completed") {
-        modal.remove();
-        return;
-      } else if (data.status === "failed") {
-        if (messageEl) {
-          messageEl.className = "text-red-600";
-          messageEl.textContent = `Error: ${data.message}. Please check server logs.`;
+  return new Promise((resolve) => {
+    const pollStatus = async () => {
+      try {
+        const response = await fetch("/api/startup_status");
+        const data = await response.json();
+        const messageEl = document.getElementById("startup-message");
+        if (messageEl) messageEl.textContent = data.message;
+        
+        if (data.status === "completed") {
+          modal.remove();
+          // ⚡ Bolt Optimization: If we had to wait, reload the page to fetch tutorials/cases that are now ready
+          window.location.reload();
+          return;
+        } else if (data.status === "failed") {
+          if (messageEl) {
+            messageEl.className = "text-red-600 font-bold";
+            messageEl.textContent = `Error: ${data.message}`;
+            const subMessage = document.createElement("p");
+            subMessage.className = "text-sm text-gray-500 mt-2";
+            subMessage.textContent = "Please check server logs and restart the application.";
+            messageEl.parentElement?.appendChild(subMessage);
+          }
+          return; // Stop polling on failure
         }
-        return;
+        setTimeout(pollStatus, 2000);
+      } catch (e) {
+        setTimeout(pollStatus, 5000);
       }
-      setTimeout(pollStatus, 1000);
-    } catch (e) {
-      setTimeout(pollStatus, 5000);
-    }
-  };
-  await pollStatus();
+    };
+    pollStatus();
+  });
 };
 
 // Initialize

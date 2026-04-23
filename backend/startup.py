@@ -130,7 +130,27 @@ def run_initial_setup_checks(
                 if status_callback:
                     status_callback(msg)
 
-                client.images.pull(docker_image)
+                import json
+                # Use the lower-level API to get progress updates
+                logger.info(f"[FOAMFlask] Starting pull for {docker_image}")
+                last_progress_update = 0
+                for line in client.api.pull(docker_image, stream=True, decode=True):
+                    status = line.get('status')
+                    progress = line.get('progress')
+                    
+                    if status == 'Downloading' or status == 'Extracting':
+                        # Throttle updates to avoid flooding the frontend/logs
+                        import time
+                        current_time = time.time()
+                        if current_time - last_progress_update > 2: # Every 2 seconds
+                            msg = f"Docker Image: {status}... {progress or ''}"
+                            if status_callback:
+                                status_callback(msg)
+                            last_progress_update = current_time
+                    elif status == 'Pull complete' or status == 'Already exists':
+                         msg = f"Docker Image: {status}"
+                         if status_callback: status_callback(msg)
+
                 logger.info(f"[FOAMFlask] Image {docker_image} pulled successfully.")
 
     except Exception as e:

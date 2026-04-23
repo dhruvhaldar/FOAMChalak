@@ -724,6 +724,11 @@ def get_tutorials() -> Tuple[List[str], Optional[str]]:
             return data, None
 
     try:
+        # ⚡ Bolt Optimization: Don't block listing if the system check is still running (e.g. pulling image)
+        if not is_api_ready():
+            logger.debug("[FOAMFlask] System not ready, skipping tutorial fetch to avoid blocking")
+            return [], "System is still initializing. Please wait..."
+
         client = get_docker_client()
         if client is None:
             logger.warning("[FOAMFlask] Docker not available, cannot fetch tutorials")
@@ -925,7 +930,13 @@ def index() -> str:
             COMPILED_TEMPLATE = app.jinja_env.from_string(TEMPLATE)
         current_template = COMPILED_TEMPLATE
 
-    tutorials, error = get_tutorials()
+    # ⚡ Bolt Optimization: Don't block the main page load if system isn't ready
+    # This ensures the user sees the 'System Check' modal instead of a blank screen
+    if is_api_ready():
+        tutorials, error = get_tutorials()
+    else:
+        tutorials, error = [], None
+        
     # 🎨 Palette UX: Group tutorials by category
     # ⚡ Bolt Optimization: Use cached generator (requires tuple)
     options_html = generate_grouped_tutorial_options(tuple(tutorials))
