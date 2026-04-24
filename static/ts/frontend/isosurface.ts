@@ -355,7 +355,7 @@ export async function loadContourMesh(vtkFilePath: string): Promise<void> {
         console.error('[FOAMFlask] [loadContourMesh] Error:', error);
         if (typeof showNotification === 'function') {
             const message = error instanceof Error ? error.message : String(error);
-            showNotification(`Error loading mesh: ${message}`, 'error');
+            showNotification(`Error loading mesh: ${message}`, 'error', 0);
         }
     }
 }
@@ -566,7 +566,8 @@ function handleContourError(
     if (typeof showNotification === 'function') {
         // Sanitize message to avoid selector errors if it contains quotes
         const safeMessage = errorMessage.replace(/["']/g, '');
-        showNotification(safeMessage, 'error', 5000);
+        // 🏗️ Architectural Decision: Error notifications for post-processing should be persistent (duration=0)
+        showNotification(safeMessage, 'error', 0);
     }
 
     if (viewer) {
