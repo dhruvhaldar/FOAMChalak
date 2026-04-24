@@ -899,22 +899,50 @@ const downloadPlotAsPNG = async (
       return;
     }
 
-    // Await the image generation
-    const dataUrl = await Plotly.toImage(plotDiv, {
-      format: "png",
-      width: plotDiv.offsetWidth,
-      height: plotDiv.offsetHeight,
-      scale: 2, // Higher resolution
-    });
+    // 🎨 Palette UX: Choice Modal for Background Style
+    const choice = await showExportModal(
+      "Export Plot",
+      "Choose a background style for your plot image. White backgrounds are often better for reports."
+    );
+    if (!choice) return; // User cancelled
 
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const isWhite = choice === "white";
 
-    if (btnElement) showNotification("Download started", "success", 1500);
+    // ⚡ Bolt Optimization: If white background is requested, temporarily relayout
+    // This is more reliable than the bgcolor option in toImage which can be overridden by paper_bgcolor
+    if (isWhite) {
+      await Plotly.relayout(plotDiv, {
+        paper_bgcolor: "white",
+        plot_bgcolor: "white"
+      });
+    }
+
+    try {
+      // Await the image generation
+      const dataUrl = await Plotly.toImage(plotDiv, {
+        format: "png",
+        width: plotDiv.offsetWidth,
+        height: plotDiv.offsetHeight,
+        scale: 2 // Higher resolution
+      });
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (btnElement) showNotification("Download started", "success", 1500);
+    } finally {
+      // Restore transparency
+      if (isWhite) {
+        await Plotly.relayout(plotDiv, {
+          paper_bgcolor: "rgba(255,255,255,0)",
+          plot_bgcolor: "rgba(255,255,255,0)"
+        });
+      }
+    }
 
   } catch (err: any) {
     console.error("Error downloading plot:", err);
@@ -1171,6 +1199,61 @@ const toggleMobileMenu = () => {
 (window as any).toggleMobileMenu = toggleMobileMenu;
 
 // Show notification
+// 🎨 Palette UX: Plot Export Modal (Special Choice Modal)
+const showExportModal = (title: string, message: string): Promise<"transparent" | "white" | null> => {
+  return new Promise((resolve) => {
+    const previousActiveElement = document.activeElement as HTMLElement;
+
+    const modal = document.createElement("div");
+    modal.className = "fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm transition-opacity opacity-0";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+
+    modal.innerHTML = `
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200">
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
+          <p class="text-gray-600 mb-6">${message}</p>
+          <div class="flex flex-col sm:flex-row justify-end gap-3">
+            <button id="export-transparent" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">Transparent</button>
+            <button id="export-white" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 shadow-sm">White Background</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    requestAnimationFrame(() => {
+      modal.classList.remove("opacity-0");
+      modal.querySelector("div")?.classList.remove("scale-95");
+      modal.querySelector("div")?.classList.add("scale-100");
+    });
+
+    const close = (result: "transparent" | "white" | null) => {
+      modal.classList.add("opacity-0");
+      setTimeout(() => modal.remove(), 200);
+      resolve(result);
+      document.removeEventListener("keydown", handleKey);
+      if (previousActiveElement?.focus) previousActiveElement.focus();
+    };
+
+    const transBtn = modal.querySelector("#export-transparent") as HTMLElement;
+    const whiteBtn = modal.querySelector("#export-white") as HTMLElement;
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close(null);
+    };
+
+    transBtn.onclick = () => close("transparent");
+    whiteBtn.onclick = () => close("white");
+    modal.onclick = (e) => { if (e.target === modal) close(null); };
+
+    document.addEventListener("keydown", handleKey);
+    whiteBtn.focus();
+  });
+};
+
 const showNotification = (
   message: string,
   type: "success" | "error" | "warning" | "info" = "info",
