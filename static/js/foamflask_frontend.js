@@ -596,7 +596,7 @@ const plotLayout = {
     plot_bgcolor: "rgba(255, 255, 255, 0)",
     paper_bgcolor: "rgba(255, 255, 255, 0)",
     margin: {
-        l: 60,
+        l: 50,
         r: 20,
         t: 60,
         b: 80,
@@ -2027,7 +2027,7 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
                         ...plotLayout.yaxis,
                         title: {
                             text: "Residual",
-                            standoff: 35
+                            standoff: 20
                         },
                         type: "log",
                         showline: true,
@@ -2235,7 +2235,7 @@ const updatePlots = async (injectedData)=>{
                     ...plotLayout.yaxis,
                     title: {
                         text: "Pressure (Pa)",
-                        standoff: 35
+                        standoff: 20
                     }
                 }
             }, config).catch((err)=>{
@@ -2330,7 +2330,7 @@ const updatePlots = async (injectedData)=>{
                     ...plotLayout.yaxis,
                     title: {
                         text: "Velocity (m/s)",
-                        standoff: 35
+                        standoff: 20
                     }
                 }
             }, config);
@@ -2411,7 +2411,7 @@ const updatePlots = async (injectedData)=>{
                         ...plotLayout.yaxis,
                         title: {
                             text: "Value",
-                            standoff: 35
+                            standoff: 20
                         }
                     }
                 }, config);
