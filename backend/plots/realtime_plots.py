@@ -154,11 +154,15 @@ class OpenFOAMFieldParser:
         self.data_root = self.case_dir
         
         # Check for parallel case
-        if not any(self.case_dir.glob("[0-9]*")):
-            proc0 = self.case_dir / "processor0"
-            if proc0.is_dir():
-                self.is_parallel = True
-                self.data_root = proc0
+        # ⚡ Bolt Optimization: Prioritize processor0 if it exists, as it's the source of truth for parallel runs.
+        # The previous check for any number-named directory in root was too aggressive and failed for cases with a '0' directory.
+        proc0 = self.case_dir / "processor0"
+        if proc0.is_dir():
+            self.is_parallel = True
+            self.data_root = proc0
+        else:
+            self.is_parallel = False
+            self.data_root = self.case_dir
 
 
     def get_time_directories(self, known_mtime: Optional[float] = None) -> List[str]:
