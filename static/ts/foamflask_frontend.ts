@@ -1407,10 +1407,14 @@ const fetchWithCache = async <T = any>(
     }
   }
 
-  if (abortControllers.has(url)) abortControllers.get(url)?.abort();
+  if (abortControllers.has(url)) {
+    console.log(`[FOAMFlask] fetchWithCache: Aborting previous request for ${url}`);
+    abortControllers.get(url)?.abort();
+  }
   const controller = new AbortController();
   abortControllers.set(url, controller);
 
+  console.log(`[FOAMFlask] fetchWithCache: Starting fetch for ${url}`);
   try {
     // 2. Prepare headers for Conditional GET
     // ⚡ Bolt Optimization: Use manual Conditional GET to avoid JSON parsing for 304 responses
@@ -1961,10 +1965,14 @@ const fetchRunHistory = async (btnElement?: HTMLElement) => {
 const runCommand = async (cmd: string, btnElement?: HTMLElement): Promise<void> => {
   if (!cmd) { showNotification("No command specified", "error"); return; }
 
-  // Use tutorial select if activeCase is not set, or prefer tutorial select for "Run" tab
-  const selectedTutorial = (document.getElementById("tutorialSelect") as HTMLSelectElement)?.value || activeCase;
+  // 🏗️ Architectural Decision: Prioritize activeCase for running commands.
+  // tutorialSelect is only for importing.
+  const selectedTutorial = activeCase || (document.getElementById("tutorialSelect") as HTMLSelectElement)?.value;
 
-  if (!selectedTutorial) { showNotification("Select case and command", "error"); return; }
+  if (!selectedTutorial) {
+    showNotification("Please select an active case first (Setup tab)", "error");
+    return;
+  }
 
   let originalText = "";
   const btn = btnElement as HTMLButtonElement;
@@ -2108,8 +2116,16 @@ const toggleAeroPlots = (): void => {
 };
 
 const startPlotUpdates = (): void => {
-  const selectedTutorial = (document.getElementById("tutorialSelect") as HTMLSelectElement)?.value;
-  if (!selectedTutorial) return;
+  // 🏗️ Architectural Decision: Prioritize activeCase for plots.
+  // tutorialSelect is only for importing.
+  let selectedTutorial = activeCase || (document.getElementById("tutorialSelect") as HTMLSelectElement)?.value;
+  
+  if (!selectedTutorial) {
+    console.warn("[FOAMFlask] startPlotUpdates: No active case or tutorial, aborting.");
+    return;
+  }
+
+  console.log("[FOAMFlask] startPlotUpdates: tutorial =", selectedTutorial);
 
   // Flask-Only: Use polling directly
   updatePlots();
@@ -2416,14 +2432,21 @@ const updateAeroPlots = async (preFetchedData?: PlotData): Promise<void> => {
 };
 
 const updatePlots = async (injectedData?: PlotData): Promise<void> => {
-  const selectedTutorial = (
-    document.getElementById("tutorialSelect") as HTMLSelectElement
-  )?.value;
-  console.log("DEBUG: updatePlots polling for tutorial:", selectedTutorial); // Debug log
-  if (!selectedTutorial || isUpdatingPlots) {
-    if (!selectedTutorial) console.warn("DEBUG: No tutorial selected, skipping update.");
+  // 🏗️ Architectural Decision: Prioritize activeCase for plots.
+  // tutorialSelect is only for importing.
+  let selectedTutorial = activeCase || (document.getElementById("tutorialSelect") as HTMLSelectElement)?.value;
+  
+  if (!selectedTutorial) {
+    console.warn("[FOAMFlask] updatePlots: No active case or tutorial, skipping update.");
     return;
   }
+  
+  if (isUpdatingPlots) {
+    console.log("[FOAMFlask] updatePlots: Update already in progress, skipping.");
+    return;
+  }
+
+  console.log("[FOAMFlask] updatePlots: Starting update for:", selectedTutorial);
 
   // ⚡ Bolt Optimization: Lazy load Plotly
   try {
@@ -2443,6 +2466,8 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
         `/api/plot_data?tutorial=${encodeURIComponent(selectedTutorial)}`
       );
     }
+
+    console.log("[FOAMFlask] updatePlots: Data received:", data);
 
     if (data.error) {
       console.error("FOAMFlask Error fetching plot data", data.error);
@@ -2693,11 +2718,13 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
       lastErrorNotificationTime = currentTime;
     }
   } finally {
+    console.log("[FOAMFlask] updatePlots: Finally block reached, clearing isUpdatingPlots.");
     isUpdatingPlots = false;
 
     // FIX: Hide loader after update completes
     const loader = document.getElementById("plotsLoading");
     if (loader && !loader.classList.contains("hidden")) {
+      console.log("[FOAMFlask] updatePlots: Hiding plotsLoading loader.");
       loader.classList.add("hidden");
     }
 
@@ -4156,6 +4183,7 @@ const checkStartupStatus = async (): Promise<void> => {
           modal.remove();
           // ⚡ Bolt Optimization: If we had to wait, reload the page to fetch tutorials/cases that are now ready
           window.location.reload();
+          resolve(); // Resolve promise after reload trigger
           return;
         } else if (data.status === "failed") {
           if (messageEl) {
@@ -4166,10 +4194,12 @@ const checkStartupStatus = async (): Promise<void> => {
             subMessage.textContent = "Please check server logs and restart the application.";
             messageEl.parentElement?.appendChild(subMessage);
           }
+          resolve(); // Resolve even on failure to allow init to continue (it will likely fail later)
           return; // Stop polling on failure
         }
         setTimeout(pollStatus, 2000);
       } catch (e) {
+        console.error("[FOAMFlask] Startup status poll failed:", e);
         setTimeout(pollStatus, 5000);
       }
     };
