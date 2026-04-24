@@ -899,8 +899,8 @@ const switchPage = (pageName, updateUrl = true)=>{
                 }
                 if (!plotsContainer.hasAttribute("data-initialized")) {
                     plotsContainer.setAttribute("data-initialized", "true");
-                    if (!plotUpdateInterval) startPlotUpdates();
                 }
+                if (!plotUpdateInterval) startPlotUpdates();
             }
             const aeroBtn = document.getElementById("toggleAeroBtn");
             if (aeroBtn) aeroBtn.classList.remove("hidden");
