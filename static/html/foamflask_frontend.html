@@ -1311,6 +1311,43 @@
 
     <!-- Run Page -->
     <div id="page-run" class="page hidden max-w-4xl mx-auto glass rounded-lg p-6 flex flex-col gap-6">
+      
+      <!-- Parallel Configuration Section -->
+      <div class="glass-panel p-4 rounded-lg border border-cyan-100 bg-cyan-50/30">
+        <h3 class="text-lg font-semibold mb-3 text-cyan-900 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3.005 3.005 0 013.75-2.906z" />
+          </svg>
+          Parallel Configuration
+        </h3>
+        <div class="flex flex-col sm:flex-row items-end gap-4">
+          <div class="flex-1">
+            <label for="numProcesses" class="block text-sm font-medium text-gray-700 mb-1">Number of Processes</label>
+            <div class="relative">
+              <input type="number" id="numProcesses" min="1" max="128" value="1"
+                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 sm:text-sm pl-3 pr-10 py-2 border"
+                aria-describedby="num-processes-hint">
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">cores</span>
+              </div>
+            </div>
+            <p id="num-processes-hint" class="mt-1.5 text-xs text-gray-500">
+              Recommended: <strong>1</strong> to <strong>{{ physical_cores }}</strong> (Physical cores)
+              <br>
+              <span class="opacity-75">Max available: {{ cpu_count }} (Logical processors)</span>
+            </p>
+          </div>
+          <div class="flex-shrink-0 flex flex-col items-end gap-2 pb-1">
+             <div id="detectedParallelConfig" class="hidden text-xs font-medium px-3 py-1.5 bg-cyan-100/50 rounded-full border border-cyan-200 text-cyan-800 animate-pulse-slow">
+               Detected: <strong id="detectedNumProcesses">-</strong> cores (<span id="detectedMethod">-</span>)
+             </div>
+             <span class="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 bg-white/50 rounded-full border border-gray-200 text-gray-400">
+               Auto-method: <strong>scotch</strong>
+             </span>
+          </div>
+        </div>
+      </div>
+
       <!-- Run Commands Section -->
       <div class="my-4">
         <h3 class="text-xl font-semibold mb-2 text-black">

@@ -273,3 +273,48 @@ nu              [0 2 -1 0 0 0 0] 1e-05;
                 f.write(content)
         except FileExistsError:
             pass
+    @staticmethod
+    def update_decomposition(case_path: Union[str, Path], num_processes: int) -> Dict[str, Union[bool, str]]:
+        """
+        Updates the decomposeParDict in the case directory.
+
+        Args:
+            case_path: Path to the case directory.
+            num_processes: Number of subdomains to use.
+
+        Returns:
+            Dictionary with success status and message.
+        """
+        try:
+            path = Path(case_path).resolve()
+            dict_path = path / "system" / "decomposeParDict"
+
+            if not dict_path.exists():
+                return {"success": False, "message": "decomposeParDict not found in system directory."}
+
+            with dict_path.open("r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Update numberOfSubdomains
+            import re
+            content = re.sub(r"(numberOfSubdomains\s+)\d+;", rf"\g<1>{num_processes};", content)
+
+            # Change method/decomposer to scotch if it's hierarchical or simple, 
+            # as scotch is more robust for arbitrary process counts.
+            # Handle both 'method' and 'decomposer' (OpenFOAM versions vary)
+            if re.search(r"(method|decomposer)\s+\w+;", content):
+                content = re.sub(r"((?:method|decomposer)\s+)\w+;", r"\g<1>scotch;", content)
+            else:
+                # If no method/decomposer line, add it
+                if "numberOfSubdomains" in content:
+                    content = re.sub(r"(numberOfSubdomains\s+\d+;)", r"\1\n\nmethod          scotch;", content)
+
+            with dict_path.open("w", encoding="utf-8") as f:
+                f.write(content)
+
+            logger.info(f"[FOAMFlask] Updated decomposition to {num_processes} processes (scotch) in {dict_path}")
+            return {"success": True, "message": f"Decomposition updated to {num_processes} processes."}
+
+        except Exception as e:
+            logger.error(f"Error updating decomposition: {e}")
+            return {"success": False, "message": sanitize_error(e)}

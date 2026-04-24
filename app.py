@@ -420,6 +420,26 @@ def is_safe_case_root(path_str: str) -> bool:
     return True
 
 
+def get_cpu_info() -> Dict[str, int]:
+    """Get physical and logical CPU core counts."""
+    logical = os.cpu_count() or 1
+    physical = logical
+    try:
+        import psutil
+        physical = psutil.cpu_count(logical=False) or logical
+    except (ImportError, Exception):
+        # Fallback for Windows if psutil is missing or fails
+        if platform.system() == "Windows":
+            try:
+                import subprocess
+                cmd = "Get-CimInstance Win32_Processor | Select-Object -ExpandProperty NumberOfCores"
+                out = subprocess.check_output(["powershell", "-Command", cmd], text=True)
+                physical = int(out.strip())
+            except Exception:
+                pass
+    return {"logical": logical, "physical": physical}
+
+
 def validate_safe_path(base_dir: str, relative_path: str) -> Path:
     """
     Validate and resolve a path to ensure it remains within the base directory.
@@ -945,12 +965,15 @@ def index() -> str:
     # We must manually update the context with Flask globals (url_for, request, etc.)
     sandbox_mode = bool(os.environ.get("FOAMFLASK_SANDBOX_MODE"))
     docker_host = os.environ.get("DOCKER_HOST")
+    cpu_info = get_cpu_info()
     context = {
         "options": options_html,
         "CASE_ROOT": CASE_ROOT,
         "startup_error": error,
         "sandbox_mode": sandbox_mode,
         "docker_host": docker_host,
+        "cpu_count": cpu_info["logical"],
+        "physical_cores": cpu_info["physical"],
     }
     app.update_template_context(context)
     return current_template.render(context)
@@ -1443,6 +1466,37 @@ def api_meshing_run() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify(result), 500
 
 
+@app.route("/api/case/parallel_config", methods=["GET"])
+@rate_limit(limit=30, window=60)
+def api_get_parallel_config() -> Union[Response, Tuple[Response, int]]:
+    """Fetch the current decomposition settings for a case."""
+    case_name = request.args.get("caseName")
+    if not case_name:
+        return fast_jsonify({"error": "No case name provided"}), 400
+    
+    try:
+        case_path = validate_safe_path(CASE_ROOT, case_name)
+        dict_path = case_path / "system" / "decomposeParDict"
+        
+        if not dict_path.exists():
+            return fast_jsonify({"numProcesses": 1, "method": "none", "exists": False})
+            
+        with dict_path.open("r", encoding="utf-8") as f:
+            content = f.read()
+            
+        import re
+        num_match = re.search(r"numberOfSubdomains\s+(\d+);", content)
+        method_match = re.search(r"(?:method|decomposer)\s+(\w+);", content)
+        
+        return fast_jsonify({
+            "numProcesses": int(num_match.group(1)) if num_match else 1,
+            "method": method_match.group(1) if method_match else "unknown",
+            "exists": True
+        })
+    except Exception as e:
+        return fast_jsonify({"error": str(e)}), 500
+
+
 @app.route("/get_docker_config", methods=["GET"])
 def get_docker_config() -> Response:
     """Get the Docker configuration.
@@ -1692,6 +1746,7 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
     tutorial = data.get("tutorial")
     command = data.get("command")
     case_dir = data.get("caseDir")
+    num_processes = data.get("numProcesses")
 
     if not command:
         return {"error": "No command provided"}, 400
@@ -1706,7 +1761,22 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
     try:
         # We don't use the return value here as the generator re-resolves it,
         # but this ensures the path is valid before starting the stream.
-        validate_safe_path(CASE_ROOT, case_dir)
+        host_path = validate_safe_path(CASE_ROOT, case_dir)
+        
+        # Resolve the actual case directory (host_path might be the root or the specific case)
+        actual_case_path = host_path
+        tutorial_name = Path(tutorial).name
+        if host_path.name != tutorial_name:
+            actual_case_path = host_path / tutorial_name
+            
+        # If numProcesses is provided, update the decomposition
+        if num_processes:
+            try:
+                num_proc_int = int(num_processes)
+                if 1 <= num_proc_int <= 128: # Safety cap
+                    CaseManager.update_decomposition(actual_case_path, num_proc_int)
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid numProcesses provided: {num_processes}")
     except ValueError as e:
         logger.warning(f"Security violation in run_case: {e}")
         return {"error": str(e)}, 400

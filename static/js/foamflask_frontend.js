@@ -517,6 +517,7 @@ let openfoamVersion = "";
 let activeCase = null;
 // Page management
 let currentPage = "setup";
+let numProcesses = 1;
 // Mesh visualization state
 let currentMeshPath = null;
 let availableMeshes = [];
@@ -1600,7 +1601,37 @@ const selectCase = (val)=>{
     // Reset residuals state for new case
     lastResidualsCount = 0;
     currentResidualsData = {};
+    // 🚀 Fetch current parallel config
+    refreshParallelConfig(val);
 };
+const refreshParallelConfig = async (caseName)=>{
+    if (!caseName) return;
+    try {
+        const response = await fetch(`/api/case/parallel_config?caseName=${encodeURIComponent(caseName)}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const container = document.getElementById("detectedParallelConfig");
+        const numEl = document.getElementById("detectedNumProcesses");
+        const methodEl = document.getElementById("detectedMethod");
+        const inputEl = document.getElementById("numProcesses");
+        if (container && numEl && methodEl && data.exists) {
+            container.classList.remove("hidden");
+            numEl.textContent = data.numProcesses;
+            methodEl.textContent = data.method;
+            // Sync input if it hasn't been changed by user in this session?
+            // Actually, it's better to just show it.
+            if (inputEl && !inputEl.dataset.userChanged) {
+                inputEl.value = data.numProcesses;
+                numProcesses = data.numProcesses;
+            }
+        } else if (container) {
+            container.classList.add("hidden");
+        }
+    } catch (e) {
+        console.error("Error fetching parallel config:", e);
+    }
+};
+window.refreshParallelConfig = refreshParallelConfig;
 const createNewCase = async ()=>{
     const caseName = document.getElementById("newCaseName").value;
     if (!caseName) {
@@ -1792,7 +1823,9 @@ const runCommand = async (cmd, btnElement)=>{
     updatePageTitle("running");
     try {
         showNotification(`Running ${cmd}...`, "info");
-        console.log(`[FOAMFlask] runCommand: tutorial=${selectedTutorial}, caseDir=${caseDir}, command=${cmd}`);
+        const numProcessesInput = document.getElementById("numProcesses");
+        const currentNumProcesses = numProcessesInput ? parseInt(numProcessesInput.value) : numProcesses;
+        console.log(`[FOAMFlask] runCommand: tutorial=${selectedTutorial}, caseDir=${caseDir}, command=${cmd}, numProcesses=${currentNumProcesses}`);
         const response = await fetch("/run", {
             method: "POST",
             headers: {
@@ -1801,7 +1834,8 @@ const runCommand = async (cmd, btnElement)=>{
             body: JSON.stringify({
                 caseDir,
                 tutorial: selectedTutorial,
-                command: cmd
+                command: cmd,
+                numProcesses: currentNumProcesses
             })
         });
         if (!response.ok) throw new Error();
@@ -4114,6 +4148,18 @@ const init = async ()=>{
             localStorage.setItem('lastSelectedTutorial', target.value);
         });
     }
+    // 🚀 Parallel Configuration Init
+    const numProcessesInput = document.getElementById("numProcesses");
+    if (numProcessesInput) {
+        // Sync global state with input
+        numProcesses = parseInt(numProcessesInput.value) || 6;
+        numProcessesInput.addEventListener("change", ()=>{
+            numProcesses = parseInt(numProcessesInput.value) || 6;
+            numProcessesInput.dataset.userChanged = "true";
+        });
+    }
+    // Final UI Refinements
+    if (activeCase) refreshParallelConfig(activeCase);
     // Determine initial page from URL
     const path = window.location.pathname;
     let initialPage = "setup";
