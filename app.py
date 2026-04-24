@@ -2055,7 +2055,7 @@ def api_plot_data() -> Union[Response, Tuple[Response, int]]:
 
         if time_dirs and case_mtime is not None:
             latest_time = time_dirs[-1]
-            latest_time_path = case_dir / latest_time
+            latest_time_path = parser.get_data_root() / latest_time
 
             # Get mtimes for ETag
             # We use case_dir mtime and latest_time_dir mtime.

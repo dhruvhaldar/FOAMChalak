@@ -155,7 +155,6 @@ class OpenFOAMFieldParser:
         
         # Check for parallel case
         # ⚡ Bolt Optimization: Prioritize processor0 if it exists, as it's the source of truth for parallel runs.
-        # The previous check for any number-named directory in root was too aggressive and failed for cases with a '0' directory.
         proc0 = self.case_dir / "processor0"
         if proc0.is_dir():
             self.is_parallel = True
@@ -163,6 +162,10 @@ class OpenFOAMFieldParser:
         else:
             self.is_parallel = False
             self.data_root = self.case_dir
+
+    def get_data_root(self) -> Path:
+        """Expose the data root (e.g. processor0 for parallel runs)."""
+        return self.data_root
 
 
     def get_time_directories(self, known_mtime: Optional[float] = None) -> List[str]:
@@ -281,12 +284,19 @@ class OpenFOAMFieldParser:
                 header = f.read(2048)
 
             field_type = None
+            is_binary = b"format binary" in header[:512]
+            
             # ⚡ Bolt Optimization: Use simple byte substring search instead of regex for ~40% faster type detection
             if b"class" in header:
                 if b"volScalarField" in header:
                     field_type = "scalar"
                 elif b"volVectorField" in header:
                     field_type = "vector"
+
+            # Cache the binary status too
+            if field_type:
+                if is_binary:
+                    field_type += "_binary"
 
             # Update path cache
             _FIELD_TYPE_CACHE[path_str] = (mtime, field_type)
@@ -342,9 +352,9 @@ class OpenFOAMFieldParser:
                         field_type = self._get_field_type(
                             entry, known_mtime=entry_mtime
                         )
-                        if field_type == "scalar":
+                        if field_type and field_type.startswith("scalar"):
                             scalar_fields.append(entry.name)
-                        elif field_type == "vector" and entry.name == "U":
+                        elif field_type and field_type.startswith("vector") and entry.name == "U":
                             has_U = True
 
             # Sort for consistency
@@ -477,47 +487,81 @@ class OpenFOAMFieldParser:
                     # ⚡ Bolt Optimization: Use os.fstat(fd) instead of Path.stat() to avoid extra syscall
                     if f.fileno() != -1 and os.fstat(f.fileno()).st_size > 0:
                         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                            # 1. Check for nonuniform list
-                            # Look for "internalField nonuniform"
-                            idx = mm.find(b"internalField")
-                            if idx != -1:
-                                # Verify "nonuniform" follows
-                                # ⚡ Bolt Optimization: Avoid read() and decode() by searching buffer directly
-                                nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
+                            # 0. Check for binary
+                            is_binary = b"format binary" in mm[:512]
+                            
+                            if is_binary:
+                                idx = mm.find(b"internalField")
+                                if idx != -1:
+                                    # Find nonuniform and the size
+                                    nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
+                                    if nonuniform_idx != -1:
+                                        # Size is usually on the next line or after List<scalar>
+                                        size_match = re.search(rb"List<scalar>\s*(\d+)", mm[nonuniform_idx:nonuniform_idx+200])
+                                        if size_match:
+                                            size = int(size_match.group(1))
+                                            # Binary data starts after a newline and optional '('
+                                            # We search for the start of binary block
+                                            # In binary files, there is usually a '(' followed by the data.
+                                            # Or it might just be the bytes.
+                                            data_start = mm.find(b"(", nonuniform_idx + size_match.end())
+                                            if data_start == -1:
+                                                # If no '(', data usually starts after the size + \n
+                                                data_start = mm.find(b"\n", nonuniform_idx + size_match.end())
+                                            
+                                            if data_start != -1:
+                                                # OpenFOAM binary data is usually float64 (8 bytes) or float32 (4 bytes)
+                                                # Most modern runs are double precision (8 bytes)
+                                                # We can check the expected size vs actual file size to be sure,
+                                                # but 8 bytes is the safe default for simulations.
+                                                try:
+                                                    # Offset by 1 if we found '('
+                                                    actual_start = data_start + 1 if mm[data_start] == ord('(') else data_start + 1
+                                                    
+                                                    # Read from buffer
+                                                    # np.frombuffer is zero-copy and extremely fast
+                                                    arr = np.frombuffer(mm, dtype='float64', count=size, offset=actual_start)
+                                                    if arr.size > 0:
+                                                        val = float(np.mean(arr))
+                                                except (ValueError, IndexError):
+                                                    # Try float32 if float64 failed or returned garbage
+                                                    try:
+                                                        arr = np.frombuffer(mm, dtype='float32', count=size, offset=actual_start)
+                                                        if arr.size > 0:
+                                                            val = float(np.mean(arr))
+                                                    except:
+                                                        pass
 
-                                if nonuniform_idx != -1:
-                                    # Locate list start '('
-                                    start_paren = mm.find(b"(", nonuniform_idx)
-                                    if start_paren != -1:
-                                        # Locate list end ')'
-                                        # It usually ends with ');' before 'boundaryField'
-                                        # ⚡ Bolt Optimization: Use rfind to scan from end for boundaryField.
-                                        # This skips scanning the massive internalField data block (which can be GBs).
-                                        # rfind is ~2000x faster for large files as it avoids reading/paging the data.
-                                        boundary_idx = mm.rfind(b"boundaryField")
+                            # 1. Check for nonuniform list (ASCII)
+                            if val is None:
+                                idx = mm.find(b"internalField")
+                                if idx != -1:
+                                    # Verify "nonuniform" follows
+                                    nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
 
-                                        end_paren = -1
-                                        if boundary_idx != -1 and boundary_idx > start_paren:
-                                            end_paren = mm.rfind(
-                                                b")", start_paren, boundary_idx
-                                            )
-                                        else:
-                                            end_paren = mm.rfind(
-                                                b")"
-                                            )  # Fallback to last paren
+                                    if nonuniform_idx != -1:
+                                        # Locate list start '('
+                                        start_paren = mm.find(b"(", nonuniform_idx)
+                                        if start_paren != -1:
+                                            # Locate list end ')'
+                                            boundary_idx = mm.rfind(b"boundaryField")
 
-                                        if end_paren != -1:
-                                            # Slice data efficiently
-                                            # np.fromstring handles bytes directly
-                                            data_block = mm[start_paren + 1 : end_paren]
-                                            try:
-                                                numbers = np.fromstring(
-                                                    data_block, sep=" "
+                                            end_paren = -1
+                                            if boundary_idx != -1 and boundary_idx > start_paren:
+                                                end_paren = mm.rfind(
+                                                    b")", start_paren, boundary_idx
                                                 )
-                                                if numbers.size > 0:
-                                                    val = float(np.mean(numbers))
-                                            except ValueError:
-                                                pass
+                                            else:
+                                                end_paren = mm.rfind(b")")
+
+                                            if end_paren != -1:
+                                                data_block = mm[start_paren + 1 : end_paren]
+                                                try:
+                                                    numbers = np.fromstring(data_block, sep=" ")
+                                                    if numbers.size > 0:
+                                                        val = float(np.mean(numbers))
+                                                except ValueError:
+                                                    pass
 
                             # 2. Check for uniform if not found
                             if val is None:
@@ -642,53 +686,77 @@ class OpenFOAMFieldParser:
                     # ⚡ Bolt Optimization: Use os.fstat(fd) instead of Path.stat() to avoid extra syscall
                     if f.fileno() != -1 and os.fstat(f.fileno()).st_size > 0:
                         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                            # 1. Check for nonuniform
-                            idx = mm.find(b"internalField")
-                            if idx != -1:
-                                # ⚡ Bolt Optimization: Avoid read() and decode() by searching buffer directly
-                                nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
+                            # 0. Check for binary
+                            is_binary = b"format binary" in mm[:512]
+                            
+                            if is_binary:
+                                idx = mm.find(b"internalField")
+                                if idx != -1:
+                                    nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
+                                    if nonuniform_idx != -1:
+                                        # Size is usually after List<vector>
+                                        size_match = re.search(rb"List<vector>\s*(\d+)", mm[nonuniform_idx:nonuniform_idx+200])
+                                        if size_match:
+                                            size = int(size_match.group(1))
+                                            data_start = mm.find(b"(", nonuniform_idx + size_match.end())
+                                            if data_start == -1:
+                                                data_start = mm.find(b"\n", nonuniform_idx + size_match.end())
+                                            
+                                            if data_start != -1:
+                                                try:
+                                                    actual_start = data_start + 1 if mm[data_start] == ord('(') else data_start + 1
+                                                    # Vector data has 3 components (float64)
+                                                    arr = np.frombuffer(mm, dtype='float64', count=size*3, offset=actual_start)
+                                                    if arr.size > 0:
+                                                        arr = arr.reshape(-1, 3)
+                                                        mean_vec = np.mean(arr, axis=0)
+                                                        val = (float(mean_vec[0]), float(mean_vec[1]), float(mean_vec[2]))
+                                                        # Successfully parsed binary, skip to uniform check if val still (0,0,0)
+                                                except:
+                                                    pass
 
-                                if nonuniform_idx != -1:
-                                    start_paren = mm.find(b"(", nonuniform_idx)
-                                    if start_paren != -1:
-                                        # ⚡ Bolt Optimization: Use rfind for boundaryField (same as scalar)
-                                        boundary_idx = mm.rfind(b"boundaryField")
+                            # 1. Check for nonuniform (ASCII)
+                            if val == (0.0, 0.0, 0.0):
+                                idx = mm.find(b"internalField")
+                                if idx != -1:
+                                    # ⚡ Bolt Optimization: Avoid read() and decode() by searching buffer directly
+                                    nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
 
-                                        end_paren = -1
-                                        if boundary_idx != -1 and boundary_idx > start_paren:
-                                            end_paren = mm.rfind(
-                                                b")", start_paren, boundary_idx
-                                            )
-                                        else:
-                                            end_paren = mm.rfind(b")")
+                                    if nonuniform_idx != -1:
+                                        start_paren = mm.find(b"(", nonuniform_idx)
+                                        if start_paren != -1:
+                                            # ⚡ Bolt Optimization: Use rfind for boundaryField (same as scalar)
+                                            boundary_idx = mm.rfind(b"boundaryField")
 
-                                        if end_paren != -1:
-                                            # Slice data
-                                            data_block = mm[start_paren + 1 : end_paren]
-                                            try:
-                                                # Use translate on bytes (requires making a copy, but still better than full file read)
-                                                # Or simpler: replace b'(' and b')' with space
-                                                # But we already sliced inside the outer parens.
-                                                # Inside might be (x y z) tuples.
-                                                # We need to flatten them.
-
-                                                # replace(b'(', b' ') is fast on bytes
-                                                # ⚡ Bolt Optimization: Use translate() for bytes to avoid intermediate copies (~15% faster)
-                                                clean_data = data_block.translate(
-                                                    _PARENS_TRANS_BYTES
+                                            end_paren = -1
+                                            if boundary_idx != -1 and boundary_idx > start_paren:
+                                                end_paren = mm.rfind(
+                                                    b")", start_paren, boundary_idx
                                                 )
-                                                arr = np.fromstring(clean_data, sep=" ")
+                                            else:
+                                                end_paren = mm.rfind(b")")
 
-                                                if arr.size > 0:
-                                                    arr = arr.reshape(-1, 3)
-                                                    mean_vec = np.mean(arr, axis=0)
-                                                    val = (
-                                                        float(mean_vec[0]),
-                                                        float(mean_vec[1]),
-                                                        float(mean_vec[2]),
+                                            if end_paren != -1:
+                                                # Slice data
+                                                data_block = mm[start_paren + 1 : end_paren]
+                                                try:
+                                                    # replace(b'(', b' ') is fast on bytes
+                                                    # ⚡ Bolt Optimization: Use translate() for bytes to avoid intermediate copies (~15% faster)
+                                                    clean_data = data_block.translate(
+                                                        _PARENS_TRANS_BYTES
                                                     )
-                                            except ValueError:
-                                                pass
+                                                    arr = np.fromstring(clean_data, sep=" ")
+
+                                                    if arr.size > 0:
+                                                        arr = arr.reshape(-1, 3)
+                                                        mean_vec = np.mean(arr, axis=0)
+                                                        val = (
+                                                            float(mean_vec[0]),
+                                                            float(mean_vec[1]),
+                                                            float(mean_vec[2]),
+                                                        )
+                                                except ValueError:
+                                                    pass
 
                             # 2. Check for uniform
                             if val == (0.0, 0.0, 0.0):
@@ -1369,7 +1437,7 @@ def get_available_fields(case_dir: str) -> List[str]:
         return []
 
     latest_time = time_dirs[-1]
-    time_path = Path(case_dir) / latest_time
+    time_path = parser.data_root / latest_time
 
     # ⚡ Bolt Optimization: Use cached scanning
     # We ignore the specific types here and just return all relevant files
