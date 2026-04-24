@@ -51,8 +51,8 @@ def sanitize_error(e: Exception) -> str:
     Returns a generic message for unexpected errors, or the specific message
     for safe errors (like ValueError from validation).
     """
-    # Safe validation errors that we want to show to the user
-    if isinstance(e, (ValueError, TypeError)):
+    # Safe validation or runtime errors that we want to show to the user
+    if isinstance(e, (ValueError, TypeError, RuntimeError)):
         return str(e)
 
     # Docker errors might be safe if they are connection errors, but API errors can leak paths.

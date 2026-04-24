@@ -449,8 +449,15 @@ async function fetchContours(requestData: ContourOptions) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[FOAMFlask] [fetchContours] Error response:', errorText);
-            throw new Error(`Server returned ${response.status}: ${errorText}`);
+            let displayError = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.error) displayError = errorJson.error;
+            } catch (e) {
+                // Not JSON, use raw text
+            }
+            console.error('[FOAMFlask] [fetchContours] Error response:', displayError);
+            throw new Error(displayError);
         }
 
         return response;
@@ -549,12 +556,17 @@ function handleContourError(
     if (placeholder) placeholder.classList.remove('hidden');
     if (viewer) viewer.classList.add('hidden');
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    // 🎨 Palette UX: Detect specific errors and provide better feedback
+    if (errorMessage.includes("Empty meshes cannot be plotted") || errorMessage.includes("zero points")) {
+        errorMessage = "The selected parameters (isovalues/range) resulted in an empty contour. Please try different values within the data bounds.";
+    }
 
     if (typeof showNotification === 'function') {
         // Sanitize message to avoid selector errors if it contains quotes
         const safeMessage = errorMessage.replace(/["']/g, '');
-        showNotification(`Error generating contours: ${safeMessage}`, 'error');
+        showNotification(safeMessage, 'error', 5000);
     }
 
     if (viewer) {

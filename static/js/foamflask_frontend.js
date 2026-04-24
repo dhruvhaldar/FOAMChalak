@@ -946,7 +946,8 @@ const toggleMobileMenu = ()=>{
 };
 window.toggleMobileMenu = toggleMobileMenu;
 // Show notification
-const showNotification = (message, type, duration = NOTIFY_DEFAULT)=>{
+const showNotification = (message, type = "info", duration = NOTIFY_DEFAULT)=>{
+    window.showNotification = showNotification;
     // If a notification with the same message already exists, do not show another one
     // This prevents spamming the user with the same message
     if (document.querySelector(`.notification .message-slot[data-message="${message}"]`)) {
@@ -4762,6 +4763,9 @@ if (document.readyState === 'loading') {
 }
 window._fetchWithCache = fetchWithCache;
 window._requestCache = requestCache;
+window.showNotification = showNotification;
+window.runCommand = runCommand;
+window.switchPage = switchPage;
 const resetState = ()=>{
     requestCache = new Map();
     if (typeof window !== 'undefined') window._requestCache = requestCache;

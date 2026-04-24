@@ -1173,9 +1173,11 @@ const toggleMobileMenu = () => {
 // Show notification
 const showNotification = (
   message: string,
-  type: "success" | "error" | "warning" | "info",
+  type: "success" | "error" | "warning" | "info" = "info",
   duration: number = NOTIFY_DEFAULT
 ): number | null => {
+  (window as any).showNotification = showNotification;
+
   // If a notification with the same message already exists, do not show another one
   // This prevents spamming the user with the same message
   if (document.querySelector(`.notification .message-slot[data-message="${message}"]`)) {
@@ -5225,6 +5227,10 @@ if (document.readyState === 'loading') {
 }
 (window as any)._fetchWithCache = fetchWithCache;
 (window as any)._requestCache = requestCache;
+(window as any).showNotification = showNotification;
+(window as any).runCommand = runCommand;
+(window as any).switchPage = switchPage;
+
 
 const resetState = () => {
   requestCache = new Map<string, CacheEntry>();
