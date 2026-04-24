@@ -860,13 +860,8 @@ const plotConfig: Partial<Plotly.Config> = {
 const lineStyle = { width: 2, opacity: 0.9 };
 
 const createBoldTitle = (text: string): { text: string; font?: any } => {
-  const isLive = isSimulationRunning && plotsAreFresh;
-  const status = isLive
-    ? '<span style="color: #10b981; font-size: 11px; font-weight: normal; margin-left: 24px; vertical-align: middle; letter-spacing: 0.05em;">● LIVE</span>'
-    : '<span style="color: #9ca3af; font-size: 11px; font-weight: normal; margin-left: 24px; vertical-align: middle; letter-spacing: 0.05em;">● CACHED</span>';
-
   return {
-    text: `<b>${text}</b>&nbsp;&nbsp;&nbsp;${status}`,
+    text: `<b>${text}</b>`,
     font: { ...plotLayout.font, size: 22 },
   };
 };
@@ -2258,8 +2253,36 @@ const stopPlotUpdates = (): void => {
   }
 };
 
+// 🎨 Palette UX: Unified Status Indicator next to "Realtime Plots"
+const updatePlotStatusIndicator = (): void => {
+  const indicator = document.getElementById("plotStatusIndicator");
+  const textEl = document.getElementById("plotStatusText");
+  const dot = document.getElementById("plotStatusDot");
+  const ping = document.getElementById("plotStatusPing");
+
+  if (!indicator || !textEl || !dot || !ping) return;
+
+  const isLive = isSimulationRunning && plotsAreFresh;
+
+  indicator.classList.remove("hidden");
+  indicator.classList.add("flex");
+
+  if (isLive) {
+    textEl.innerText = "Live";
+    indicator.className = "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase transition-all duration-500 bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm border";
+    dot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500";
+    ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400";
+  } else {
+    textEl.innerText = "Cached";
+    indicator.className = "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase transition-all duration-500 bg-gray-50 text-gray-400 border-gray-100 shadow-none border";
+    dot.className = "relative inline-flex rounded-full h-2 w-2 bg-gray-300";
+    ping.className = "hidden";
+  }
+};
+
 const updateResidualsPlot = async (tutorial: string, injectedData?: ResidualsResponse): Promise<void> => {
   try {
+    updatePlotStatusIndicator();
     await ensurePlotlyLoaded();
 
     let data = injectedData;
@@ -2431,6 +2454,7 @@ const updateAeroPlots = async (preFetchedData?: PlotData): Promise<void> => {
   )?.value;
   if (!selectedTutorial) return;
   try {
+    updatePlotStatusIndicator();
     await ensurePlotlyLoaded();
 
     let data = preFetchedData;
