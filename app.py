@@ -1941,6 +1941,10 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
                 "tty": False,
                 "volumes": volumes,
                 "working_dir": container_case_path,
+                "environment": {
+                    "OMPI_MCA_rmaps_base_oversubscribe": "1",
+                    "OMPI_MCA_btl_vader_single_copy_mechanism": "none",
+                }
             }
             run_kwargs.update(get_docker_user_config())
 
@@ -1950,7 +1954,24 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             # User Preference: Do not tail internal log files, show only what the container prints.
             try:
                 for line in container.logs(stream=True):
-                    yield line.decode(errors="ignore")
+                    decoded = line.decode(errors="ignore")
+                    
+                    # 🛡️ Enhanced Error Detection: Scan for common OpenFOAM/MPI failure markers
+                    # We inject a clear marker so the frontend can easily highlight it
+                    lower_line = decoded.lower()
+                    error_markers = [
+                        "fatal error", 
+                        "foam error", 
+                        "mpi_abort", 
+                        "not enough slots", 
+                        "ill defined primitiveentry"
+                    ]
+                    
+                    if any(marker in lower_line for marker in error_markers):
+                        # Inject a special class-based marker that our frontend will recognize
+                        yield f"\n[FOAMFlask] [ALERT] CRITICAL ERROR DETECTED:\n{decoded}"
+                    else:
+                        yield decoded
             except Exception as e:
                 status = "Failed"
                 error_msg = str(e)
@@ -2624,6 +2645,10 @@ def run_foamtovtk() -> Union[Response, Tuple[Dict, int]]:
                 "tty": False,
                 "volumes": volumes,
                 "working_dir": container_case_path,
+                "environment": {
+                    "OMPI_MCA_rmaps_base_oversubscribe": "1",
+                    "OMPI_MCA_btl_vader_single_copy_mechanism": "none",
+                }
             }
             run_kwargs.update(get_docker_user_config())
 

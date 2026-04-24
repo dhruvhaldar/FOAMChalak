@@ -1354,12 +1354,23 @@ const flushOutputBuffer = ()=>{
     outputBuffer.forEach(({ message, type })=>{
         // Determine class name
         let className = "text-green-700";
-        if (type === "stderr") className = "text-red-600";
-        else if (type === "tutorial") className = "text-cyan-600 font-semibold";
-        else if (type === "info") className = "text-yellow-600 italic";
+        let safeMessage = escapeHtml(message);
+        if (message.includes("[ALERT]")) {
+            className = "bg-red-50 text-red-900 border-l-4 border-red-600 p-3 my-3 font-mono text-sm rounded shadow-sm relative overflow-hidden";
+            // Highlight the specific alert marker
+            safeMessage = safeMessage.replace(/\[ALERT\]/, '<span class="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter mr-2">Critical Alert</span>');
+            // Proactively show a notification for the user
+            if (typeof window.showNotification === "function") {
+                window.showNotification("OpenFOAM Simulation Error Detected!", "error");
+            }
+        } else if (type === "stderr") {
+            className = "text-red-600";
+        } else if (type === "tutorial") {
+            className = "text-cyan-600 font-semibold";
+        } else if (type === "info") {
+            className = "text-yellow-600 italic";
+        }
         // ⚡ Bolt Optimization: Direct string construction + insertAdjacentHTML
-        // Removes overhead of document.createElement() and .textContent assignments (O(N) -> O(1) DOM touches)
-        const safeMessage = escapeHtml(message);
         newHtmlChunks += `<div class="${className}">${safeMessage}</div>`;
     });
     container.insertAdjacentHTML("beforeend", newHtmlChunks);
