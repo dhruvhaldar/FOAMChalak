@@ -824,7 +824,7 @@ const plotLayout: Partial<Plotly.Layout> = {
   font: { family: "Inter, sans-serif", size: 12 },
   plot_bgcolor: "rgba(255, 255, 255, 0)",
   paper_bgcolor: "rgba(255, 255, 255, 0)",
-  margin: { l: 50, r: 20, t: 60, b: 80, pad: 5 },
+  margin: { l: 80, r: 20, t: 60, b: 80, pad: 10 },
   height: 400,
   autosize: true,
   showlegend: true,
@@ -2319,7 +2319,7 @@ const updateResidualsPlot = async (tutorial: string, injectedData?: ResidualsRes
             showgrid: false,
           },
           yaxis: {
-            title: { text: "Residual" },
+            title: { text: "Residual", standoff: 20 },
             type: "log",
             showline: true,
             mirror: "all",
@@ -2543,7 +2543,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
           },
           yaxis: {
             ...plotLayout.yaxis,
-            title: { text: "Pressure (Pa)" },
+            title: { text: "Pressure (Pa)", standoff: 20 },
           },
         },
         config
@@ -2642,7 +2642,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
           },
           yaxis: {
             ...plotLayout.yaxis,
-            title: { text: "Velocity (m/s)" },
+            title: { text: "Velocity (m/s)", standoff: 20 },
           },
         },
         config
@@ -2709,7 +2709,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
             },
             yaxis: {
               ...plotLayout.yaxis,
-              title: { text: "Value" },
+              title: { text: "Value", standoff: 20 },
             },
           },
           config
