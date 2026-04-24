@@ -150,6 +150,16 @@ class OpenFOAMFieldParser:
     def __init__(self, case_dir: Union[str, Path]) -> None:
         self.case_dir = Path(case_dir)
         self.case_dir_str = str(self.case_dir)
+        self.is_parallel = False
+        self.data_root = self.case_dir
+        
+        # Check for parallel case
+        if not any(self.case_dir.glob("[0-9]*")):
+            proc0 = self.case_dir / "processor0"
+            if proc0.is_dir():
+                self.is_parallel = True
+                self.data_root = proc0
+
 
     def get_time_directories(self, known_mtime: Optional[float] = None) -> List[str]:
         """Get all time directories sorted numerically."""
@@ -174,7 +184,7 @@ class OpenFOAMFieldParser:
         try:
             # ⚡ Bolt Optimization: Use os.scandir instead of Path.iterdir()
             # This avoids extra stat() calls and is significantly faster for large directories.
-            with os.scandir(path_str) as entries:
+            with os.scandir(str(self.data_root)) as entries:
                 for entry in entries:
                     if entry.is_dir():
                         try:
@@ -185,8 +195,9 @@ class OpenFOAMFieldParser:
                         except ValueError:
                             continue
         except OSError as e:
-            logger.error(f"Error listing directories in {self.case_dir}: {e}")
+            logger.error(f"Error listing directories in {self.data_root}: {e}")
             return []
+
 
         # Sort based on pre-calculated float value
         time_dirs.sort(key=lambda x: x[0])
@@ -753,7 +764,7 @@ class OpenFOAMFieldParser:
 
         latest_time = time_dirs[-1]
         # ⚡ Bolt Optimization: Use os.path.join + str instead of Path / to avoid overhead
-        time_path_str = os.path.join(self.case_dir_str, latest_time)
+        time_path_str = os.path.join(str(self.data_root), latest_time)
 
         data: Dict[str, Any] = {"time": float(latest_time)}
 
@@ -871,7 +882,7 @@ class OpenFOAMFieldParser:
         stable_dirs_to_process = all_time_dirs[valid_cache_len:-1]
 
         # ⚡ Bolt Optimization: Use os.path.join for latest step path to avoid Path creation overhead
-        latest_time_path_str = os.path.join(self.case_dir_str, latest_time)
+        latest_time_path_str = os.path.join(str(self.data_root), latest_time)
 
         # ⚡ Bolt Optimization: Use cached scanning for field discovery
         # ⚡ Bolt Optimization: Pass known_latest_mtime and capture file_mtimes
@@ -920,7 +931,7 @@ class OpenFOAMFieldParser:
                 for time_dir in stable_dirs_to_process:
                     # ⚡ Bolt Optimization: Use os.path.join instead of Path / operator
                     # time_path = self.case_dir / time_dir
-                    time_path_str = os.path.join(case_path_str, time_dir)
+                    time_path_str = os.path.join(str(self.data_root), time_dir)
 
                     time_val = float(time_dir)
 

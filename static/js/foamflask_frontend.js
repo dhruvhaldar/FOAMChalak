@@ -1858,11 +1858,8 @@ const startPolling = ()=>{
     plotUpdateInterval = setInterval(()=>{
         // ⚡ Bolt Optimization: Pause polling when tab is hidden
         if (document.hidden) return;
-        // Stop if simulation not running
-        if (!isSimulationRunning) {
-            stopPlotUpdates();
-            return;
-        }
+        // Note: We don't stop if isSimulationRunning is false, 
+        // because we might have refreshed and want to see the latest data/running state.
         if (!plotsInViewport) return;
         if (!isUpdatingPlots) updatePlots();
         else pendingPlotUpdate = true;
@@ -1896,6 +1893,7 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
             // If we have new data
             if (newPointsCount > 0) {
                 plotsAreFresh = true; // Data is flowing from the active run
+                isSimulationRunning = true; // 🎨 Palette UX: Auto-detect running state if data is flowing
                 const oldTime = currentResidualsData.time || [];
                 const firstNewTime = newTime[0];
                 const lastOldTime = oldTime.length > 0 ? oldTime[oldTime.length - 1] : -Infinity;
@@ -2174,7 +2172,10 @@ const updatePlots = async (injectedData)=>{
         let data = injectedData;
         if (!data) {
             // ⚡ Bolt Optimization: Use fast API endpoint
-            data = await fetchWithCache(`/api/plot_data?tutorial=${encodeURIComponent(selectedTutorial)}`);
+            // We use direct fetch here to ensure we don't get stale browser cache for real-time data
+            const response = await fetch(`/api/plot_data?tutorial=${encodeURIComponent(selectedTutorial)}`);
+            if (!response.ok) throw new Error("Failed to fetch plot data");
+            data = await response.json();
         }
         console.log("[FOAMFlask] updatePlots: Data received:", data);
         if (data.error) {
