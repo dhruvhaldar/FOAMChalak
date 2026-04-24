@@ -596,11 +596,11 @@ const plotLayout = {
     plot_bgcolor: "rgba(255, 255, 255, 0)",
     paper_bgcolor: "rgba(255, 255, 255, 0)",
     margin: {
-        l: 80,
+        l: 60,
         r: 20,
         t: 60,
         b: 80,
-        pad: 10
+        pad: 0
     },
     height: 400,
     autosize: true,
@@ -616,11 +616,17 @@ const plotLayout = {
     },
     xaxis: {
         showgrid: false,
-        linewidth: 1
+        linewidth: 1,
+        automargin: true,
+        showline: false,
+        mirror: false
     },
     yaxis: {
         showgrid: false,
-        linewidth: 1
+        linewidth: 1,
+        automargin: true,
+        showline: false,
+        mirror: false
     }
 };
 const plotConfig = {
@@ -2010,22 +2016,22 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
                     ...plotLayout,
                     title: createBoldTitle("Residuals"),
                     xaxis: {
+                        ...plotLayout.xaxis,
                         title: {
                             text: "Iteration"
                         },
                         showline: true,
-                        mirror: "all",
-                        showgrid: false
+                        mirror: false
                     },
                     yaxis: {
+                        ...plotLayout.yaxis,
                         title: {
                             text: "Residual",
-                            standoff: 20
+                            standoff: 35
                         },
                         type: "log",
                         showline: true,
-                        mirror: "all",
-                        showgrid: true,
+                        mirror: false,
                         gridwidth: 1,
                         gridcolor: "rgba(0,0,0,0.1)"
                     }
@@ -2229,7 +2235,7 @@ const updatePlots = async (injectedData)=>{
                     ...plotLayout.yaxis,
                     title: {
                         text: "Pressure (Pa)",
-                        standoff: 20
+                        standoff: 35
                     }
                 }
             }, config).catch((err)=>{
@@ -2324,7 +2330,7 @@ const updatePlots = async (injectedData)=>{
                     ...plotLayout.yaxis,
                     title: {
                         text: "Velocity (m/s)",
-                        standoff: 20
+                        standoff: 35
                     }
                 }
             }, config);
@@ -2405,7 +2411,7 @@ const updatePlots = async (injectedData)=>{
                         ...plotLayout.yaxis,
                         title: {
                             text: "Value",
-                            standoff: 20
+                            standoff: 35
                         }
                     }
                 }, config);

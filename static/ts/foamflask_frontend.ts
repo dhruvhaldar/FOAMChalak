@@ -824,7 +824,7 @@ const plotLayout: Partial<Plotly.Layout> = {
   font: { family: "Inter, sans-serif", size: 12 },
   plot_bgcolor: "rgba(255, 255, 255, 0)",
   paper_bgcolor: "rgba(255, 255, 255, 0)",
-  margin: { l: 80, r: 20, t: 60, b: 80, pad: 10 },
+  margin: { l: 60, r: 20, t: 60, b: 80, pad: 0 },
   height: 400,
   autosize: true,
   showlegend: true,
@@ -837,8 +837,8 @@ const plotLayout: Partial<Plotly.Layout> = {
     // bgcolor: "rgba(255, 0, 0, 0)",
     borderwidth: 0,
   },
-  xaxis: { showgrid: false, linewidth: 1 },
-  yaxis: { showgrid: false, linewidth: 1 },
+  xaxis: { showgrid: false, linewidth: 1, automargin: true, showline: false, mirror: false },
+  yaxis: { showgrid: false, linewidth: 1, automargin: true, showline: false, mirror: false },
 };
 
 const plotConfig: Partial<Plotly.Config> = {
@@ -2313,17 +2313,17 @@ const updateResidualsPlot = async (tutorial: string, injectedData?: ResidualsRes
           ...plotLayout,
           title: createBoldTitle("Residuals"),
           xaxis: {
+            ...plotLayout.xaxis,
             title: { text: "Iteration" },
             showline: true,
-            mirror: "all",
-            showgrid: false,
+            mirror: false,
           },
           yaxis: {
-            title: { text: "Residual", standoff: 20 },
+            ...plotLayout.yaxis,
+            title: { text: "Residual", standoff: 35 },
             type: "log",
             showline: true,
-            mirror: "all",
-            showgrid: true,
+            mirror: false,
             gridwidth: 1,
             gridcolor: "rgba(0,0,0,0.1)",
           },
@@ -2543,7 +2543,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
           },
           yaxis: {
             ...plotLayout.yaxis,
-            title: { text: "Pressure (Pa)", standoff: 20 },
+            title: { text: "Pressure (Pa)", standoff: 35 },
           },
         },
         config
@@ -2642,7 +2642,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
           },
           yaxis: {
             ...plotLayout.yaxis,
-            title: { text: "Velocity (m/s)", standoff: 20 },
+            title: { text: "Velocity (m/s)", standoff: 35 },
           },
         },
         config
@@ -2709,7 +2709,7 @@ const updatePlots = async (injectedData?: PlotData): Promise<void> => {
             },
             yaxis: {
               ...plotLayout.yaxis,
-              title: { text: "Value", standoff: 20 },
+              title: { text: "Value", standoff: 35 },
             },
           },
           config
