@@ -3746,57 +3746,7 @@ const checkStartupStatus = async ()=>{
         pollStatus();
     });
 };
-// Initialize
-window.onload = async ()=>{
-    try {
-        await checkStartupStatus();
-    } catch (e) {
-        console.error(e);
-    }
-    const outputDiv = document.getElementById("output");
-    if (outputDiv) {
-        // Restore Log
-        const savedLog = localStorage.getItem(CONSOLE_LOG_KEY);
-        if (savedLog) {
-            outputDiv.innerHTML = savedLog;
-            cachedLogHTML = savedLog; // ⚡ Bolt Optimization: Restore cache
-            outputDiv.scrollTop = outputDiv.scrollHeight;
-        }
-    }
-    try {
-        const caseRootData = await fetchWithCache("/get_case_root");
-        const dockerConfigData = await fetchWithCache("/get_docker_config");
-        caseDir = caseRootData.caseDir;
-        const caseDirInput = document.getElementById("caseDir");
-        if (caseDirInput) caseDirInput.value = caseDir;
-        dockerImage = dockerConfigData.dockerImage;
-        openfoamVersion = dockerConfigData.openfoamVersion;
-        const openfoamRootInput = document.getElementById("openfoamRoot");
-        if (openfoamRootInput) openfoamRootInput.value = `${dockerImage} OpenFOAM ${openfoamVersion}`;
-        // Load Cases
-        await refreshCaseList();
-        const savedCase = localStorage.getItem("lastSelectedCase");
-        if (savedCase) {
-            const select = document.getElementById("caseSelect");
-            let exists = false;
-            for(let i = 0; i < select.options.length; i++){
-                if (select.options[i].value === savedCase) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (exists) {
-                select.value = savedCase;
-                activeCase = savedCase;
-                updateActiveCaseBadge();
-            }
-        }
-    // Check if we need to restore any plot state or similar
-    // ...
-    } catch (e) {
-        console.error(e);
-    }
-};
+// Removed window.onload in favor of unified async init
 // Exports
 window.switchPage = switchPage;
 window.setCase = setCase;
@@ -3842,13 +3792,64 @@ window.copyMeshingOutput = copyMeshingOutput;
 window.downloadMeshingLog = downloadMeshingLog;
 window.togglePlots = togglePlots;
 window.toggleSection = toggleSection;
-const init = ()=>{
-    // Palette UX: Optimistically restore active case
+const init = async ()=>{
+    // 1. Initial UI Setup (Optimistic UX)
     const savedCase = localStorage.getItem("lastSelectedCase");
     if (savedCase) {
         activeCase = savedCase;
     }
     updateActiveCaseBadge();
+    const outputDiv = document.getElementById("output");
+    if (outputDiv) {
+        // Restore Log
+        const savedLog = localStorage.getItem(CONSOLE_LOG_KEY);
+        if (savedLog) {
+            outputDiv.innerHTML = savedLog;
+            cachedLogHTML = savedLog; // ⚡ Bolt Optimization: Restore cache
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+    }
+    // 2. Fetch Core State
+    try {
+        await checkStartupStatus();
+    } catch (e) {
+        console.error(e);
+    }
+    try {
+        const caseRootData = await fetchWithCache("/get_case_root");
+        const dockerConfigData = await fetchWithCache("/get_docker_config");
+        caseDir = caseRootData.caseDir;
+        const caseDirInput = document.getElementById("caseDir");
+        if (caseDirInput) caseDirInput.value = caseDir;
+        dockerImage = dockerConfigData.dockerImage;
+        openfoamVersion = dockerConfigData.openfoamVersion;
+        const openfoamRootInput = document.getElementById("openfoamRoot");
+        if (openfoamRootInput) openfoamRootInput.value = `${dockerImage} OpenFOAM ${openfoamVersion}`;
+        // Load Cases to populate UI dropdowns
+        await refreshCaseList();
+        // Validate optimistic activeCase against fetched options
+        if (savedCase) {
+            const select = document.getElementById("caseSelect");
+            let exists = false;
+            for(let i = 0; i < select.options.length; i++){
+                if (select.options[i].value === savedCase) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (exists) {
+                select.value = savedCase;
+                activeCase = savedCase;
+                updateActiveCaseBadge();
+            } else {
+                // Fallback if case no longer exists
+                activeCase = null;
+                updateActiveCaseBadge();
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
     // Tutorial Selection Search & Persistence
     const tutorialSelect = document.getElementById('tutorialSelect');
     const tutorialSearch = document.getElementById('tutorialSearch');
