@@ -550,6 +550,7 @@ let isFirstPlotLoad = true;
 let lastResidualsCount = 0;
 let currentResidualsData = {};
 let cachedXArray = null;
+let plotsAreFresh = false; // Palette UX: track if current plots represent the active simulation run
 // Request management
 let abortControllers = new Map();
 let requestCache = new Map();
@@ -661,13 +662,17 @@ const lineStyle = {
     width: 2,
     opacity: 0.9
 };
-const createBoldTitle = (text)=>({
-        text: `<b>${text}</b>`,
+const createBoldTitle = (text)=>{
+    const isLive = isSimulationRunning && plotsAreFresh;
+    const status = isLive ? '<span style="color: #10b981; font-size: 11px; font-weight: normal; margin-left: 24px; vertical-align: middle; letter-spacing: 0.05em;">● LIVE</span>' : '<span style="color: #9ca3af; font-size: 11px; font-weight: normal; margin-left: 24px; vertical-align: middle; letter-spacing: 0.05em;">● CACHED</span>';
+    return {
+        text: `<b>${text}</b>&nbsp;&nbsp;&nbsp;${status}`,
         font: {
             ...plotLayout.font,
             size: 22
         }
-    });
+    };
+};
 // Helper: Download plot as PNG
 const downloadPlotAsPNG = async (plotIdOrDiv, filename = "plot.png", btnElement)=>{
     let originalText = "";
@@ -1730,6 +1735,15 @@ const runCommand = async (cmd, btnElement)=>{
         const decoder = new TextDecoder();
         // Start polling immediately when command starts
         isSimulationRunning = true;
+        // Palette UX: Reset freshness when a new run starts
+        if (!cmd.includes("clean")) {
+            plotsAreFresh = false;
+        } else {
+            // If cleaning, clear old plot data to avoid confusion
+            lastResidualsCount = 0;
+            currentResidualsData = {};
+            cachedXArray = null;
+        }
         startPlotUpdates();
         let buffer = "";
         while(true){
@@ -1880,6 +1894,7 @@ const updateResidualsPlot = async (tutorial, injectedData)=>{
             const newPointsCount = newTime.length;
             // If we have new data
             if (newPointsCount > 0) {
+                plotsAreFresh = true; // Data is flowing from the active run
                 const oldTime = currentResidualsData.time || [];
                 const firstNewTime = newTime[0];
                 const lastOldTime = oldTime.length > 0 ? oldTime[oldTime.length - 1] : -Infinity;
@@ -2166,6 +2181,10 @@ const updatePlots = async (injectedData)=>{
             // Only show notification if explicit fetch failed, to avoid WS spam
             if (!injectedData) showNotification("Error fetching plot data", "error");
             return;
+        }
+        // Palette UX: If we got any valid time-series data, mark plots as fresh
+        if (data.time && data.time.length > 0) {
+            plotsAreFresh = true;
         }
         // Pressure plot
         if (data.p && data.time) {
