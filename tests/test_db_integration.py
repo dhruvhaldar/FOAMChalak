@@ -161,3 +161,75 @@ def test_api_list_runs(client):
     assert r1["execution_duration"] == 300.0
     assert r1["start_time"] is not None
     assert r1["end_time"] is not None
+
+
+def test_api_list_runs_grouped(client):
+    """Test grouped API support for the run-history UI."""
+    with app.app_context():
+        db.session.add_all([
+            SimulationRun(
+                case_name="case1",
+                tutorial="tut1",
+                command="blockMesh",
+                status="Completed",
+                start_time=datetime.utcnow() - timedelta(minutes=10),
+            ),
+            SimulationRun(
+                case_name="case1",
+                tutorial="tut1",
+                command="foamRun",
+                status="Running",
+                start_time=datetime.utcnow(),
+                container_id="abcdef1234567890",
+            ),
+            SimulationRun(
+                case_name="case2",
+                tutorial="tut2",
+                command="Allrun",
+                status="Failed",
+                start_time=datetime.utcnow() - timedelta(minutes=5),
+            ),
+        ])
+        db.session.commit()
+
+    response = client.get("/api/runs?group=true")
+    assert response.status_code == 200
+    data = response.json
+
+    assert "grouped_runs" in data
+    groups = {group["case_name"]: group["runs"] for group in data["grouped_runs"]}
+    assert set(groups) == {"case1", "case2"}
+    assert len(groups["case1"]) == 2
+    assert groups["case1"][0]["container_id"] == "abcdef1234567890"
+
+
+def test_api_get_run_log_and_open_folder(client, tmp_path):
+    """Test history row actions for reading logs and validating case folders."""
+    case_root = tmp_path / "cases"
+    case_dir = case_root / "case1"
+    log_dir = case_dir / "logs"
+    log_dir.mkdir(parents=True)
+    log_file = log_dir / "run_1.log"
+    log_file.write_text("line 1\nline 2\n", encoding="utf-8")
+
+    with patch("app.CASE_ROOT", str(case_root)):
+        with app.app_context():
+            run = SimulationRun(
+                case_name=str(case_dir),
+                tutorial="tut1",
+                command="blockMesh",
+                status="Completed",
+                start_time=datetime.utcnow(),
+                log_file_path=str(log_file),
+            )
+            db.session.add(run)
+            db.session.commit()
+            run_id = run.id
+
+        log_response = client.get(f"/api/runs/{run_id}/log")
+        assert log_response.status_code == 200
+        assert log_response.json["log"] == "line 1\nline 2\n"
+
+        folder_response = client.get(f"/api/runs/open_folder/{run_id}")
+        assert folder_response.status_code == 200
+        assert folder_response.json == {"path": str(case_dir), "exists": True}

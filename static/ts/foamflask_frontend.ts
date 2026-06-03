@@ -2026,9 +2026,19 @@ const fetchRunHistory = async (btnElement?: HTMLElement) => {
     const response = await fetch("/api/runs?limit=50&group=true");
     if (!response.ok) throw new Error("Failed to fetch runs");
     const data = await response.json();
+    const groupedRuns = data.grouped_runs || (data.runs || []).reduce((groups: any[], run: any) => {
+      const caseName = run.case_name || "Unknown case";
+      let group = groups.find((item) => item.case_name === caseName);
+      if (!group) {
+        group = { case_name: caseName, runs: [] };
+        groups.push(group);
+      }
+      group.runs.push(run);
+      return groups;
+    }, []);
 
-    if (data.grouped_runs && data.grouped_runs.length > 0) {
-      container.innerHTML = data.grouped_runs.map((group: any) => {
+    if (groupedRuns.length > 0) {
+      container.innerHTML = groupedRuns.map((group: any) => {
         const caseName = group.case_name.split('/').pop();
         const runsHtml = group.runs.map((run: any) => {
           let statusColor = "bg-gray-100 text-gray-800";

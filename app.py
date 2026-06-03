@@ -10,6 +10,7 @@ import posixpath
 import re
 import sys
 import array
+import stat
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Generator, Any
 from functools import wraps, lru_cache
@@ -33,6 +34,7 @@ from flask import (
     stream_with_context,
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect, text
 from markupsafe import escape
 from werkzeug.utils import secure_filename
 from flask_compress import Compress
@@ -91,6 +93,7 @@ class SimulationRun(db.Model):
     end_time = db.Column(db.DateTime, nullable=True)
     execution_duration = db.Column(db.Float, nullable=True)  # in seconds
     log_file_path = db.Column(db.String(255), nullable=True)
+    container_id = db.Column(db.String(128), nullable=True)
 
     def __repr__(self):
         return f"<SimulationRun {self.id} {self.case_name} {self.status}>"
@@ -122,6 +125,48 @@ def fast_jsonify(data: Any, status: int = 200) -> Response:
         data, option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NAIVE_UTC
     )
     return Response(json_bytes, status=status, mimetype="application/json")
+
+
+def ensure_simulation_run_schema() -> None:
+    """Create or migrate the lightweight run-history table."""
+    db.create_all()
+
+    inspector = inspect(db.engine)
+    if "simulation_run" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("simulation_run")}
+    columns_to_add = {
+        "container_id": "VARCHAR(128)",
+        "log_file_path": "VARCHAR(255)",
+    }
+
+    for column_name, column_type in columns_to_add.items():
+        if column_name not in existing_columns:
+            db.session.execute(
+                text(f"ALTER TABLE simulation_run ADD COLUMN {column_name} {column_type}")
+            )
+    db.session.commit()
+
+
+def _safe_read_text_file(path: Path) -> str:
+    """Read a regular text file without following symlinks."""
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+
+    fd = os.open(path, flags)
+    try:
+        file_stat = os.fstat(fd)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise ValueError("Log path is not a regular file")
+
+        with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as handle:
+            fd = -1
+            return handle.read()
+    finally:
+        if fd != -1:
+            os.close(fd)
 
 
 def get_resource_path(relative_path: str) -> Path:
@@ -956,7 +1001,7 @@ def index() -> str:
         tutorials, error = get_tutorials()
     else:
         tutorials, error = [], None
-        
+
     # 🎨 Palette UX: Group tutorials by category
     # ⚡ Bolt Optimization: Use cached generator (requires tuple)
     options_html = generate_grouped_tutorial_options(tuple(tutorials))
@@ -1473,21 +1518,21 @@ def api_get_parallel_config() -> Union[Response, Tuple[Response, int]]:
     case_name = request.args.get("caseName")
     if not case_name:
         return fast_jsonify({"error": "No case name provided"}), 400
-    
+
     try:
         case_path = validate_safe_path(CASE_ROOT, case_name)
         dict_path = case_path / "system" / "decomposeParDict"
-        
+
         if not dict_path.exists():
             return fast_jsonify({"numProcesses": 1, "method": "none", "exists": False})
-            
+
         with dict_path.open("r", encoding="utf-8") as f:
             content = f.read()
-            
+
         import re
         num_match = re.search(r"numberOfSubdomains\s+(\d+);", content)
         method_match = re.search(r"(?:method|decomposer)\s+(\w+);", content)
-        
+
         return fast_jsonify({
             "numProcesses": int(num_match.group(1)) if num_match else 1,
             "method": method_match.group(1) if method_match else "unknown",
@@ -1719,13 +1764,71 @@ def api_list_runs() -> Response:
                     ),
                     "end_time": run.end_time.isoformat() if run.end_time else None,
                     "execution_duration": run.execution_duration,
+                    "container_id": run.container_id,
                 }
             )
+
+        if request.args.get("group", "").lower() == "true":
+            grouped_by_case: Dict[str, Dict[str, Any]] = {}
+            for run_data in runs_data:
+                case_name = run_data["case_name"]
+                grouped = grouped_by_case.setdefault(
+                    case_name, {"case_name": case_name, "runs": []}
+                )
+                grouped["runs"].append(run_data)
+            return fast_jsonify({"grouped_runs": list(grouped_by_case.values())})
 
         return fast_jsonify({"runs": runs_data})
     except Exception as e:
         logger.error(f"Error fetching runs: {e}")
         return fast_jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/runs/<int:run_id>/log", methods=["GET"])
+def api_get_run_log(run_id: int) -> Response:
+    """Return the saved log for a simulation run."""
+    run = db.session.get(SimulationRun, run_id)
+    if not run:
+        return fast_jsonify({"error": "Run not found"}), 404
+
+    if not run.log_file_path:
+        return fast_jsonify({"error": "No log is available for this run"}), 404
+
+    try:
+        log_path = validate_safe_path(CASE_ROOT, run.log_file_path)
+    except ValueError as e:
+        logger.warning(f"Blocked unsafe run log path for run {run_id}: {e}")
+        return fast_jsonify({"error": "Invalid log path"}), 400
+
+    if not log_path.exists():
+        return fast_jsonify({"error": "Log file not found"}), 404
+
+    try:
+        return fast_jsonify({"log": _safe_read_text_file(log_path)})
+    except OSError as e:
+        logger.warning(f"Could not read run log {run_id}: {e}")
+        return fast_jsonify({"error": "Unable to read log file"}), 500
+    except ValueError as e:
+        return fast_jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/runs/open_folder/<int:run_id>", methods=["GET"])
+def api_open_run_folder(run_id: int) -> Response:
+    """Validate and return the case folder path for a simulation run."""
+    run = db.session.get(SimulationRun, run_id)
+    if not run:
+        return fast_jsonify({"error": "Run not found"}), 404
+
+    try:
+        case_path = validate_safe_path(CASE_ROOT, run.case_name)
+    except ValueError as e:
+        logger.warning(f"Blocked unsafe run case path for run {run_id}: {e}")
+        return fast_jsonify({"error": "Invalid case path"}), 400
+
+    if not case_path.exists() or not case_path.is_dir():
+        return fast_jsonify({"error": "Case folder not found"}), 404
+
+    return fast_jsonify({"path": str(case_path), "exists": True})
 
 
 @app.route("/run", methods=["POST"])
@@ -1762,13 +1865,13 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
         # We don't use the return value here as the generator re-resolves it,
         # but this ensures the path is valid before starting the stream.
         host_path = validate_safe_path(CASE_ROOT, case_dir)
-        
+
         # Resolve the actual case directory (host_path might be the root or the specific case)
         actual_case_path = host_path
         tutorial_name = Path(tutorial).name
         if host_path.name != tutorial_name:
             actual_case_path = host_path / tutorial_name
-            
+
         # If numProcesses is provided, update the decomposition
         if num_processes:
             try:
@@ -1791,6 +1894,10 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
             start_time=datetime.now(timezone.utc),
         )
         db.session.add(new_run)
+        db.session.flush()
+        run_log_dir = actual_case_path / "logs"
+        run_log_dir.mkdir(parents=True, exist_ok=True)
+        new_run.log_file_path = str(run_log_dir / f"run_{new_run.id}.log")
         db.session.commit()
         run_id = new_run.id
         logger.info(f"Created run record ID: {run_id}")
@@ -1831,13 +1938,13 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
 
         # DEBUG: Check if we are pointing to the case itself or its parent
         tutorial_name = posixpath.basename(tutorial)
-        
+
         # Robust check for direct case path:
         # 1. The name matches the tutorial leaf name
         # 2. OR it contains OpenFOAM structure (system/controlDict is the gold standard)
         has_foam_structure = (host_path / "system" / "controlDict").exists() or \
                              (host_path / "system").exists() and (host_path / "constant").exists()
-        
+
         is_direct_case_path = (host_path.name == tutorial_name) or has_foam_structure
 
         logger.info(
@@ -1950,28 +2057,59 @@ def run_case() -> Union[Response, Tuple[Dict, int]]:
 
             container = client.containers.run(DOCKER_IMAGE, docker_cmd, **run_kwargs)
 
+            if run_id:
+                try:
+                    with app.app_context():
+                        run = db.session.get(SimulationRun, run_id)
+                        if run:
+                            run.container_id = container.id
+                            db.session.commit()
+                except Exception as db_err:
+                    logger.error(f"Failed to save container ID: {db_err}")
+
             # Stream container logs directly (stdout/stderr)
             # User Preference: Do not tail internal log files, show only what the container prints.
             try:
-                for line in container.logs(stream=True):
-                    decoded = line.decode(errors="ignore")
-                    
-                    # 🛡️ Enhanced Error Detection: Scan for common OpenFOAM/MPI failure markers
-                    # We inject a clear marker so the frontend can easily highlight it
-                    lower_line = decoded.lower()
-                    error_markers = [
-                        "fatal error", 
-                        "foam error", 
-                        "mpi_abort", 
-                        "not enough slots", 
-                        "ill defined primitiveentry"
-                    ]
-                    
-                    if any(marker in lower_line for marker in error_markers):
-                        # Inject a special class-based marker that our frontend will recognize
-                        yield f"\n[FOAMFlask] [ALERT] CRITICAL ERROR DETECTED:\n{decoded}"
-                    else:
-                        yield decoded
+                log_handle = None
+                if run_id:
+                    with app.app_context():
+                        run = db.session.get(SimulationRun, run_id)
+                        if run and run.log_file_path:
+                            log_path = validate_safe_path(CASE_ROOT, run.log_file_path)
+                            flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+                            if hasattr(os, "O_NOFOLLOW"):
+                                flags |= os.O_NOFOLLOW
+                            log_fd = os.open(log_path, flags, 0o600)
+                            log_handle = os.fdopen(log_fd, "a", encoding="utf-8")
+
+                try:
+                    for line in container.logs(stream=True):
+                        decoded = line.decode(errors="ignore")
+
+                        # 🛡️ Enhanced Error Detection: Scan for common OpenFOAM/MPI failure markers
+                        # We inject a clear marker so the frontend can easily highlight it
+                        lower_line = decoded.lower()
+                        error_markers = [
+                            "fatal error",
+                            "foam error",
+                            "mpi_abort",
+                            "not enough slots",
+                            "ill defined primitiveentry"
+                        ]
+
+                        if any(marker in lower_line for marker in error_markers):
+                            # Inject a special class-based marker that our frontend will recognize
+                            out_line = f"\n[FOAMFlask] [ALERT] CRITICAL ERROR DETECTED:\n{decoded}"
+                        else:
+                            out_line = decoded
+
+                        if log_handle:
+                            log_handle.write(out_line)
+                            log_handle.flush()
+                        yield out_line
+                finally:
+                    if log_handle:
+                        log_handle.close()
             except Exception as e:
                 status = "Failed"
                 error_msg = str(e)
@@ -3230,7 +3368,7 @@ def main() -> None:
 
     # Initialize database
     with app.app_context():
-        db.create_all()
+        ensure_simulation_run_schema()
 
     # Start startup check in background
     # We use a thread to not block the server startup
@@ -3240,21 +3378,21 @@ def main() -> None:
 
     host = os.environ.get("FLASK_HOST", "127.0.0.1")
     port = 5000
-    
+
     # ⚡ Bolt Optimization: Enable debug mode via environment variable
     # This enables the reloader and debugger, which is useful for development
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
-    
+
     print(f"FOAMFlask listening on: {host}:{port} (Debug: {debug_mode})")
-    
+
     # Add HTML template to watched files for automatic server restart on change
     extra_files = [str(TEMPLATE_FILE)] if debug_mode else None
-    
+
     app.run(
-        host=host, 
-        port=port, 
-        debug=debug_mode, 
-        threaded=True, 
+        host=host,
+        port=port,
+        debug=debug_mode,
+        threaded=True,
         extra_files=extra_files
     )
 
