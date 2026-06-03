@@ -49,4 +49,6 @@ docker context use default 2>$null | Out-Null
 
 # Run the application using python -m app
 # We use --no-python-downloads to ensure we use the local environment
+Start-Job -ScriptBlock { uv run python backend/start_worker.py }
 uv run python -m app
+Get-Job | Remove-Job -Force

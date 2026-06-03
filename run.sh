@@ -50,4 +50,7 @@ echo -e ""
 
 # Run the application using python -m app
 # We enforce Flask-only architecture as specified in AGENTS.md
+uv run python backend/start_worker.py &
+WORKER_PID=$!
 uv run python -m app
+kill $WORKER_PID 2>/dev/null || true

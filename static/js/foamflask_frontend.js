@@ -1722,53 +1722,83 @@ const fetchRunHistory = async (btnElement)=>{
         btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-3 w-3 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...`;
     }
     try {
-        // ⚡ Bolt Optimization: Request limited number of runs to prevent DOM overload
-        const response = await fetch("/api/runs?limit=50");
+        const response = await fetch("/api/runs?limit=50&group=true");
         if (!response.ok) throw new Error("Failed to fetch runs");
         const data = await response.json();
-        if (data.runs && data.runs.length > 0) {
-            container.innerHTML = data.runs.map((run)=>{
-                let statusColor = "bg-gray-100 text-gray-800";
-                if (run.status === "Completed") statusColor = "bg-green-100 text-green-800";
-                else if (run.status === "Failed") statusColor = "bg-red-100 text-red-800";
-                else if (run.status === "Running") statusColor = "bg-blue-100 text-blue-800";
-                const startTime = new Date(run.start_time).toLocaleString();
-                const duration = run.execution_duration ? `${run.execution_duration.toFixed(2)}s` : "-";
-                const safeCommand = run.command.replace(/'/g, "\\'");
+        if (data.grouped_runs && data.grouped_runs.length > 0) {
+            container.innerHTML = data.grouped_runs.map((group)=>{
+                const caseName = group.case_name.split('/').pop();
+                const runsHtml = group.runs.map((run)=>{
+                    let statusColor = "bg-gray-100 text-gray-800";
+                    if (run.status === "Completed") statusColor = "bg-green-100 text-green-800";
+                    else if (run.status === "Failed") statusColor = "bg-red-100 text-red-800";
+                    else if (run.status === "Running") statusColor = "bg-blue-100 text-blue-800";
+                    const startTime = new Date(run.start_time).toLocaleString();
+                    const duration = run.execution_duration ? `${run.execution_duration.toFixed(2)}s` : "-";
+                    const safeCommand = run.command.replace(/'/g, "\'");
+                    const shortContainerId = run.container_id ? run.container_id.substring(0, 12) : "-";
+                    return `
+            <tr class="group hover:bg-gray-50 transition-colors border-b last:border-b-0 border-gray-100">
+              <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">#${run.id}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">${run.command}</span>
+                  <button onclick="copyText('${safeCommand}', this)" class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-cyan-600 transition-all p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Copy command" title="Copy command">
+                    <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button onclick="confirmRunCommand('${safeCommand}', this)" class="icon-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-cyan-600 hover:text-cyan-800 transition-all p-1 rounded hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Re-run command" title="Re-run command">
+                    <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <span class="px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                  ${getStatusIcon(run.status)}
+                  ${run.status}
+                </span>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">${duration}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" title="Started: ${startTime}">${startTime.split(',')[0]}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono" title="${run.container_id || ''}">${shortContainerId}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="viewRunLog(${run.id})" class="text-cyan-600 hover:text-cyan-900 focus:outline-none focus:underline" aria-label="View log">Log</button>
+              </td>
+            </tr>
+          `;
+                }).join("");
                 return `
-          <tr class="group hover:bg-gray-50 transition-colors border-b last:border-b-0 border-gray-100">
-            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">#${run.id}</td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-xs bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">${run.command}</span>
-                <button onclick="copyText('${safeCommand}', this)" class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-cyan-600 transition-all p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Copy command" title="Copy command">
-                  <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                <button onclick="confirmRunCommand('${safeCommand}', this)" class="icon-btn opacity-0 group-hover:opacity-100 focus:opacity-100 text-cyan-600 hover:text-cyan-800 transition-all p-1 rounded hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Re-run command" title="Re-run command">
-                  <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-              </div>
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              <span class="px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                ${getStatusIcon(run.status)}
-                ${run.status}
+          <tr class="bg-gray-50 border-y border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
+            <td colspan="6" class="px-4 py-2 text-sm font-medium text-gray-900 flex items-center justify-between">
+              <span>
+                <svg class="w-4 h-4 inline mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                ${caseName}
               </span>
+              <span class="text-xs text-gray-500 font-normal">${group.runs.length} run(s)</span>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">${duration}</td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${startTime}</td>
+            <td class="px-4 py-2 text-right">
+              <button onclick="event.stopPropagation(); openCaseFolder(${group.runs[0].id})" class="text-xs text-cyan-600 hover:text-cyan-800 focus:outline-none focus:underline" aria-label="Open case folder">Open Folder</button>
+            </td>
+          </tr>
+          <tr class="hidden">
+            <td colspan="7" class="p-0">
+              <table class="min-w-full">
+                <tbody class="divide-y divide-gray-100">
+                  ${runsHtml}
+                </tbody>
+              </table>
+            </td>
           </tr>
         `;
             }).join("");
         } else {
             container.innerHTML = `
         <tr>
-          <td colspan="5" class="px-4 py-12 text-center">
+          <td colspan="7" class="px-4 py-12 text-center">
             <div class="flex flex-col items-center justify-center text-gray-400">
               <svg aria-hidden="true" class="w-12 h-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1783,7 +1813,7 @@ const fetchRunHistory = async (btnElement)=>{
         if (btn) showNotification("Run history refreshed", "success", NOTIFY_SHORT);
     } catch (e) {
         console.error("Error fetching run history:", e);
-        container.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-sm text-red-500">Failed to load history</td></tr>`;
+        container.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-sm text-red-500">Failed to load history</td></tr>`;
         if (btn) showNotification("Failed to refresh run history", "error");
     } finally{
         if (btn) {
@@ -1792,6 +1822,37 @@ const fetchRunHistory = async (btnElement)=>{
             btn.classList.remove("cursor-wait", "opacity-75");
             btn.innerHTML = originalText;
         }
+    }
+};
+window.viewRunLog = async (runId)=>{
+    try {
+        const response = await fetch(`/api/runs/${runId}/log`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to fetch log");
+        }
+        const data = await response.json();
+        const consoleElement = document.getElementById("consoleOutput");
+        if (consoleElement) {
+            consoleElement.innerHTML = data.log.replace(/\n/g, '<br/>');
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+        }
+        showNotification("Log loaded", "success", NOTIFY_SHORT);
+    } catch (e) {
+        showNotification(`Error: ${e.message}`, "error");
+    }
+};
+window.openCaseFolder = async (runId)=>{
+    try {
+        const response = await fetch(`/api/runs/open_folder/${runId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to open folder");
+        }
+        const data = await response.json();
+        showNotification(`Case folder exists: ${data.path}`, "success");
+    } catch (e) {
+        showNotification(`Error: ${e.message}`, "error");
     }
 };
 window.fetchRunHistory = fetchRunHistory;
@@ -4955,5 +5016,6 @@ const resetState = ()=>{
 };
 window._resetState = resetState;
 export { init, fetchWithCache, requestCache, setCase, refreshCaseList, uploadGeometry, deleteGeometry, resetState };
+window.fetchRunHistory = fetchRunHistory;
 
 //# sourceMappingURL=foamflask_frontend.js.map

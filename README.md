@@ -229,6 +229,8 @@ FOAMFlask/
    - Import them in `app.py`.
 2. **Add Endpoints**:
    - Define new routes in `app.py` using `@app.route`.
+3. **Honker Queue**:
+   - The `/run` endpoint uses `honker` to queue jobs. Background workers process these and update SQLite. Logs are streamed live via `honker.stream()`.
 3. **Hot Reload / Debug Mode**:
    - To enable the Flask reloader and automatic template refreshing for the frontend, run with the `FLASK_DEBUG` environment variable set to `1`:
      ```powershell

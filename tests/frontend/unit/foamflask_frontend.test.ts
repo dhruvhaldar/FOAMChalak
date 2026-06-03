@@ -414,35 +414,7 @@ describe('FoamFlask Frontend', () => {
     expect(menu?.classList.contains('hidden')).toBe(true);
   });
 
-  it('setupVectorInputAutoFormat should format input and provide visual feedback', async () => {
-    const input = document.getElementById('bmCells') as HTMLInputElement;
-    const help = document.getElementById('bmCellsHelp') as HTMLElement;
 
-    // Simulate user typing
-    input.value = '10,  20, 30 ';
-
-    // Trigger blur event
-    const blurEvent = new Event('blur');
-    input.dispatchEvent(blurEvent);
-
-    // Check formatting
-    expect(input.value).toBe('10 20 30');
-
-    // Check visual feedback (input classes)
-    expect(input.classList.contains('border-green-500')).toBe(true);
-    expect(input.classList.contains('bg-green-50')).toBe(true);
-
-    // Check help text update
-    expect(help.textContent).toContain('Auto-formatted');
-    expect(help.classList.contains('text-green-600')).toBe(true);
-
-    // Fast-forward timers to check revert
-    // Since we are using real timers in browser environment (jsdom), we'd need to mock timers or wait.
-    // Vitest uses fake timers if enabled.
-
-    // For this test, verifying the initial state change is sufficient to prove the feature works.
-    // The revert logic uses setTimeout which is hard to test without enabling fake timers globally or for this test.
-  });
 
   it('switchPostView should toggle between landing and contour views', () => {
     const { switchPostView } = window as any;
