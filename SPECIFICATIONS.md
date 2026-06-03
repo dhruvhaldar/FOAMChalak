@@ -9,7 +9,7 @@ FOAMPilot is a web-based interface for OpenFOAM simulations, providing a user-fr
 - **Framework**: Flask 3.x (Python 3.13+)
 - **Containerization**: Docker SDK for Python
 - **API**: RESTful JSON API
-- **Concurrency**: Thread-based for background tasks
+- **Concurrency**: Process-based task queue using `honker` (SQLite NOTIFY/LISTEN)
 - **Logging**: Python logging module (DEBUG level)
 
 ### Frontend
