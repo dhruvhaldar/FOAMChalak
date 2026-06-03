@@ -2151,7 +2151,7 @@ const fetchRunHistory = async (btnElement?: HTMLElement) => {
     const data = await response.json();
     const consoleElement = document.getElementById("consoleOutput");
     if (consoleElement) {
-      consoleElement.innerHTML = data.log.replace(/\n/g, '<br/>');
+      consoleElement.textContent = data.log;
       consoleElement.scrollTop = consoleElement.scrollHeight;
     }
     showNotification("Log loaded", "success", NOTIFY_SHORT);
