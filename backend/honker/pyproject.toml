@@ -1,0 +1,5 @@
+[project]
+name = "honker"
+version = "0.1.0"
+description = "Local Honker-compatible SQLite queue adapter for FOAMFlask"
+requires-python = ">=3.13"

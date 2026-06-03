@@ -52,6 +52,23 @@ describe('Run History UI', () => {
     expect(container?.innerHTML).toContain('<svg');
   });
 
+  it('viewRunLog should render saved logs as text, not HTML', async () => {
+    const { viewRunLog } = window as any;
+    const consoleOutput = document.createElement('div');
+    consoleOutput.id = 'consoleOutput';
+    document.body.appendChild(consoleOutput);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ log: '<img src=x onerror=alert(1)>\nFinished' })
+    });
+
+    await viewRunLog(1);
+
+    expect(consoleOutput.textContent).toBe('<img src=x onerror=alert(1)>\nFinished');
+    expect(consoleOutput.innerHTML).not.toContain('<img');
+  });
+
   it('should show copy button for runs', async () => {
     const { fetchRunHistory } = window as any;
 

@@ -36,6 +36,7 @@ dependencies = [
     "fonttools==4.60.2",
     "frozenlist==1.8.0",
     "h5py==3.15.1",
+    "honker",
     "idna==3.15",
     "iniconfig==2.3.0",
     "ipydatawidgets==4.3.5",
@@ -143,7 +144,9 @@ dev = [
 [tool.uv.workspace]
 members = [
     "backend/accelerator",
+    "backend/honker",
 ]
 
 [tool.uv.sources]
 accelerator = { workspace = true }
+honker = { workspace = true }

@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "accelerator",
     "foamflask",
+    "honker",
 ]
 
 [[package]]
@@ -673,6 +674,7 @@ dependencies = [
     { name = "fonttools" },
     { name = "frozenlist" },
     { name = "h5py" },
+    { name = "honker" },
     { name = "idna" },
     { name = "iniconfig" },
     { name = "ipydatawidgets" },
@@ -810,6 +812,7 @@ requires-dist = [
     { name = "fonttools", specifier = "==4.60.2" },
     { name = "frozenlist", specifier = "==1.8.0" },
     { name = "h5py", specifier = "==3.15.1" },
+    { name = "honker", editable = "backend/honker" },
     { name = "idna", specifier = "==3.15" },
     { name = "iniconfig", specifier = "==2.3.0" },
     { name = "ipydatawidgets", specifier = "==4.3.5" },
@@ -1078,6 +1081,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/d8/7368679b8df6925b8415f9dcc9ab1dab01ddc384d2b2c24aac9191bd9ceb/h5py-3.15.1-cp314-cp314-win_amd64.whl", hash = "sha256:9c73d1d7cdb97d5b17ae385153472ce118bed607e43be11e9a9deefaa54e0734", size = 2865704, upload-time = "2025-10-16T10:35:22.658Z" },
     { url = "https://files.pythonhosted.org/packages/d3/b7/4a806f85d62c20157e62e58e03b27513dc9c55499768530acc4f4c5ce4be/h5py-3.15.1-cp314-cp314-win_arm64.whl", hash = "sha256:a6d8c5a05a76aca9a494b4c53ce8a9c29023b7f64f625c6ce1841e92a362ccdf", size = 2465544, upload-time = "2025-10-16T10:35:25.695Z" },
 ]
+
+[[package]]
+name = "honker"
+version = "0.1.0"
+source = { editable = "backend/honker" }
 
 [[package]]
 name = "idna"
