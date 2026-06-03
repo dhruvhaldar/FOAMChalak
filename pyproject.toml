@@ -123,7 +123,7 @@ dependencies = [
     "typing-extensions==4.15.0",
     "tzdata==2025.2",
     "uc-micro-py==1.0.3",
-    "urllib3==2.6.3",
+    "urllib3==2.7.0",
     "vtk==9.5.2",
     "wcwidth==0.2.14",
     "webencodings==0.5.1",
