@@ -100,6 +100,10 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
         pv.set_plot_theme("document")
         mesh = pv.read(file_path)
 
+        # Combine if MultiBlock
+        if isinstance(mesh, pv.MultiBlock):
+            mesh = mesh.combine()
+
         scalar_field = params.get("scalar_field", "U_Magnitude")
 
         # Compute if missing
@@ -110,10 +114,11 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
 
         # 2. Create Plotter
         plotter = pv.Plotter(off_screen=True)
+        
+        # Add outline for context
+        plotter.add_mesh(mesh.outline(), color="black", line_width=2)
 
         # 3. Add the key interactive feature: Slice Widget
-        # This one line enables the complex 3D interaction!
-        
         normal_map = {
             "x": [1, 0, 0],
             "y": [0, 1, 0],
@@ -131,7 +136,13 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
             widget_color="black"
         )
 
-        plotter.reset_camera()
+        # Set camera based on normal plane
+        if requested_normal == "x":
+            plotter.view_yz()
+        elif requested_normal == "y":
+            plotter.view_xz()
+        else:
+            plotter.view_xy()
 
         # 4. Setup Trame Server
         server = get_server(name="foamflask_slice", client_type="vue2")
