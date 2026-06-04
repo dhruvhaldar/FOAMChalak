@@ -883,6 +883,9 @@ export function initIsovalueWidget(): void {
             }
         });
     }
+
+    // Set up slider value binding and iframe synchronization
+    setupScalarFieldListeners();
 }
 
 // Initialize on load

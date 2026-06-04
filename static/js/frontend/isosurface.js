@@ -710,6 +710,8 @@ let currentFieldStats = null;
             }
         });
     }
+    // Set up slider value binding and iframe synchronization
+    setupScalarFieldListeners();
 }
 // Initialize on load
 // Initialize when DOM is ready or immediately if already loaded

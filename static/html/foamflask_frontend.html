@@ -2215,18 +2215,21 @@
               Load for Contour
             </button>
 
+            <!-- Group to be disabled until VTK is loaded -->
+            <div id="contourOptionsGroup" class="flex flex-col gap-4 opacity-50 pointer-events-none transition-opacity duration-300">
+
             <!-- VTK File Info -->
-            <div id="slice_vtkFileInfo" class="hidden bg-green-50 border border-green-200 rounded p-3">
+            <div id="vtkFileInfo" class="hidden bg-green-50 border border-green-200 rounded p-3">
               <h3 class="font-semibold text-black mb-2">
                 VTK File Information
               </h3>
-              <div id="slice_vtkFileInfoContent" class="text-sm text-green-800 space-y-1"></div>
+              <div id="vtkFileInfoContent" class="text-sm text-green-800 space-y-1"></div>
             </div>
 
             <!-- Scalar Field Selection -->
             <div class="flex flex-col gap-2">
-              <label for="slice_scalarField" class="text-sm font-medium">Scalar Field</label>
-              <select id="slice_scalarField" aria-label="Select Scalar Field"
+              <label for="scalarField" class="text-sm font-medium">Scalar Field</label>
+              <select id="scalarField" aria-label="Select Scalar Field"
                 class="border border-gray-300 rounded px-3 py-2 [&_.point-data-option]:text-cyan-500 [&_.cell-data-option]:text-green-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
                 <style>
                   option.point-data-option {
@@ -2237,7 +2240,7 @@
                     color: #10b981;
                   }
 
-                  #slice_scalarField option {
+                  #scalarField option {
                     padding: 4px 8px;
                   }
                 </style>
@@ -2259,12 +2262,12 @@
             </div>
 
             <!-- Scalar Range (Static Card) -->
-            <div id="slice_scalarRangeCard" class="hidden bg-cyan-50 border border-cyan-200 rounded p-3 mt-2 relative">
+            <div id="scalarRangeCard" class="hidden bg-cyan-50 border border-cyan-200 rounded p-3 mt-2 relative">
               <div class="flex justify-between items-center mb-2">
                 <h3 class="text-sm font-semibold text-black">
                   Scalar Range
                 </h3>
-                <button type="button" id="slice_resetRangeBtn" onclick="resetScalarRange()"
+                <button type="button" id="resetRangeBtn" onclick="resetScalarRange()"
                   class="text-xs text-cyan-600 hover:text-cyan-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:underline flex items-center gap-1"
                   title="Reset to data bounds" aria-label="Reset scalar range to data bounds">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
@@ -2276,19 +2279,19 @@
                 </button>
               </div>
               <div class="grid grid-cols-2 gap-2 text-sm text-cyan-800">
-                <div><span class="font-medium text-gray-600 mr-1">Min:</span> <span id="slice_displayMin">0.0000</span></div>
-                <div><span class="font-medium text-gray-600 mr-1">Max:</span> <span id="slice_displayMax">0.0000</span></div>
+                <div><span class="font-medium text-gray-600 mr-1">Min:</span> <span id="displayMin">0.0000</span></div>
+                <div><span class="font-medium text-gray-600 mr-1">Max:</span> <span id="displayMax">0.0000</span></div>
               </div>
               <!-- Hidden inputs to keep compatibility with existing JS logic -->
-              <input type="hidden" id="slice_rangeMin" value="0" />
-              <input type="hidden" id="slice_rangeMax" value="0" />
+              <input type="hidden" id="rangeMin" value="0" />
+              <input type="hidden" id="rangeMax" value="0" />
             </div>
 
             <!-- Number of Isosurfaces -->
             <div class="flex flex-col gap-2">
-              <label for="slice_numIsosurfaces" class="text-sm font-medium">Number of Isosurfaces
+              <label for="numIsosurfaces" class="text-sm font-medium">Number of Isosurfaces
                 <span class="text-gray-900">(Optional)</span></label>
-              <input type="number" id="slice_numIsosurfaces" placeholder="Leave empty for default (10)" min="1" max="40"
+              <input type="number" id="numIsosurfaces" placeholder="Leave empty for default (10)" min="1" max="40"
                 class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
             </div>
 
@@ -2323,6 +2326,8 @@
               </h3>
               <div id="contourInfoContent" class="text-sm text-cyan-800 grid grid-cols-2 gap-2"></div>
             </div>
+
+            </div> <!-- End of contourOptionsGroup -->
           </div>
 
           <!-- Right Column: Contour Viewer -->

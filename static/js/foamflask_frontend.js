@@ -3984,6 +3984,11 @@ const loadContourVTK = async ()=>{
     try {
         await loadContourMesh(fileToLoad);
         showNotification("Contour mesh loaded successfully.", "success");
+        // Enable the options group now that a file is loaded
+        const optionsGroup = document.getElementById("contourOptionsGroup");
+        if (optionsGroup) {
+            optionsGroup.classList.remove("opacity-50", "pointer-events-none");
+        }
     } catch (e) {
         console.error(e);
         showNotification("Failed to load contour mesh.", "error");
