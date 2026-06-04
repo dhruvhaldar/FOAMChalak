@@ -4390,7 +4390,7 @@ const runPostOperation = async (operation: string) => {
 const loadCustomVTKFile = async () => { };
 
 const loadSliceVTK = async () => {
-  const vtkFileSelect = document.getElementById("vtkFileSelect") as HTMLSelectElement | null;
+  const vtkFileSelect = document.getElementById("slice_vtkFileSelect") as HTMLSelectElement | null;
   let fileToLoad = "";
 
   if (vtkFileSelect && vtkFileSelect.value) {
