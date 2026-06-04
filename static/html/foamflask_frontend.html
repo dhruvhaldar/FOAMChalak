@@ -2488,6 +2488,9 @@
               Load for Slice
             </button>
 
+            <!-- Group to be disabled until VTK is loaded -->
+            <div id="sliceOptionsGroup" class="flex flex-col gap-4 opacity-50 pointer-events-none transition-opacity duration-300">
+
             <!-- VTK File Info -->
             <div id="slice_vtkFileInfo" class="hidden bg-green-50 border border-green-200 rounded p-3">
               <h3 class="font-semibold text-black mb-2">
@@ -2581,6 +2584,8 @@
               </h3>
               <div id="slice_sliceInfoContent" class="text-sm text-cyan-800 grid grid-cols-2 gap-2"></div>
             </div>
+
+            </div> <!-- End of sliceOptionsGroup -->
           </div>
 
           <!-- Right Column: Slice Viewer -->

@@ -3956,6 +3956,15 @@ const loadSliceVTK = async ()=>{
     }
     try {
         await loadSliceMesh(fileToLoad);
+        showNotification("Slice mesh loaded successfully.", "success");
+        // Enable the options group now that a file is loaded
+        const optionsGroup = document.getElementById("sliceOptionsGroup");
+        if (optionsGroup) {
+            optionsGroup.classList.remove("opacity-50", "pointer-events-none");
+        }
+    } catch (e) {
+        console.error(e);
+        showNotification("Failed to load slice mesh.", "error");
     } finally{
         if (btn) {
             btn.disabled = false;
