@@ -2552,30 +2552,15 @@
               <input type="hidden" id="slice_rangeMax" value="0" />
             </div>
 
-            <!-- Number of Isosurfaces -->
+            <!-- Initial Slice Plane -->
             <div class="flex flex-col gap-2">
-              <label for="slice_numIsosurfaces" class="text-sm font-medium">Number of Isosurfaces
-                <span class="text-gray-900">(Optional)</span></label>
-              <input type="number" id="slice_numIsosurfaces" placeholder="Leave empty for default (10)" min="1" max="40"
-                class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
-            </div>
-
-            <!-- Show Isovalue Widget Toggle -->
-            <label class="flex items-center gap-2 mt-2 cursor-pointer">
-              <input type="checkbox" id="slice_showIsovalueWidget"
-                class="cursor-pointer w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" checked />
-              <span class="cursor-pointer text-sm font-medium text-gray-900">Enable Interactive
-                Slider</span>
-            </label>
-
-            <!-- Interactive Slider (Visible by default) -->
-            <div id="slice_isovalueSliderContainer" class="mt-2">
-              <label for="slice_isovalueSlider" class="block text-sm font-medium text-gray-700">Isovalue</label>
-              <div class="flex items-center gap-2">
-                <input type="range" id="slice_isovalueSlider"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                <span id="slice_isovalueDisplay" class="text-sm text-gray-600 w-16 text-right">0</span>
-              </div>
+              <label for="slice_normal" class="text-sm font-medium">Initial Slice Plane</label>
+              <select id="slice_normal" aria-label="Select Initial Slice Plane"
+                class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                <option value="x">X-Normal</option>
+                <option value="y">Y-Normal</option>
+                <option value="z">Z-Normal</option>
+              </select>
             </div>
 
             <!-- Generate Slices Button -->

@@ -17,7 +17,7 @@ let currentFieldStats = null;
     // Default options
     // Default options (don't default scalarField/num_slices yet, check DOM first)
     const { tutorial = null, caseDir = null, vtkFilePath = null } = options;
-    let { scalarField, num_slices, colorMap } = options;
+    let { scalarField, normal, colorMap } = options;
     // UX: Loading state
     const btn = document.getElementById("generateSlicesBtn");
     let originalText = "";
@@ -37,10 +37,10 @@ let currentFieldStats = null;
             const scalarFieldSelect = document.getElementById('scalarField');
             scalarField = scalarFieldSelect?.value || 'U_Magnitude';
         }
-        // Resolve num_slices
-        if (num_slices === undefined) {
-            const num_slicesInput = document.getElementById('num_slices');
-            num_slices = num_slicesInput?.value ? parseInt(num_slicesInput.value, 10) : 10;
+        // Resolve normal
+        if (normal === undefined) {
+            const normalSelect = document.getElementById('slice_normal');
+            normal = normalSelect?.value || 'x';
         }
         // Resolve colorMap
         if (colorMap === undefined) {
@@ -108,42 +108,18 @@ let currentFieldStats = null;
             tutorial: selectedTutorial,
             caseDir: selectedCaseDir,
             scalarField,
-            num_slices,
+            normal,
             colorMap,
             range,
             vtkFilePath: selectedVtkFilePath
         });
-        // Get showIsovalueWidget from checkbox
-        const showIsovalueWidgetCheckbox = document.getElementById('slice_showIsovalueWidget');
-        const showIsovalueWidget = showIsovalueWidgetCheckbox ? showIsovalueWidgetCheckbox.checked : false;
-        // Toggle slider visibility
-        const sliderContainer = document.getElementById('slice_isovalueSliderContainer');
-        if (sliderContainer) {
-            if (showIsovalueWidget) {
-                sliderContainer.classList.remove('hidden');
-            } else {
-                sliderContainer.classList.add('hidden');
-            }
-        }
-        // Get slider value if enabled
-        let isovalues;
-        if (showIsovalueWidget) {
-            const slider = document.getElementById('slice_isovalueSlider');
-            if (slider) {
-                isovalues = [
-                    parseFloat(slider.value)
-                ];
-            }
-        }
         // Prepare request data
         const requestData = {
             tutorial: selectedTutorial,
             caseDir: selectedCaseDir,
             scalarField,
-            num_slices,
+            normal,
             vtkFilePath: selectedVtkFilePath,
-            showIsovalueWidget,
-            isovalues,
             colorMap
         };
         if (range && Array.isArray(range) && range.length === 2) {
@@ -165,7 +141,7 @@ let currentFieldStats = null;
             tutorial: selectedTutorial,
             caseDir: selectedCaseDir,
             scalarField,
-            num_slices,
+            normal: normal || 'x',
             timestamp: new Date().toISOString(),
             vtkFilePath: selectedVtkFilePath || undefined,
             colorMap
@@ -305,10 +281,8 @@ let currentFieldStats = null;
         tutorial: requestData.tutorial,
         caseDir: requestData.caseDir,
         scalar_field: requestData.scalarField,
-        num_slices: requestData.num_slices,
+        normal: requestData.normal,
         vtkFilePath: requestData.vtkFilePath,
-        showIsovalueWidget: requestData.showIsovalueWidget,
-        isovalues: requestData.isovalues,
         colormap: requestData.colorMap // Map frontend camelCase to backend snake_case
     };
     if (requestData.range && Array.isArray(requestData.range) && requestData.range.length === 2) {
@@ -468,9 +442,9 @@ let currentFieldStats = null;
  */ export async function generateSlicesWithParams() {
     try {
         const scalarFieldSelect = document.getElementById('slice_scalarField');
-        const num_slicesInput = document.getElementById('slice_numIsosurfaces');
+        const normalSelect = document.getElementById('slice_normal');
         const scalarField = scalarFieldSelect?.value || 'U_Magnitude';
-        const num_slices = num_slicesInput?.value ? parseInt(num_slicesInput.value, 10) : 5;
+        const normal = normalSelect?.value || 'x';
         // Get tutorial from select (same logic as generateSlices)
         const selectedTutorial = getTutorialFromSelect() ?? '';
         if (!selectedTutorial) {
@@ -492,14 +466,14 @@ let currentFieldStats = null;
             tutorial: selectedTutorial,
             caseDir: selectedCaseDir,
             scalarField,
-            num_slices
+            normal
         });
         // Pass all required properties with real values
         await generateSlices({
             tutorial: selectedTutorial,
             caseDir: selectedCaseDir,
             scalarField,
-            num_slices,
+            normal,
             colorMap: document.getElementById('slice_colorMap')?.value
         });
     } catch (error) {
@@ -652,64 +626,11 @@ let currentFieldStats = null;
             updateRangeInputs(scalarFieldSelect.value);
         };
     }
-    // Also update slider display on input and sync with backend
-    const slider = document.getElementById('slice_isovalueSlider');
-    const display = document.getElementById('slice_isovalueDisplay');
-    if (slider && display) {
-        slider.oninput = ()=>{
-            const val = parseFloat(slider.value);
-            display.textContent = val.toFixed(2);
-            // Send update to Trame if active
-            const iframe = document.getElementById('sliceVisualizationFrame');
-            if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.postMessage({
-                    type: 'set_isovalue',
-                    value: val
-                }, '*');
-            }
-        };
-        slider.onchange = ()=>{
-            const val = parseFloat(slider.value);
-            display.textContent = val.toFixed(2);
-            // Final update on release
-            const iframe = document.getElementById('sliceVisualizationFrame');
-            if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.postMessage({
-                    type: 'set_isovalue',
-                    value: val
-                }, '*');
-            } else {
-                // Fallback to full regeneration if not interactive or iframe missing
-                // (Only if widget is checked and we are not in a synced state)
-                const checkbox = document.getElementById('showIsovalueWidget');
-                if (checkbox && checkbox.checked) {
-                    generateSlices();
-                }
-            }
-        };
-    }
 }
 /**
- * Initialize the isovalue widget logic (event listeners)
+ * Initialize the widget logic (event listeners)
  */ export function initIsovalueWidget() {
-    const showIsovalueWidgetCheckbox = document.getElementById('slice_showIsovalueWidget');
-    const sliderContainer = document.getElementById('slice_isovalueSliderContainer');
-    if (showIsovalueWidgetCheckbox && sliderContainer) {
-        // Initial state
-        if (showIsovalueWidgetCheckbox.checked) {
-            sliderContainer.classList.remove('hidden');
-        } else {
-            sliderContainer.classList.add('hidden');
-        }
-        // Event listener
-        showIsovalueWidgetCheckbox.addEventListener('change', ()=>{
-            if (showIsovalueWidgetCheckbox.checked) {
-                sliderContainer.classList.remove('hidden');
-            } else {
-                sliderContainer.classList.add('hidden');
-            }
-        });
-    }
+// Slice view no longer uses isovalue widget
 }
 // Initialize on load
 // Initialize when DOM is ready or immediately if already loaded

@@ -3890,8 +3890,9 @@ const refreshPostListVTK = async (btnElement)=>{
     try {
         const res = await fetch(`/api/available_meshes?tutorial=${encodeURIComponent(activeCase)}`);
         const data = await res.json();
-        const select = document.getElementById("vtkFileSelect");
-        if (select && data.meshes) {
+        const contourSelect = document.getElementById("vtkFileSelect");
+        const sliceSelect = document.getElementById("slice_vtkFileSelect");
+        if (data.meshes) {
             // ⚡ Bolt Optimization: Filter only mesh files (exclude geometry like STL/OBJ)
             const meshExtensions = [
                 '.vtk',
@@ -3901,17 +3902,22 @@ const refreshPostListVTK = async (btnElement)=>{
                 '.pvtu'
             ];
             const filteredMeshes = data.meshes.filter((m)=>meshExtensions.some((ext)=>m.name.toLowerCase().endsWith(ext)));
-            if (filteredMeshes.length === 0) {
-                select.innerHTML = '<option value="" disabled selected>No VTK files found</option>';
-            } else {
-                select.innerHTML = '<option value="">-- Select a VTK file --</option>';
-                filteredMeshes.forEach((m)=>{
-                    const opt = document.createElement("option");
-                    opt.value = m.path;
-                    opt.textContent = m.name;
-                    select.appendChild(opt);
-                });
-            }
+            const updateSelect = (select)=>{
+                if (!select) return;
+                if (filteredMeshes.length === 0) {
+                    select.innerHTML = '<option value="" disabled selected>No VTK files found</option>';
+                } else {
+                    select.innerHTML = '<option value="">-- Select a VTK file --</option>';
+                    filteredMeshes.forEach((m)=>{
+                        const opt = document.createElement("option");
+                        opt.value = m.path;
+                        opt.textContent = m.name;
+                        select.appendChild(opt);
+                    });
+                }
+            };
+            updateSelect(contourSelect);
+            updateSelect(sliceSelect);
         }
         if (btn) showNotification("VTK file list refreshed", "success", NOTIFY_MEDIUM);
     } catch (e) {

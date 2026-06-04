@@ -113,9 +113,19 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
 
         # 3. Add the key interactive feature: Slice Widget
         # This one line enables the complex 3D interaction!
+        
+        normal_map = {
+            "x": [1, 0, 0],
+            "y": [0, 1, 0],
+            "z": [0, 0, 1]
+        }
+        requested_normal = params.get("normal", "x").lower()
+        normal_vec = normal_map.get(requested_normal, [1, 0, 0])
+
         plotter.add_mesh_slice(
             mesh,
             scalars=scalar_field,
+            normal=normal_vec,
             cmap=params.get("colormap", "viridis"),
             tubing=False,
             widget_color="black"
