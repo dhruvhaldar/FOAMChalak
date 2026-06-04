@@ -2512,9 +2512,10 @@ def api_load_mesh() -> Union[Response, Tuple[Response, int]]:
     for_contour = data.get(
         "for_contour", False
     )  # Get the for_contour flag, default to False
+    for_slice = data.get("for_slice", False)
 
-    if not isinstance(for_contour, bool):
-        return fast_jsonify({"error": "for_contour must be a boolean"}), 400
+    if not isinstance(for_contour, bool) or not isinstance(for_slice, bool):
+        return fast_jsonify({"error": "for_contour and for_slice must be booleans"}), 400
 
     if not file_path:
         return fast_jsonify({"error": "No file path provided"}), 400
@@ -2528,9 +2529,9 @@ def api_load_mesh() -> Union[Response, Tuple[Response, int]]:
 
         logger.info("[FOAMFlask] [api_load_mesh] Mesh loading called")
 
-        if for_contour:
+        if for_contour or for_slice:
             logger.info(
-                "[FOAMFlask] [api_load_mesh] [for_contour] Mesh loading for contour called"
+                "[FOAMFlask] [api_load_mesh] [for_contour/for_slice] Mesh loading called"
             )
             # Use IsosurfaceVisualizer to load the mesh and compute derived fields (e.g. U_Magnitude)
             # This ensures that subsequent calls to get_scalar_field_info work on the correct data
@@ -2834,23 +2835,69 @@ def post_process() -> Union[Response, Tuple[Response, int]]:
         return fast_jsonify({"error": sanitize_error(e)}), 500
 
 
-@app.route("/api/slice/create", methods=["POST"])
+@app.route("/api/slice/create", methods=["POST", "OPTIONS"])
 def create_slice() -> Union[Response, Tuple[Response, int]]:
-    """Placeholder for slice creation."""
-    data = request.get_json() or {}
-    parent_id = data.get("parent_id")
-    # For now, just pass to placeholder class to verify signature
-    result = SliceVisualizer().process("", {}, parent_id=parent_id)
-    return (
-        fast_jsonify(
+    """Create interactive slice visualization."""
+    if request.method == "OPTIONS":
+        return "", 204
+
+    try:
+        logger.info("[FOAMFlask] [create_slice] Route handler called")
+
+        if not request.is_json:
+            return fast_jsonify({"success": False, "error": f"Expected JSON, got {request.content_type}"}), 400
+
+        request_data = request.get_json()
+        tutorial = request_data.get("tutorial")
+        case_dir_str = request_data.get("caseDir")
+        scalar_field = request_data.get("scalar_field", "U_Magnitude")
+        vtk_file_path = request_data.get("vtkFilePath")
+        colormap = request_data.get("colormap", "viridis")
+
+        if not is_safe_color(colormap):
+            return fast_jsonify({"success": False, "error": "Invalid colormap format"}), 400
+
+        if not tutorial:
+            return fast_jsonify({"success": False, "error": "Tutorial not specified"}), 400
+        if not case_dir_str:
+            return fast_jsonify({"success": False, "error": "Case directory not specified"}), 400
+
+        try:
+            case_dir = validate_safe_path(CASE_ROOT, case_dir_str)
+        except ValueError as e:
+            return fast_jsonify({"success": False, "error": str(e)}), 400
+
+        if not case_dir.exists():
+            return fast_jsonify({"success": False, "error": f"Case directory not found: {case_dir}"}), 404
+
+        target_vtk_file = None
+        if vtk_file_path:
+            try:
+                valid_vtk_path = validate_safe_path(CASE_ROOT, vtk_file_path)
+                if not valid_vtk_path.exists():
+                    return fast_jsonify({"success": False, "error": f"Specified VTK file not found: {vtk_file_path}"}), 404
+                target_vtk_file = str(valid_vtk_path)
+            except ValueError as e:
+                return fast_jsonify({"success": False, "error": f"Invalid VTK file path: {str(e)}"}), 400
+        else:
+            import itertools
+            vtk_files = [str(f) for f in itertools.chain(case_dir.rglob("*.vtk"), case_dir.rglob("*.vtp"), case_dir.rglob("*.vtu"))]
+            if not vtk_files:
+                return fast_jsonify({"success": False, "error": f"No VTK files found in {case_dir}"}), 404
+            target_vtk_file = max(vtk_files, key=os.path.getmtime)
+
+        viz_info = SliceVisualizer().process(
+            target_vtk_file, 
             {
-                "status": "coming_soon",
-                "message": "Slice visualization coming soon",
-                "details": result,
+                "scalar_field": scalar_field,
+                "colormap": colormap
             }
-        ),
-        501,
-    )
+        )
+        return fast_jsonify(viz_info)
+
+    except Exception as e:
+        logger.error(f"[FOAMFlask] [create_slice] Exception: {str(e)}", exc_info=True)
+        return fast_jsonify({"success": False, "error": f"Server error: {sanitize_error(e)}"}), 500
 
 
 @app.route("/api/streamline/create", methods=["POST"])

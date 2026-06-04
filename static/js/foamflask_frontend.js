@@ -5,6 +5,7 @@
 
  * When making changes to the frontend, always edit foamflask_frontend.ts and build foamflask_frontend.js using `npm run build`
  */ import { generateContours as generateContoursFn, loadContourMesh } from "./frontend/isosurface.js";
+import { generateSlices as generateSlicesFn, loadSliceMesh } from "./frontend/slice.js";
 // 🎨 Palette UX: Dynamic Page Title
 const DEFAULT_TITLE = "FOAMFlask";
 let titleResetTimer = null;
@@ -3821,31 +3822,38 @@ const selectPipelineStep = (id)=>{
     // Show config for this step
     const landing = document.getElementById("post-landing-view");
     const contour = document.getElementById("post-contour-view");
-    if (!landing || !contour) return;
+    const slice = document.getElementById("post-slice-view");
+    if (!landing || !contour || !slice) return;
     // If selecting a "contour" node, show contour view
     if (node.type === "contour") {
         landing.classList.add("hidden");
         contour.classList.remove("hidden");
+        slice.classList.add("hidden");
         refreshPostList(); // Refresh VTK list
-    } else if (node.type === "root") {
-        // Root node -> Show selection to add new filter
-        landing.classList.remove("hidden");
-        contour.classList.add("hidden");
-    } else {
-        // Placeholder for other types
+    } else if (node.type === "slice") {
         landing.classList.add("hidden");
         contour.classList.add("hidden");
-    // Could show a "Not implemented" view here
+        slice.classList.remove("hidden");
+        refreshPostList(); // Refresh VTK list
+    } else if (node.id === "root") {
+        landing.classList.remove("hidden");
+        contour.classList.add("hidden");
+        slice.classList.add("hidden");
+    } else {
+        landing.classList.add("hidden");
+        contour.classList.add("hidden");
+        slice.classList.add("hidden");
     }
 };
 const switchPostView = (view)=>{
-    if (view === "contour") {
-        // Add a new contour node to the pipeline
-        const newNodeId = `contour_${Date.now()}`;
+    if (view === "contour" || view === "slice") {
+        // Add a new node to the pipeline
+        const newNodeId = `${view}_${Date.now()}`;
+        const name = view === "contour" ? "Contour" : "Slice";
         postPipeline.push({
             id: newNodeId,
-            type: "contour",
-            name: "Contour",
+            type: view,
+            name: name,
             parentId: activePipelineId
         });
         selectPipelineStep(newNodeId);
@@ -3922,6 +3930,33 @@ const runPostOperation = async (operation)=>{
 // Stub
 };
 const loadCustomVTKFile = async ()=>{};
+const loadSliceVTK = async ()=>{
+    const vtkFileSelect = document.getElementById("vtkFileSelect");
+    let fileToLoad = "";
+    if (vtkFileSelect && vtkFileSelect.value) {
+        fileToLoad = vtkFileSelect.value;
+    }
+    if (!fileToLoad) {
+        showNotification("Please select a VTK file to load.", "warning");
+        return;
+    }
+    // Show loading state on button
+    const btn = document.getElementById("loadSliceVTKBtn");
+    let originalText = "";
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-4 w-4 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Loading...`;
+    }
+    try {
+        await loadSliceMesh(fileToLoad);
+    } finally{
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+};
 const loadContourVTK = async ()=>{
     const vtkFileSelect = document.getElementById("vtkFileSelect");
     let fileToLoad = "";
@@ -3954,6 +3989,7 @@ const loadContourVTK = async ()=>{
     }
 };
 window.loadContourVTK = loadContourVTK;
+window.loadSliceVTK = loadSliceVTK;
 // Check startup status
 const checkStartupStatus = async ()=>{
     // First check without showing modal to avoid flicker if already done
@@ -4043,7 +4079,9 @@ window.resetCamera = resetCamera;
 window.downloadPlotData = downloadPlotData;
 window.loadCustomVTKFile = loadCustomVTKFile;
 window.loadContourVTK = loadContourVTK;
+window.loadSliceVTK = loadSliceVTK;
 window.generateContours = generateContoursFn;
+window.generateSlices = generateSlicesFn;
 window.downloadPlotAsPNG = downloadPlotAsPNG;
 window.showNotification = showNotification;
 window.runPostOperation = runPostOperation;

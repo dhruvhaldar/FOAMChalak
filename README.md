@@ -146,7 +146,12 @@ pkill -f "uv run python -m app"; sleep 1; uv run python -m app > app_output.log 
    - Plots update every 2 seconds.
    - For aerodynamic cases, click "Show Aero Plots" to see Pressure Coefficient (Cp) and Velocity Profiles.
 
-9. **Keyboard Shortcuts**:
+9. **Post-Processing**:
+   - Explore generated data using built-in interactive tools based on PyVista and Trame.
+   - Use **Contour** to generate 3D isosurfaces for scalar fields like Pressure and Velocity.
+   - Use **Slice** to cut through the mesh with a plane to inspect internal values dynamically.
+
+10. **Keyboard Shortcuts**:
    - Use access keys to quickly navigate between tabs. The combination depends on your browser and OS (e.g., `Alt` + `Shift` + `Key` on Windows Firefox).
    - `s`: Setup
    - `g`: Geometry

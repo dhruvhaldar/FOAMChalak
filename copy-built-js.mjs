@@ -56,8 +56,12 @@ try {
   const isoSrc = `${__dirname}/static/js-build/static/ts/frontend/isosurface.js`;
   const isoDest = `${__dirname}/static/js/frontend/isosurface.js`;
 
+  const sliceSrc = `${__dirname}/static/js-build/static/ts/frontend/slice.js`;
+  const sliceDest = `${__dirname}/static/js/frontend/slice.js`;
+
   copy(foamflaskSrc, foamflaskDest);
   copy(isoSrc, isoDest);
+  copy(sliceSrc, sliceDest);
 
   // Remove Plotly import from the main frontend file
   removePlotlyImport(foamflaskDest);
