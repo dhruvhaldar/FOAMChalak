@@ -36,7 +36,7 @@
 
 ---
 
-## Screenshot [More Screenshots](https://github.com/dhruvhaldar/FOAMFlask/wiki/More-Screenshots))
+## Screenshot ([More Screenshots](https://github.com/dhruvhaldar/FOAMFlask/wiki/More-Screenshots))
 ![FOAMFlask Geometry](Screenshots/geometry.png)
 
 ## <span style="color:blue">Stage 1 : Installation</span>
