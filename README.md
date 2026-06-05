@@ -205,62 +205,11 @@ FOAMFlask/
 └── README.md # This file
 ```
 
-### Key Locations
-
-- **Backend Source**: `app.py` & `backend/`
-- **Frontend Source**: `static/ts/`
-- **Frontend Template**: `static/html/`
-
-### Frontend Development Workflow
-
-1. **Make changes** to the TypeScript files in `static/ts/`.
-2. **Compile to JavaScript**:
-   You must compile the TypeScript to JavaScript for the browser to run it.
-   ```bash
-   pnpm run build        # One-time build (uses SWC for speed)
-   pnpm run build:watch  # Watch for changes (uses SWC)
-   ```
-3. **Run the backend** (see Usage section) and refresh your browser.
-
-### Backend Development Workflow
-
-1. **Add/Modify Logic**:
-   - Create new modules in `backend/` for organized logic (e.g., new file parsers, simulation controllers).
-   - Import them in `app.py`.
-2. **Add Endpoints**:
-   - Define new routes in `app.py` using `@app.route`.
-3. **Honker Queue**:
-   - The `/run` endpoint uses `honker` to queue jobs. Background workers process these and update SQLite. Logs are streamed live via `honker.stream()`.
-3. **Hot Reload / Debug Mode**:
-   - To enable the Flask reloader and automatic template refreshing for the frontend, run with the `FLASK_DEBUG` environment variable set to `1`:
-     ```powershell
-     $env:FLASK_DEBUG="1"; uv run python -m app
-     ```
-   - When enabled, the server will automatically restart when you modify Python files or the `static/html/foamflask_frontend.html` template.
-
 ---
 
-### Tech Stack & Frameworks
+## [Key Locations] (https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#key-locations)
 
-This project is built with robustness and simplicity in mind, avoiding heavy frontend frameworks in favor of a clean, performant architecture.
-
-- **Backend**:
-  - **Python 3.13+**: Core logic managed by **uv**.
-  - **Flask**: Lightweight WSGI web application framework.
-  - **Docker SDK (`docker-py`)**: For programmatic control of Docker containers.
-  - **PyVista / VTK**: For mesh processing and isosurface generation.
-  - **Custom Parsers**: Dedicated Python parsers (`realtime_plots.py`) for reading both uniform and nonuniform OpenFOAM fields.
-
-- **Frontend**:
-  - **TypeScript / SWC**: For type-safe code and ultra-fast compilation (using SWC).
-  - **Vanilla DOM API**: No React/Vue/Angular. Direct DOM manipulation for maximum performance.
-  - **TailwindCSS**: Utility-first CSS framework for styling.
-  - **Plotly.js**: For responsive, interactive charts (using data served by Flask endpoints).
-
-- **Architecture**:
-  - RESTful API for client-server communication.
-  - **Stateless Backend**: The server does not maintain session state; state is managed by the client or persisted to disk.
-
+## [Tech Stack & Frameworks](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#tech-stack--frameworks)
 
 ## [Troubleshooting & FAQ](https://github.com/dhruvhaldar/FOAMFlask/wiki/Troubleshooting-&-FAQ)
 
