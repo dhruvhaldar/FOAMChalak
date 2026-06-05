@@ -261,14 +261,10 @@ This project is built with robustness and simplicity in mind, avoiding heavy fro
   - RESTful API for client-server communication.
   - **Stateless Backend**: The server does not maintain session state; state is managed by the client or persisted to disk.
 
----
 
 ## [Troubleshooting & FAQ](https://github.com/dhruvhaldar/FOAMFlask/wiki/Troubleshooting-&-FAQ)
 
-
 ## [Testing](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#testing)
-
----
 
 ## License
 
