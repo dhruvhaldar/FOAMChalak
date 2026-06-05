@@ -207,7 +207,7 @@ FOAMFlask/
 
 ---
 
-## [Key Locations] (https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#key-locations)
+## [Key Locations](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#key-locations)
 
 ## [Tech Stack & Frameworks](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#tech-stack--frameworks)
 
