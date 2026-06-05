@@ -36,7 +36,7 @@
 
 ---
 
-## Screenshot (more Screenshots below)
+## Screenshot [More Screenshots](https://github.com/dhruvhaldar/FOAMFlask/wiki/More-Screenshots))
 ![FOAMFlask Geometry](Screenshots/geometry.png)
 
 ## <span style="color:blue">Stage 1 : Installation</span>
@@ -267,17 +267,6 @@ This project is built with robustness and simplicity in mind, avoiding heavy fro
 
 
 ## [Testing](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#testing)
-
-
-## More Screenshots
-
-![FOAMFlask Main](Screenshots/main.png)
-![FOAMFlask Geometry](Screenshots/geometry.png)
-![FOAMFlask Meshing](Screenshots/meshing.png)
-![FOAMFlask Mesh Visualizer](Screenshots/visualizer.png)
-![FOAMFlask Plots](Screenshots/plots.png)
-![FOAMFlask Solver](Screenshots/solver.png)
-![FOAMFlask Post-Processing](Screenshots/post-processing.png)
 
 ---
 
