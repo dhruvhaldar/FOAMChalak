@@ -43,60 +43,11 @@
 
 ## [Usage](https://github.com/dhruvhaldar/FOAMFlask/wiki/User-Guide:-Managing-Cases-&-Simulations#usage)
 
----
-
-## <span style="color:blue">Stage 4 : Development</span>
-
-> [!NOTE]
-> This section is intended for developers who wish to contribute to or modify FOAMFlask.
-
-### Project Structure
-
-```text
-FOAMFlask/
-├── app.py # Main Flask application
-├── case_config.json # Stores the last used CASE_ROOT
-├── package.json # Node.js dependencies and build scripts
-├── copy-built-js.mjs # Custom build script
-├── static/
-│ ├── html/
-│ │ └── foamflask_frontend.html # HTML template
-│ ├── ts/
-│ │ └── foamflask_frontend.ts # TypeScript source code
-│ ├── js/
-│ │ ├── foamflask_frontend.js # Compiled JavaScript (for browser)
-│ │ └── frontend/
-│ │     └── isosurface.js # PyVista integration
-│ ├── js-build/
-│ │ └── foamflask_frontend.js # TypeScript compiler output
-├── backend/
-│ ├── geometry/
-│ │ └── manager.py # Geometry management utilities
-│ ├── mesh/
-│ │ └── mesher.py # Mesh generation utilities
-│ ├── plots/
-│ │ └── realtime_plots.py # Real-time plotting backend
-│ ├── post/
-│ │ └── isosurface.py # Post-processing utilities
-│ ├── verification/
-│ │ └── verify_changes.py # Verification utilities
-├── test/
-│ ├── check_coverage.py # Code coverage analysis script
-│ ├── check_docstrings.py # Docstring coverage checker
-│ ├── docker_test.py # Docker functionality tests
-│ ├── pyvista_test.py # PyVista integration tests
-│ ├── foamlib_test.py # FOAM library tests
-│ └── bike.vtp # Test VTK file
-├── docs/ # Generated documentation
-├── environments/ # Python virtual environments
-└── README.md # This file
-```
-
----
+## [Project Structure](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#project-structure)
 
 ## [Key Locations](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#key-locations)
 
-## [Tech Stack & Frameworks](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#tech-stack--frameworks)
+## [Architecture](https://github.com/dhruvhaldar/FOAMFlask/wiki/Developer-Documentation#tech-stack--frameworks)
 
 ## [Troubleshooting & FAQ](https://github.com/dhruvhaldar/FOAMFlask/wiki/Troubleshooting-&-FAQ)
 
