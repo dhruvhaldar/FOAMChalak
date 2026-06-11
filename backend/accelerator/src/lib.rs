@@ -29,11 +29,13 @@ fn get_re_uniform() -> &'static Regex {
 fn parse_scalar_field(py: Python, path: String) -> PyResult<Option<f64>> {
     py.allow_threads(|| {
         let path = Path::new(&path);
-        if !path.exists() {
-            return Ok(None);
-        }
 
-        let file = File::open(path)?;
+        // ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+        let file = match File::open(path) {
+            Ok(f) => f,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(e.into()),
+        };
         // Check if file is empty
         if file.metadata()?.len() == 0 {
             return Ok(None);
@@ -140,11 +142,13 @@ fn parse_scalar_field(py: Python, path: String) -> PyResult<Option<f64>> {
 fn parse_vector_field(py: Python, path: String) -> PyResult<(f64, f64, f64)> {
     py.allow_threads(|| {
         let path = Path::new(&path);
-        if !path.exists() {
-            return Ok((0.0, 0.0, 0.0));
-        }
 
-        let file = File::open(path)?;
+        // ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+        let file = match File::open(path) {
+            Ok(f) => f,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((0.0, 0.0, 0.0)),
+            Err(e) => return Err(e.into()),
+        };
         if file.metadata()?.len() == 0 {
             return Ok((0.0, 0.0, 0.0));
         }
