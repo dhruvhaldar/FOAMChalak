@@ -140,7 +140,7 @@ def _run_trame_process(mesh_path: str, params: Dict, port_queue: multiprocessing
          # Get range for slider
          # ⚡ Bolt Optimization: Fallback to np.min and np.max for standalone computed arrays to avoid VTK synchronization overhead
          if computed_array is not None:
-             rng = (float(np.min(computed_array)), float(np.max(computed_array)))
+             rng = (float(computed_array.min()), float(computed_array.max()))
          else:
              rng = mesh.get_data_range(scalar_field)
          
@@ -734,7 +734,7 @@ class IsosurfaceVisualizer:
                 u_mag = self.mesh.point_data["U_Magnitude"]
 
                 # ⚡ Bolt Optimization: Fallback to np.min and np.max for standalone computed arrays to avoid VTK synchronization overhead
-                p0, p100 = float(np.min(u_mag)), float(np.max(u_mag))
+                p0, p100 = float(u_mag.min()), float(u_mag.max())
 
                 # ⚡ Bolt Optimization: For large arrays, downsample via striding to compute approximate inner percentiles
                 # This achieves O(1) sampling and reduces the O(N log N) sorting overhead from ~150ms to ~0.5ms on large meshes.
@@ -746,8 +746,9 @@ class IsosurfaceVisualizer:
                 mesh_info["u_magnitude"] = {
                     "min": p0,
                     "max": p100,
-                    "mean": float(np.mean(sample)),
-                    "std": float(np.std(sample)),
+                    # ⚡ Bolt Optimization: Replace np.mean and np.std with sample.mean() and sample.std() to avoid lookup overhead
+                    "mean": float(sample.mean()),
+                    "std": float(sample.std()),
                     "percentiles": {
                         "0": p0,
                         "25": float(p25),
@@ -917,10 +918,12 @@ class IsosurfaceVisualizer:
                         "type": "vector",
                         "shape": data.shape,
                         "magnitude_stats": {
-                            "min": float(np.sqrt(np.min(magnitude_sq))),
-                            "max": float(np.sqrt(np.max(magnitude_sq))),
-                            "mean": float(np.mean(sample)),
-                            "std": float(np.std(sample)),
+                            # ⚡ Bolt Optimization: Replace np.min and np.max with array.min() and array.max() to avoid lookup overhead
+                            "min": float(np.sqrt(magnitude_sq.min())),
+                            "max": float(np.sqrt(magnitude_sq.max())),
+                            # ⚡ Bolt Optimization: Replace np.mean and np.std with sample.mean() and sample.std() to avoid lookup overhead
+                            "mean": float(sample.mean()),
+                            "std": float(sample.std()),
                         },
                     }
                 else:
@@ -939,8 +942,9 @@ class IsosurfaceVisualizer:
                         "type": "scalar",
                         "min": p0,
                         "max": p100,
-                        "mean": float(np.mean(sample)),
-                        "std": float(np.std(sample)),
+                        # ⚡ Bolt Optimization: Replace np.mean and np.std with sample.mean() and sample.std() to avoid lookup overhead
+                        "mean": float(sample.mean()),
+                        "std": float(sample.std()),
                         "percentiles": {
                             "0": p0,
                             "25": float(p25),

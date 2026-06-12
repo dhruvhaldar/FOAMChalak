@@ -522,13 +522,15 @@ class OpenFOAMFieldParser:
                                                     # np.frombuffer is zero-copy and extremely fast
                                                     arr = np.frombuffer(mm, dtype='float64', count=size, offset=actual_start)
                                                     if arr.size > 0:
-                                                        val = float(np.mean(arr))
+                                                        # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                                        val = float(arr.mean())
                                                 except (ValueError, IndexError):
                                                     # Try float32 if float64 failed or returned garbage
                                                     try:
                                                         arr = np.frombuffer(mm, dtype='float32', count=size, offset=actual_start)
                                                         if arr.size > 0:
-                                                            val = float(np.mean(arr))
+                                                            # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                                            val = float(arr.mean())
                                                     except:
                                                         pass
 
@@ -559,7 +561,8 @@ class OpenFOAMFieldParser:
                                                 try:
                                                     numbers = np.fromstring(data_block, sep=" ")
                                                     if numbers.size > 0:
-                                                        val = float(np.mean(numbers))
+                                                        # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                                        val = float(numbers.mean())
                                                 except ValueError:
                                                     pass
 
@@ -709,7 +712,8 @@ class OpenFOAMFieldParser:
                                                     arr = np.frombuffer(mm, dtype='float64', count=size*3, offset=actual_start)
                                                     if arr.size > 0:
                                                         arr = arr.reshape(-1, 3)
-                                                        mean_vec = np.mean(arr, axis=0)
+                                                        # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                                        mean_vec = arr.mean(axis=0)
                                                         val = (float(mean_vec[0]), float(mean_vec[1]), float(mean_vec[2]))
                                                         # Successfully parsed binary, skip to uniform check if val still (0,0,0)
                                                 except:
@@ -749,7 +753,8 @@ class OpenFOAMFieldParser:
 
                                                     if arr.size > 0:
                                                         arr = arr.reshape(-1, 3)
-                                                        mean_vec = np.mean(arr, axis=0)
+                                                        # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                                        mean_vec = arr.mean(axis=0)
                                                         val = (
                                                             float(mean_vec[0]),
                                                             float(mean_vec[1]),
@@ -806,7 +811,8 @@ class OpenFOAMFieldParser:
                                 arr = np.fromstring(clean_data, sep=" ")
                                 if arr.size > 0:
                                     arr = arr.reshape(-1, 3)
-                                    mean_vec = np.mean(arr, axis=0)
+                                    # ⚡ Bolt Optimization: Replace np.mean(arr) with arr.mean() to avoid lookup overhead
+                                    mean_vec = arr.mean(axis=0)
                                     val = (
                                         float(mean_vec[0]),
                                         float(mean_vec[1]),
