@@ -1,10 +1,17 @@
 import os
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Optional, Union
 from backend.utils import sanitize_error
 
 logger = logging.getLogger("FOAMFlask")
+
+# ⚡ Bolt Optimization: pre-compile regex to avoid cache-lookup overhead
+_RE_NUM_SUBDOMAINS = re.compile(r"(numberOfSubdomains\s+)\d+;")
+_RE_METHOD_DECOMPOSER_SEARCH = re.compile(r"(method|decomposer)\s+\w+;")
+_RE_METHOD_DECOMPOSER_SUB = re.compile(r"((?:method|decomposer)\s+)\w+;")
+_RE_NUM_SUBDOMAINS_ADD = re.compile(r"(numberOfSubdomains\s+\d+;)")
 
 class CaseManager:
     """Manages OpenFOAM case creation and directory structures."""
@@ -289,25 +296,25 @@ nu              [0 2 -1 0 0 0 0] 1e-05;
             path = Path(case_path).resolve()
             dict_path = path / "system" / "decomposeParDict"
 
-            if not dict_path.exists():
+            # ⚡ Bolt Optimization: Use EAFP to avoid redundant Path.exists() check
+            try:
+                with dict_path.open("r", encoding="utf-8") as f:
+                    content = f.read()
+            except FileNotFoundError:
                 return {"success": False, "message": "decomposeParDict not found in system directory."}
 
-            with dict_path.open("r", encoding="utf-8") as f:
-                content = f.read()
-
             # Update numberOfSubdomains
-            import re
-            content = re.sub(r"(numberOfSubdomains\s+)\d+;", rf"\g<1>{num_processes};", content)
+            content = _RE_NUM_SUBDOMAINS.sub(rf"\g<1>{num_processes};", content)
 
             # Change method/decomposer to scotch if it's hierarchical or simple, 
             # as scotch is more robust for arbitrary process counts.
             # Handle both 'method' and 'decomposer' (OpenFOAM versions vary)
-            if re.search(r"(method|decomposer)\s+\w+;", content):
-                content = re.sub(r"((?:method|decomposer)\s+)\w+;", r"\g<1>scotch;", content)
+            if _RE_METHOD_DECOMPOSER_SEARCH.search(content):
+                content = _RE_METHOD_DECOMPOSER_SUB.sub(r"\g<1>scotch;", content)
             else:
                 # If no method/decomposer line, add it
                 if "numberOfSubdomains" in content:
-                    content = re.sub(r"(numberOfSubdomains\s+\d+;)", r"\1\n\nmethod          scotch;", content)
+                    content = _RE_NUM_SUBDOMAINS_ADD.sub(r"\1\n\nmethod          scotch;", content)
 
             with dict_path.open("w", encoding="utf-8") as f:
                 f.write(content)

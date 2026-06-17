@@ -109,3 +109,6 @@
 ## 2026-04-11 - Replace np.mean() with array.mean()
 **Learning:** For NumPy arrays, replacing generic function calls like `np.mean(arr)` or `np.std(arr)` with direct method calls on the array object (`arr.mean()`, `arr.std()`) avoids the NumPy namespace lookup and function dispatch overhead. Although this micro-optimization is small per call, it reduces CPU instructions and is faster in hot loops processing real-time simulation output.
 **Action:** Always prefer calling `.mean()` and `.std()` directly on the NumPy array instances instead of passing the array to `np.mean()` or `np.std()`.
+## 2026-04-12 - Pre-compile inline regular expressions
+**Learning:** In Python backend code, calling `re.sub` or `re.search` with string literals directly inside functions causes the Python regex engine to perform internal cache lookups. For functions that might be called frequently, this overhead accumulates.
+**Action:** Extract inline regexes to module-level global variables using `re.compile()`, and call `.sub()` or `.search()` on the compiled object. This skips the cache lookup step entirely.
