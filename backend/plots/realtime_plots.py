@@ -134,6 +134,10 @@ _RE_VECTOR_COMPONENTS = re.compile(
     rb"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*\)"
 )
 
+# ⚡ Bolt Optimization: Pre-compile regex patterns for List size parsing
+_RE_LIST_SCALAR = re.compile(rb"List<scalar>\s*(\d+)")
+_RE_LIST_VECTOR = re.compile(rb"List<vector>\s*(\d+)")
+
 
 # ⚡ Bolt Optimization: Cache variable resolution patterns to avoid recompilation
 @functools.lru_cache(maxsize=128)
@@ -497,7 +501,7 @@ class OpenFOAMFieldParser:
                                     nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
                                     if nonuniform_idx != -1:
                                         # Size is usually on the next line or after List<scalar>
-                                        size_match = re.search(rb"List<scalar>\s*(\d+)", mm[nonuniform_idx:nonuniform_idx+200])
+                                        size_match = _RE_LIST_SCALAR.search(mm[nonuniform_idx:nonuniform_idx+200])
                                         if size_match:
                                             size = int(size_match.group(1))
                                             # Binary data starts after a newline and optional '('
@@ -698,7 +702,7 @@ class OpenFOAMFieldParser:
                                     nonuniform_idx = mm.find(b"nonuniform", idx, idx + 200)
                                     if nonuniform_idx != -1:
                                         # Size is usually after List<vector>
-                                        size_match = re.search(rb"List<vector>\s*(\d+)", mm[nonuniform_idx:nonuniform_idx+200])
+                                        size_match = _RE_LIST_VECTOR.search(mm[nonuniform_idx:nonuniform_idx+200])
                                         if size_match:
                                             size = int(size_match.group(1))
                                             data_start = mm.find(b"(", nonuniform_idx + size_match.end())

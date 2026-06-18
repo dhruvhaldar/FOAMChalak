@@ -112,3 +112,7 @@
 ## 2026-04-12 - Pre-compile inline regular expressions
 **Learning:** In Python backend code, calling `re.sub` or `re.search` with string literals directly inside functions causes the Python regex engine to perform internal cache lookups. For functions that might be called frequently, this overhead accumulates.
 **Action:** Extract inline regexes to module-level global variables using `re.compile()`, and call `.sub()` or `.search()` on the compiled object. This skips the cache lookup step entirely.
+
+## 2026-06-17 - Pre-compile inline regular expressions
+**Learning:** In Python backend code, calling `re.sub` or `re.search` with string literals directly inside functions causes the Python regex engine to perform internal cache lookups. For functions that might be called frequently, this overhead accumulates.
+**Action:** Extract inline regexes to module-level global variables using `re.compile()`, and call `.sub()` or `.search()` on the compiled object. This skips the cache lookup step entirely.
