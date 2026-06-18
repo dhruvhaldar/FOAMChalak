@@ -1529,9 +1529,9 @@ def api_get_parallel_config() -> Union[Response, Tuple[Response, int]]:
         with dict_path.open("r", encoding="utf-8") as f:
             content = f.read()
 
-        import re
-        num_match = re.search(r"numberOfSubdomains\s+(\d+);", content)
-        method_match = re.search(r"(?:method|decomposer)\s+(\w+);", content)
+        # ⚡ Bolt Optimization: Use module-level compiled regex objects to avoid repeated cache lookup overhead
+        num_match = _RE_NUM_SUBDOMAINS_GET.search(content)
+        method_match = _RE_METHOD_DECOMPOSER_GET.search(content)
 
         return fast_jsonify({
             "numProcesses": int(num_match.group(1)) if num_match else 1,
@@ -1556,6 +1556,10 @@ def get_docker_config() -> Response:
 
 _SAFE_DOCKER_IMAGE_RE = re.compile(r"^[a-zA-Z0-9_./:-]+$")
 _SAFE_OPENFOAM_VERSION_RE = re.compile(r"^[a-zA-Z0-9.-]+$")
+
+# ⚡ Bolt Optimization: Pre-compile regular expressions to avoid cache lookup overhead
+_RE_NUM_SUBDOMAINS_GET = re.compile(r"numberOfSubdomains\s+(\d+);")
+_RE_METHOD_DECOMPOSER_GET = re.compile(r"(?:method|decomposer)\s+(\w+);")
 
 @app.route("/set_docker_config", methods=["POST"])
 def set_docker_config() -> Union[Response, Tuple[Response, int]]:
