@@ -14,3 +14,7 @@
 ## 2024-05-25 - Incorrect application of focus styles to hidden elements
 **Learning:** Applying Tailwind focus classes (e.g., `focus:ring-2`) directly to `sr-only` visually hidden inputs (like file uploads) or `<input type="hidden">` is an anti-pattern. Hidden inputs can never receive focus. `sr-only` visually hidden inputs will receive focus, but the focus ring will remain invisible to sighted keyboard users.
 **Action:** Focus styles for `sr-only` hidden inputs must be applied to their visible wrapper (e.g., `<label>`) using pseudo-classes like `:focus-within` or peer selectors. Do not apply focus styles to `<input type="hidden">`.
+
+## 2025-05-18 - Clearing search inputs correctly
+**Learning:** When adding custom "clear" buttons to search inputs, manually setting `input.value = ''` via JavaScript does not natively trigger the `input` or `change` events. This can cause the interface to become desynchronized if list-filtering depends on these events. Additionally, simply clearing the input forces keyboard and screen reader users to manually re-navigate back to the input to type something new.
+**Action:** The clear button click handler must explicitly dispatch a new `Event('input')` to ensure reactive filtering logic updates, and it must explicitly call `input.focus()` to prevent keyboard users from losing focus context after the button is clicked.

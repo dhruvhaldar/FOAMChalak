@@ -4143,6 +4143,14 @@ const init = async ()=>{
                 });
             }
         });
+        const clearTutorialSearch = document.getElementById('clearTutorialSearch');
+        if (clearTutorialSearch && tutorialSearch) {
+            clearTutorialSearch.addEventListener('click', ()=>{
+                tutorialSearch.value = '';
+                tutorialSearch.dispatchEvent(new Event('input'));
+                tutorialSearch.focus();
+            });
+        }
         if (tutorialSearch) {
             tutorialSearch.addEventListener('input', ()=>{
                 const query = tutorialSearch.value.toLowerCase().trim();
