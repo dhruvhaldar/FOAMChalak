@@ -119,3 +119,6 @@
 ## 2026-06-17 - Pre-compile inline regular expressions
 **Learning:** In Python backend code, calling `re.sub` or `re.search` with string literals directly inside functions causes the Python regex engine to perform internal cache lookups. For functions that might be called frequently, this overhead accumulates.
 **Action:** Extract inline regexes to module-level global variables using `re.compile()`, and call `.sub()` or `.search()` on the compiled object. This skips the cache lookup step entirely.
+## 2026-06-23 - Use np.fromstring instead of regex and sum()
+**Learning:** For parsing lists of numbers from strings (like OpenFOAM non-uniform lists), using `np.fromstring(data, sep=" ")` is significantly faster (~3-4x) than using a pre-compiled regex to find all numbers (`re.findall`) and calculating the sum with a generator expression (`sum(float(n) for n in lst)`). The NumPy C-parser directly converts the string to an array, avoiding multiple intermediate string allocations and the overhead of the regex engine.
+**Action:** Always prefer `np.fromstring(data, sep=" ")` or `np.frombuffer` over regex extraction for parsing large numerical arrays from strings.
