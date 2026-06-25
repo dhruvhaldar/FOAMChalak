@@ -4542,13 +4542,8 @@ const setupVectorInputAutoFormat = (elementId)=>{
         el.addEventListener('blur', ()=>{
             let val = el.value;
             // 🎨 Palette UX: Handle OpenFOAM syntax (parentheses, brackets, simpleGrading)
-            val = val.replace(/[()\[\]]/g, ' ');
-            val = val.replace(/simpleGrading/g, ' ');
-            // Replace commas with spaces
-            val = val.replace(/,/g, ' ');
-            // Collapse multiple spaces
-            val = val.replace(/\s+/g, ' ');
-            val = val.trim();
+            // ⚡ Bolt Optimization: Use a single regex replace to avoid O(N) string allocations
+            val = val.replace(/[()\[\],]|simpleGrading/g, ' ').replace(/\s+/g, ' ').trim();
             if (val !== el.value && val.length > 0) {
                 el.value = val;
                 flashInputFeedback(el, "✨ Auto-formatted from OpenFOAM syntax");

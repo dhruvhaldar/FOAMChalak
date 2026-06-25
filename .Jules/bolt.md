@@ -122,3 +122,6 @@
 ## 2026-06-23 - Use np.fromstring instead of regex and sum()
 **Learning:** For parsing lists of numbers from strings (like OpenFOAM non-uniform lists), using `np.fromstring(data, sep=" ")` is significantly faster (~3-4x) than using a pre-compiled regex to find all numbers (`re.findall`) and calculating the sum with a generator expression (`sum(float(n) for n in lst)`). The NumPy C-parser directly converts the string to an array, avoiding multiple intermediate string allocations and the overhead of the regex engine.
 **Action:** Always prefer `np.fromstring(data, sep=" ")` or `np.frombuffer` over regex extraction for parsing large numerical arrays from strings.
+## 2026-06-25 - Avoid intermediate string allocations in regex replacements
+**Learning:** In Rust, chaining multiple `.replace()` calls (e.g., `s.replace("(", "").replace(")", "")`) creates unnecessary intermediate string allocations. In JavaScript/TypeScript, doing the same (e.g., `val.replace(/a/g, ' ').replace(/b/g, ' ')`) also creates intermediate strings and scans the string multiple times.
+**Action:** In Rust, use a character slice pattern (e.g., `s.replace(&['(', ')'][..], "")`) to remove multiple distinct characters in a single pass. In JS/TS, combine patterns into a single regular expression with alternation (e.g., `val.replace(/a|b/g, ' ')`) for a single-pass replacement.
