@@ -240,7 +240,8 @@ fn parse_vector_field(py: Python, path: String) -> PyResult<(f64, f64, f64)> {
                      if let Some(val_match) = caps.get(1) {
                          let s = std::str::from_utf8(val_match.as_bytes()).unwrap_or("");
                          // remove parens
-                         let clean = s.replace("(", "").replace(")", "");
+                         // ⚡ Bolt Optimization: Use replace with array for single pass allocation
+                         let clean = s.replace(&['(', ')'][..], "");
                          let parts: Vec<&str> = clean.split_whitespace().collect();
                          if parts.len() == 3 {
                              let x = parts[0].parse::<f64>().unwrap_or(0.0);
