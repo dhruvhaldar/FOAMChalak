@@ -712,7 +712,7 @@ const downloadMeshingLog = (): void => {
 // Storage for Console Log
 const CONSOLE_LOG_KEY = "foamflask_console_log";
 
-const OUTPUT_PLACEHOLDER = `<div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-400 select-none opacity-50">
+const OUTPUT_PLACEHOLDER = `<div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-500 select-none opacity-50">
 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24"
   stroke="currentColor">
   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -2057,7 +2057,7 @@ const fetchRunHistory = async (btnElement?: HTMLElement) => {
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">${run.command}</span>
-                  <button onclick="copyText('${safeCommand}', this)" class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-cyan-600 transition-all p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Copy command" title="Copy command">
+                  <button onclick="copyText('${safeCommand}', this)" class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-500 hover:text-cyan-600 transition-all p-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" aria-label="Copy command" title="Copy command">
                     <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
@@ -2114,7 +2114,7 @@ const fetchRunHistory = async (btnElement?: HTMLElement) => {
       container.innerHTML = `
         <tr>
           <td colspan="7" class="px-4 py-12 text-center">
-            <div class="flex flex-col items-center justify-center text-gray-400">
+            <div class="flex flex-col items-center justify-center text-gray-500">
               <svg aria-hidden="true" class="w-12 h-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -2411,7 +2411,7 @@ const updatePlotStatusIndicator = (): void => {
     ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400";
   } else {
     textEl.innerText = "Cached";
-    indicator.className = "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase transition-all duration-500 bg-gray-50 text-gray-400 border-gray-100 shadow-none border";
+    indicator.className = "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase transition-all duration-500 bg-gray-50 text-gray-500 border-gray-100 shadow-none border";
     dot.className = "relative inline-flex rounded-full h-2 w-2 bg-gray-300";
     ping.className = "hidden";
   }
@@ -4211,7 +4211,7 @@ const renderPipeline = (): void => {
     // Delete Button (Sibling)
     if (hasDelete) {
       const delBtn = document.createElement("button");
-      const delTextClass = isActive ? "text-cyan-200 hover:text-white" : "text-gray-400 hover:text-white";
+      const delTextClass = isActive ? "text-cyan-200 hover:text-white" : "text-gray-500 hover:text-white";
 
       delBtn.className = `mr-1 p-1 w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-500 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 ${delTextClass}`;
       // Use X icon
@@ -4245,7 +4245,7 @@ const renderPipeline = (): void => {
       container.appendChild(line);
 
       const addBtn = document.createElement("div");
-      addBtn.className = "w-6 h-6 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 text-xs";
+      addBtn.className = "w-6 h-6 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-500 text-xs";
       addBtn.innerHTML = "+";
       addBtn.title = "Add function to this step";
       container.appendChild(addBtn);
@@ -4438,7 +4438,7 @@ const checkStartupStatus = async (): Promise<void> => {
       <div class="mb-4"><svg aria-hidden="true" class="animate-spin h-10 w-10 text-cyan-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
       <h2 class="text-xl font-bold mb-2">System Check</h2>
       <p id="startup-message" class="text-gray-600 whitespace-pre-wrap">Checking Docker permissions...</p>
-      <p class="text-xs text-gray-400 mt-4">This only happens on the first run or if Docker is restarting.</p>
+      <p class="text-xs text-gray-500 mt-4">This only happens on the first run or if Docker is restarting.</p>
     </div>
   `;
   document.body.appendChild(modal);

@@ -528,14 +528,14 @@
                       <!-- Search Input -->
                       <div class="relative w-full overflow-visible group">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                          <svg class="w-4 h-4 text-gray-400 group-focus-within:text-cyan-500 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                          <svg class="w-4 h-4 text-gray-500 group-focus-within:text-cyan-500 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
                         </span>
                         <input type="text" id="tutorialSearch" placeholder="Search tutorials..." aria-label="Search tutorials"
                           class="peer border border-gray-300 rounded-lg pl-10 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all text-sm bg-white" />
                         <button type="button" id="clearTutorialSearch" aria-label="Clear search" title="Clear search"
-                          class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-cyan-600 peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none opacity-100 pointer-events-auto transition-opacity duration-200">
+                          class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-600 focus:outline-none focus:text-cyan-600 peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none opacity-100 pointer-events-auto transition-opacity duration-200">
                           <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -596,7 +596,7 @@
                 spellcheck="false" autocorrect="off" autocapitalize="off" required
                 class="border border-gray-300 rounded px-3 py-2 w-full pr-8 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               <button onclick="copyInputToClipboard('caseDir', this)"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
                 title="Copy Path" aria-label="Copy Case Root Path">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" aria-hidden="true">
@@ -631,7 +631,7 @@
                 spellcheck="false" autocorrect="off" autocapitalize="off"
                 class="border border-gray-300 rounded px-3 py-2 w-full pr-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               <button onclick="copyInputToClipboard('dockerImage', this)"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:text-cyan-600 transition-colors p-1 rounded"
                 title="Copy Docker Image" aria-label="Copy Docker Image">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" aria-hidden="true">
@@ -700,7 +700,7 @@
                   <label for="geometryUpload" id="geo-drop-zone"
                     class="group flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors focus-within:ring-2 focus-within:ring-cyan-500 focus-within:ring-offset-2 relative overflow-hidden">
                     <div id="geo-drop-content" class="flex flex-col items-center justify-center pt-5 pb-6 text-gray-500 pointer-events-none transition-opacity duration-300">
-                      <svg class="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      <svg class="w-8 h-8 mb-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
@@ -1000,7 +1000,7 @@
                   <h5 class="font-bold text-sm text-cyan-900 px-2 py-1 bg-cyan-50 rounded border border-cyan-100 inline-block" id="shmSelectedObjectName">
                     Object Name
                   </h5>
-                  <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Settings</span>
+                  <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">Settings</span>
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1008,7 +1008,7 @@
                     <label class="block text-xs font-bold text-gray-700 uppercase tracking-tight">Refinement Level (Min / Max)</label>
                     <div class="flex items-center gap-3">
                       <div class="relative flex-1">
-                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">MIN</span>
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">MIN</span>
                         <input type="number" id="shmObjRefMin" min="0" max="10" value="0"
                           class="pl-10 border rounded-lg px-2 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50 font-mono" onchange="updateShmObjectConfig()"
                           aria-label="Min Refinement Level" />
@@ -1019,7 +1019,7 @@
                         </svg>
                       </div>
                       <div class="relative flex-1">
-                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">MAX</span>
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500">MAX</span>
                         <input type="number" id="shmObjRefMax" min="0" max="10" value="2"
                           class="pl-10 border rounded-lg px-2 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50 font-mono" onchange="updateShmObjectConfig()"
                           aria-label="Max Refinement Level" />
@@ -1048,7 +1048,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                   </svg>
                 </div>
-                <h4 class="text-sm font-semibold text-gray-400">Select an object to synchronize bounds</h4>
+                <h4 class="text-sm font-semibold text-gray-500">Select an object to synchronize bounds</h4>
               </div>
             </div>
           </div>
@@ -1347,7 +1347,7 @@
              <div id="detectedParallelConfig" class="hidden text-xs font-medium px-3 py-1.5 bg-cyan-100/50 rounded-full border border-cyan-200 text-cyan-800 animate-pulse-slow">
                Detected: <strong id="detectedNumProcesses">-</strong> cores (<span id="detectedMethod">-</span>)
              </div>
-             <span class="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 bg-white/50 rounded-full border border-gray-200 text-gray-400">
+             <span class="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 bg-white/50 rounded-full border border-gray-200 text-gray-500">
                Auto-method: <strong>scotch</strong>
              </span>
           </div>
@@ -1515,7 +1515,7 @@
         </div>
         <div id="output" class="glass-plot rounded p-4 h-64 sm:h-80 overflow-auto text-sm font-mono" tabindex="0"
           role="log" aria-label="Console Output Log">
-          <div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-400 select-none opacity-50">
+          <div class="output-placeholder h-full flex flex-col items-center justify-center text-gray-500 select-none opacity-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24"
               stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"

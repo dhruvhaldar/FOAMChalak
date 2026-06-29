@@ -18,3 +18,6 @@
 ## 2025-05-18 - Clearing search inputs correctly
 **Learning:** When adding custom "clear" buttons to search inputs, manually setting `input.value = ''` via JavaScript does not natively trigger the `input` or `change` events. This can cause the interface to become desynchronized if list-filtering depends on these events. Additionally, simply clearing the input forces keyboard and screen reader users to manually re-navigate back to the input to type something new.
 **Action:** The clear button click handler must explicitly dispatch a new `Event('input')` to ensure reactive filtering logic updates, and it must explicitly call `input.focus()` to prevent keyboard users from losing focus context after the button is clicked.
+## 2025-05-18 - Improve Color Contrast
+**Learning:** text-gray-400 classes across the app failed WCAG AA contrast ratio against white/light backgrounds.
+**Action:** Replaced instances of text-gray-400 with text-gray-500 to ensure color contrast accessibility.
