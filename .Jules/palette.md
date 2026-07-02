@@ -21,3 +21,6 @@
 ## 2025-05-18 - Improve Color Contrast
 **Learning:** text-gray-400 classes across the app failed WCAG AA contrast ratio against white/light backgrounds.
 **Action:** Replaced instances of text-gray-400 with text-gray-500 to ensure color contrast accessibility.
+## 2023-10-24 - Modal Focus Trapping in Export Modal
+**Learning:** Found a custom export modal (`showExportModal`) that lacked a keyboard focus trap, which violates a11y standards by allowing users to tab into the background page.
+**Action:** Implemented a robust Tab/Shift+Tab focus trap loop to constrain focus between the modal's buttons, ensuring screen reader and keyboard accessibility, mirroring the pattern in `showConfirmModal`.
