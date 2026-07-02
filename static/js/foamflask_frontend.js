@@ -1010,6 +1010,35 @@ const showExportModal = (title, message)=>{
         const whiteBtn = modal.querySelector("#export-white");
         const handleKey = (e)=>{
             if (e.key === "Escape") close(null);
+            // Focus Trap
+            if (e.key === "Tab") {
+                e.preventDefault();
+                const focusableElements = [
+                    transBtn,
+                    whiteBtn
+                ];
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                    } else {
+                        // Find previous element or default to last
+                        const idx = focusableElements.indexOf(document.activeElement);
+                        if (idx > 0) focusableElements[idx - 1].focus();
+                        else lastElement.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                    } else {
+                        // Find next element or default to first
+                        const idx = focusableElements.indexOf(document.activeElement);
+                        if (idx >= 0 && idx < focusableElements.length - 1) focusableElements[idx + 1].focus();
+                        else firstElement.focus();
+                    }
+                }
+            }
         };
         transBtn.onclick = ()=>close("transparent");
         whiteBtn.onclick = ()=>close("white");
