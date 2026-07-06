@@ -333,12 +333,13 @@ const fillLocationFromGeometry = async (btnElement?: HTMLElement) => {
 
   const btn = btnElement as HTMLButtonElement | undefined;
   let originalText = "";
+  let success = false;
 
   if (btn) {
     originalText = btn.innerHTML;
     btn.disabled = true;
     btn.setAttribute("aria-busy", "true");
-    btn.innerHTML = `Calculating...`;
+    btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-3 w-3 inline-block mr-1 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Calculating...`;
   }
 
   try {
@@ -351,9 +352,13 @@ const fillLocationFromGeometry = async (btnElement?: HTMLElement) => {
       const cz = (b[4] + b[5]) / 2;
 
       const centerStr = `${cx.toFixed(3)} ${cy.toFixed(3)} ${cz.toFixed(3)}`;
-      (document.getElementById("shmLocation") as HTMLInputElement).value = centerStr;
+      const locationInput = document.getElementById("shmLocation") as HTMLInputElement;
+      locationInput.value = centerStr;
+
+      flashInputFeedback(locationInput, "✨ Auto-filled from Geometry");
 
       showNotification(`Location set to center of ${filename}`, "success");
+      success = true;
     } else {
       showNotification("Failed to get geometry info", "error");
     }
@@ -361,9 +366,20 @@ const fillLocationFromGeometry = async (btnElement?: HTMLElement) => {
     showNotification("Error calculating center", "error");
   } finally {
     if (btn) {
-      btn.disabled = false;
-      btn.removeAttribute("aria-busy");
-      btn.innerHTML = originalText;
+      if (success) {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = `<svg aria-hidden="true" class="h-3 w-3 inline-block mr-1 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Filled!`;
+        setTimeout(() => {
+          if (btn && !btn.hasAttribute("aria-busy")) {
+            btn.innerHTML = originalText;
+          }
+        }, 2000);
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = originalText;
+      }
     }
   }
 };
@@ -3503,7 +3519,7 @@ const fillBoundsFromGeometry = async (btnElement?: HTMLElement) => {
     originalText = btn.innerHTML;
     btn.disabled = true;
     btn.setAttribute("aria-busy", "true");
-    btn.innerHTML = `Auto-filling...`;
+    btn.innerHTML = `<svg aria-hidden="true" class="animate-spin h-3 w-3 inline-block mr-1 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Auto-filling...`;
   }
 
   try {
@@ -3517,10 +3533,17 @@ const fillBoundsFromGeometry = async (btnElement?: HTMLElement) => {
       const minStr = `${(b[0] - dx * p).toFixed(2)} ${(b[2] - dy * p).toFixed(2)} ${(b[4] - dz * p).toFixed(2)}`;
       const maxStr = `${(b[1] + dx * p).toFixed(2)} ${(b[3] + dy * p).toFixed(2)} ${(b[5] + dz * p).toFixed(2)}`;
 
-      (document.getElementById("bmMin") as HTMLInputElement).value = minStr;
-      (document.getElementById("bmMax") as HTMLInputElement).value = maxStr;
+      const minInput = document.getElementById("bmMin") as HTMLInputElement;
+      const maxInput = document.getElementById("bmMax") as HTMLInputElement;
+
+      minInput.value = minStr;
+      maxInput.value = maxStr;
+
+      flashInputFeedback(minInput, "✨ Auto-filled from Geometry");
+      flashInputFeedback(maxInput, "✨ Auto-filled from Geometry");
 
       showNotification(`Bounds updated from ${filename}`, "success");
+      success = true;
     } else {
       showNotification("Failed to get geometry info", "error");
     }
@@ -3528,9 +3551,20 @@ const fillBoundsFromGeometry = async (btnElement?: HTMLElement) => {
     showNotification("Error auto-filling bounds", "error");
   } finally {
     if (btn) {
-      btn.disabled = false;
-      btn.removeAttribute("aria-busy");
-      btn.innerHTML = originalText;
+      if (success) {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = `<svg aria-hidden="true" class="h-3 w-3 inline-block mr-1 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Filled!`;
+        setTimeout(() => {
+          if (btn && !btn.hasAttribute("aria-busy")) {
+            btn.innerHTML = originalText;
+          }
+        }, 2000);
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = originalText;
+      }
     }
   }
 };

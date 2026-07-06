@@ -24,3 +24,6 @@
 ## 2023-10-24 - Modal Focus Trapping in Export Modal
 **Learning:** Found a custom export modal (`showExportModal`) that lacked a keyboard focus trap, which violates a11y standards by allowing users to tab into the background page.
 **Action:** Implemented a robust Tab/Shift+Tab focus trap loop to constrain focus between the modal's buttons, ensuring screen reader and keyboard accessibility, mirroring the pattern in `showConfirmModal`.
+## 2024-05-26 - Adding Loading and Success States to Async Actions
+**Learning:** Action buttons that perform asynchronous tasks (like `fillLocationFromGeometry` and `fillBoundsFromGeometry`) should visually indicate that an action is in progress and when it has been completed successfully. This improves user experience by providing immediate feedback.
+**Action:** Use a spinner or other loading indicator when an action starts, and display a brief success message/icon (like "Filled!") before reverting the button to its original state. Also use `flashInputFeedback` to visually highlight updated input fields.
