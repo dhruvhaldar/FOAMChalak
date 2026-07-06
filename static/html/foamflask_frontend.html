@@ -493,7 +493,7 @@
                         aria-describedby="caseNameHelp"
                         class="border border-gray-300 rounded-lg px-4 py-2 flex-1 w-full focus:outline-none focus:ring-2 focus:valid:ring-green-500 focus:valid:border-green-500 focus:[&:not(:placeholder-shown):invalid]:ring-red-500 focus:[&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:border-red-500 [&:not(:placeholder-shown):invalid]:text-red-600 transition-all" />
                       <button type="submit" id="createCaseBtn"
-                        aria-label="Create Case" title="Create a new OpenFOAM case"
+                        title="Create a new OpenFOAM case"
                         class="bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                           <path fill-rule="evenodd"
@@ -552,7 +552,7 @@
                             </select>
                           </div>
                         </div>
-                        <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)" aria-label="Import Tutorial"
+                        <button id="loadTutorialBtn" title="Import Selected Tutorial (Enter)"
                           class="bg-cyan-500 hover:bg-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 whitespace-nowrap self-start md:self-auto">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd"
@@ -1037,6 +1037,9 @@
                         OPC
                       </div>
                     </div>
+                    <p id="shmObjLayersHelp" class="sr-only">
+                      Number of surface layers
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2483,19 +2486,19 @@
         <div class="flex items-center space-x-4">
           <span>Powered by:</span>
 
-          <a href="https://pyvista.org/" target="_blank" rel="noopener noreferrer"
+          <a href="https://pyvista.org/" target="_blank" rel="noopener noreferrer" aria-label="Visit PyVista website"
             class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Pyvista-logo.avif') }}" alt="PyVista" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
-          <a href="https://plotly.com/" target="_blank" rel="noopener noreferrer"
+          <a href="https://plotly.com/" target="_blank" rel="noopener noreferrer" aria-label="Visit Plotly website"
             class="flex items-center text-cyan-800 hover:text-cyan-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/Plotly-logo.avif') }}" alt="Plotly" class="h-8 w-auto" />
           </a>
           <span class="text-black">|</span>
 
-          <a href="https://docker.com/" target="_blank" rel="noopener noreferrer"
+          <a href="https://docker.com/" target="_blank" rel="noopener noreferrer" aria-label="Visit Docker website"
             class="flex items-center text-cyan-600 hover:text-cyan-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-sm">
             <img src="{{ url_for('static', filename='icons/docker-logo.avif') }}" alt="Docker" class="h-8 w-auto" />
           </a>
