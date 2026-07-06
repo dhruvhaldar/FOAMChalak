@@ -17,7 +17,7 @@ export default defineConfig({
     baseURL: 'http://localhost:5000',
   },
   webServer: {
-    command: '.\\environments\\my-python313-venv-win\\Scripts\\python.exe -m app',
+    command: 'python -m app',
     url: 'http://127.0.0.1:5000',
     reuseExistingServer: true,
     stdout: 'pipe',
