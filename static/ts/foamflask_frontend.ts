@@ -5077,9 +5077,7 @@ const setupVectorInputAutoFormat = (elementId: string) => {
       let val = el.value;
       // 🎨 Palette UX: Handle OpenFOAM syntax (parentheses, brackets, simpleGrading)
       // ⚡ Bolt Optimization: Use a single regex replace to avoid O(N) string allocations
-      val = val.replace(/[()\[\],]|simpleGrading/g, ' ')
-               .replace(/\s+/g, ' ')
-               .trim();
+      val = val.replace(/(?:[()\[\],]|simpleGrading|\s)+/g, ' ').trim();
 
       if (val !== el.value && val.length > 0) {
         el.value = val;
