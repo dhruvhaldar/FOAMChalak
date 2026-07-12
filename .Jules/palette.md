@@ -37,3 +37,7 @@
 ## 2024-07-06 - Redundant ARIA Labels
 **Learning:** Adding an `aria-label` that duplicates an element's visible text (e.g., an `aria-label="Create Case"` on a button with the text "Create Case") causes screen readers to redundantly read the label twice, providing a poor experience.
 **Action:** Do not use `aria-label` on elements that already have sufficient visible text. Reserve `aria-label` for icon-only buttons or situations where the visible text is insufficient on its own.
+
+## 2026-07-12 - Use Labels Instead of Headings for Inputs and Add Icons for Buttons
+**Learning:** Inputs without associated labels fail accessibility checks, and heading tags (`<h4>`) shouldn't be used just for styling input titles. A proper `<label for="...">` provides screen reader association and click-to-focus behavior. Buttons performing actions also need descriptive icons (`<svg>`) and `title` attributes to clarify their purpose to sighted and assistive tech users.
+**Action:** Replaced `<h4>` with `<label>` mapped to the relevant input ID and added icons to action buttons on the Meshing page to improve both visual consistency and accessibility.
