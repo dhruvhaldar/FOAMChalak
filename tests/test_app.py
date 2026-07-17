@@ -472,11 +472,9 @@ def test_api_residuals(client, tmp_path):
         mock_parser = MagicMock()
         mock_parser.get_residuals_from_log.return_value = {
             'time': [0.1],
-            'residuals': {
-                'Ux': [0.1],
-                'Uy': [0.2],
-                'Uz': [0.3]
-            }
+            'Ux': [0.1],
+            'Uy': [0.2],
+            'Uz': [0.3]
         }
         mock_parser_cls.return_value = mock_parser
 
@@ -494,10 +492,9 @@ def test_api_residuals(client, tmp_path):
         
         # Verify response structure
         assert 'time' in data
-        assert 'residuals' in data
-        assert 'Ux' in data['residuals']
-        assert 'Uy' in data['residuals']
-        assert 'Uz' in data['residuals']
+        assert 'Ux' in data
+        assert 'Uy' in data
+        assert 'Uz' in data
 
         # Verify the mock was called with correct path
         expected_case_dir = str(tmp_path / "test_tutorial")

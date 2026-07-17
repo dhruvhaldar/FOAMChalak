@@ -43,8 +43,12 @@ def app():
     flask_app.app.config.update({
         "TESTING": True,
         "ENABLE_RATE_LIMIT": False,
-        "ENABLE_CSRF": False
+        "ENABLE_CSRF": False,
+        "ENABLE_API_HEALTH_CHECK": False
     })
+
+    # Reset global startup status to default to prevent cross-test pollution
+    flask_app.STARTUP_STATUS = {"status": "starting", "message": "Initializing..."}
 
     # Reset rate limit history
     if hasattr(flask_app, '_request_history'):

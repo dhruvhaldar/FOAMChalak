@@ -7,6 +7,7 @@ import sys
 def client():
     app.app.config['TESTING'] = True
     app.app.config['ENABLE_CSRF'] = False
+    app.app.config['ENABLE_API_HEALTH_CHECK'] = False
     with app.app.test_client() as client:
         yield client
 
@@ -53,7 +54,8 @@ def test_set_case_linux_protection(client):
 
             MockPath.return_value = mock_path_obj
 
-            response = client.post('/set_case', json={'caseDir': '/etc/shadow'})
+            with patch('app.save_config', return_value=True):
+                response = client.post('/set_case', json={'caseDir': '/etc/shadow'})
 
-            assert response.status_code == 400
-            assert "Cannot set case root to system directory" in response.get_json()['output']
+                assert response.status_code == 400
+                assert "Cannot set case root to system directory" in response.get_json()['output']

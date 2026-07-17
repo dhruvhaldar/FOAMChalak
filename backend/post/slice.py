@@ -118,7 +118,7 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
         # Add outline for context
         plotter.add_mesh(mesh.outline(), color="black", line_width=2)
 
-        # 3. Add the key interactive feature: Slice Widget
+        # 3. Add Slice: Use static slice for thin/2D dimensions, interactive for thick dimensions
         normal_map = {
             "x": [1, 0, 0],
             "y": [0, 1, 0],
@@ -127,14 +127,40 @@ def _run_slice_trame(file_path: str, params: Dict[str, Any], port_queue: multipr
         requested_normal = params.get("normal", "x").lower()
         normal_vec = normal_map.get(requested_normal, [1, 0, 0])
 
-        plotter.add_mesh_slice(
-            mesh,
-            scalars=scalar_field,
-            normal=normal_vec,
-            cmap=params.get("colormap", "viridis"),
-            tubing=False,
-            widget_color="black"
-        )
+        bounds = mesh.bounds
+        sizes = [
+            bounds[1] - bounds[0],  # X size
+            bounds[3] - bounds[2],  # Y size
+            bounds[5] - bounds[4],  # Z size
+        ]
+
+        is_thin = False
+        if requested_normal == "x" and sizes[0] < 0.05 * max(sizes[1], sizes[2]):
+            is_thin = True
+        elif requested_normal == "y" and sizes[1] < 0.05 * max(sizes[0], sizes[2]):
+            is_thin = True
+        elif requested_normal == "z" and sizes[2] < 0.05 * max(sizes[0], sizes[1]):
+            is_thin = True
+
+        if is_thin:
+            # 2D/1-cell thick slice: Use static slice to hide interactive handles and prevent out-of-bounds
+            slice_mesh = mesh.slice(normal=normal_vec)
+            plotter.add_mesh(
+                slice_mesh,
+                scalars=scalar_field,
+                cmap=params.get("colormap", "viridis"),
+                show_scalar_bar=True
+            )
+        else:
+            # 3D: Use standard interactive plane widget
+            plotter.add_mesh_slice(
+                mesh,
+                scalars=scalar_field,
+                normal=normal_vec,
+                cmap=params.get("colormap", "viridis"),
+                tubing=False,
+                widget_color="black"
+            )
 
         # Set camera based on normal plane
         if requested_normal == "x":

@@ -17,7 +17,7 @@ def test_api_endpoints_blocked_until_ready(client, app):
     app.config["ENABLE_API_HEALTH_CHECK"] = True
     flask_app.STARTUP_STATUS.update({"status": "starting", "message": "Initializing"})
 
-    response = client.get("/api/cases")
+    response = client.get("/api/cases/list")
 
     assert response.status_code == 503
     payload = response.get_json()
@@ -29,6 +29,6 @@ def test_api_endpoints_allowed_when_ready(client, app):
     app.config["ENABLE_API_HEALTH_CHECK"] = True
     flask_app.STARTUP_STATUS.update({"status": "completed", "message": "Ready"})
 
-    response = client.get("/api/cases")
+    response = client.get("/api/cases/list")
 
     assert response.status_code == 200

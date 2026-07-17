@@ -434,7 +434,8 @@ def is_safe_case_root(path_str: str) -> bool:
 
         # Check specific prefixes
         for p in forbidden_prefixes:
-            if norm_lower == p or norm_lower.startswith(p + "\\"):
+            p_norm = os.path.normpath(p)
+            if norm_lower == p_norm or norm_lower.startswith(p_norm + os.sep):
                 return False
 
     else:
@@ -455,11 +456,12 @@ def is_safe_case_root(path_str: str) -> bool:
             "/var",
         ]
 
-        if normalized == "/":
+        if normalized == os.path.normpath("/"):
             return False
 
         for p in forbidden_prefixes:
-            if normalized == p or normalized.startswith(p + os.sep):
+            p_norm = os.path.normpath(p)
+            if normalized == p_norm or normalized.startswith(p_norm + os.sep):
                 return False
 
     return True
@@ -2853,9 +2855,13 @@ def create_slice() -> Union[Response, Tuple[Response, int]]:
         scalar_field = request_data.get("scalar_field", "U_Magnitude")
         vtk_file_path = request_data.get("vtkFilePath")
         colormap = request_data.get("colormap", "viridis")
+        normal = request_data.get("normal", "x")
 
         if not is_safe_color(colormap):
             return fast_jsonify({"success": False, "error": "Invalid colormap format"}), 400
+
+        if not isinstance(normal, str) or normal.lower() not in ("x", "y", "z"):
+            return fast_jsonify({"success": False, "error": "Invalid normal direction (must be x, y, or z)"}), 400
 
         if not tutorial:
             return fast_jsonify({"success": False, "error": "Tutorial not specified"}), 400
@@ -2890,7 +2896,8 @@ def create_slice() -> Union[Response, Tuple[Response, int]]:
             target_vtk_file, 
             {
                 "scalar_field": scalar_field,
-                "colormap": colormap
+                "colormap": colormap,
+                "normal": normal
             }
         )
         return fast_jsonify(viz_info)

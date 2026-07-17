@@ -10,7 +10,8 @@ class TestCaseRootSecurity:
     def client(self):
         app.config.update({
             "TESTING": True,
-            "ENABLE_CSRF": False
+            "ENABLE_CSRF": False,
+            "ENABLE_API_HEALTH_CHECK": False
         })
         with app.test_client() as client:
             yield client
@@ -34,8 +35,16 @@ class TestCaseRootSecurity:
 
         system_dirs = ['/etc', '/bin', '/usr', '/var', '/proc']
 
-        with patch('app.save_config', return_value=True):
+        with patch('app.save_config', return_value=True), \
+             patch('platform.system', return_value='Linux'), \
+             patch('app.Path') as MockPath:
             for path in system_dirs:
+                mock_path_obj = MagicMock()
+                resolved_mock = MagicMock()
+                resolved_mock.__str__.return_value = path
+                mock_path_obj.resolve.return_value = resolved_mock
+                MockPath.return_value = mock_path_obj
+
                 response = client.post('/set_case', json={'caseDir': path})
 
                 assert response.status_code == 400
