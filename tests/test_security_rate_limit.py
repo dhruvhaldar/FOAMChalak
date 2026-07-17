@@ -19,7 +19,8 @@ def test_run_endpoint_rate_limiting(mocker):
     client = app.test_client()
 
     # Mock validate_safe_path to always pass for our test input
-    mocker.patch('app.validate_safe_path', return_value=True)
+    from pathlib import Path
+    mocker.patch('app.validate_safe_path', return_value=Path("case_root/basic/pitzDaily"))
 
     # Mock threading.Thread so we don't spawn threads
     mocker.patch('threading.Thread')
@@ -61,7 +62,8 @@ def test_load_tutorial_rate_limiting(mocker):
     client = app.test_client()
 
     mocker.patch('app.get_docker_client', return_value=None)
-    mocker.patch('app.validate_safe_path', return_value=True)
+    from pathlib import Path
+    mocker.patch('app.validate_safe_path', return_value=Path("basic/pitzDaily"))
 
     payload = {"tutorial": "basic/pitzDaily"}
 

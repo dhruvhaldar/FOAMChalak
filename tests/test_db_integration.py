@@ -40,7 +40,8 @@ def test_simulation_run_lifecycle(mock_get_docker_client, client):
 
     # Mock config
     with patch("app.CASE_ROOT", "/tmp/test_case_root"):
-        with patch("app.validate_safe_path", return_value=True): # Bypass path validation for unit test simplicity
+        from pathlib import Path
+        with patch("app.validate_safe_path", return_value=Path("/tmp/test_case_root/basic/pitzDaily")):
 
             # 1. Trigger Run
             payload = {
@@ -81,7 +82,8 @@ def test_simulation_run_failure(mock_get_docker_client, client):
     mock_docker.containers.run.side_effect = Exception("Docker Error")
 
     with patch("app.CASE_ROOT", "/tmp/test_case_root"):
-        with patch("app.validate_safe_path", return_value=True):
+        from pathlib import Path
+        with patch("app.validate_safe_path", return_value=Path("/tmp/test_case_root/basic/pitzDaily")):
 
             payload = {
                 "tutorial": "basic/pitzDaily",

@@ -467,7 +467,16 @@ def test_api_residuals(client, tmp_path):
          patch('os.stat') as mock_os_stat, \
          patch('app.OpenFOAMFieldParser') as mock_parser_cls, \
          patch('app.check_cache') as mock_check_cache:
-        mock_os_stat.return_value.st_mtime = 12345.0
+        
+        def mock_stat_func(path, *args, **kwargs):
+            if "non_existent_tutorial" in str(path):
+                raise OSError("File not found")
+            mock_val = MagicMock()
+            mock_val.st_mtime = 12345.0
+            mock_val.st_mode = 16384  # stat.S_IFDIR
+            return mock_val
+        
+        mock_os_stat.side_effect = mock_stat_func
         # Setup mock parser
         mock_parser = MagicMock()
         mock_parser.get_residuals_from_log.return_value = {
@@ -1068,7 +1077,7 @@ def test_main_startup(monkeypatch, tmp_path):
         flask_app.main()
 
         mkdir_mock.assert_called()
-        run_mock.assert_called_once_with(host="127.0.0.1", port=5000, debug=False, threaded=True)
+        run_mock.assert_called_once_with(host="127.0.0.1", port=5000, debug=False, threaded=True, extra_files=None)
 
 def test_run_case_no_thread_started(client, tmp_path):
     """Test that run_case does NOT start a background thread for log monitoring."""
