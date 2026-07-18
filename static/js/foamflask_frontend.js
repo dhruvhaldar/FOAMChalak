@@ -1829,7 +1829,7 @@ const fetchRunHistory = async (btnElement)=>{
           `;
                 }).join("");
                 return `
-          <tr class="bg-gray-50 border-y border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
+          <tr class="bg-gray-50 border-y border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors" onclick="const isHidden = this.nextElementSibling.classList.toggle('hidden'); this.setAttribute('aria-expanded', !isHidden);" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }" tabindex="0" role="button" aria-expanded="false">
             <td colspan="6" class="px-4 py-2 text-sm font-medium text-gray-900 flex items-center justify-between">
               <span>
                 <svg class="w-4 h-4 inline mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
@@ -4603,7 +4603,7 @@ const setupVectorInputAutoFormat = (elementId)=>{
             let val = el.value;
             // 🎨 Palette UX: Handle OpenFOAM syntax (parentheses, brackets, simpleGrading)
             // ⚡ Bolt Optimization: Use a single regex replace to avoid O(N) string allocations
-            val = val.replace(/[()\[\],]|simpleGrading/g, ' ').replace(/\s+/g, ' ').trim();
+            val = val.replace(/(?:[()\[\],]|simpleGrading|\s)+/g, ' ').trim();
             if (val !== el.value && val.length > 0) {
                 el.value = val;
                 flashInputFeedback(el, "✨ Auto-formatted from OpenFOAM syntax");
