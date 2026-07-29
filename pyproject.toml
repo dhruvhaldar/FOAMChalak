@@ -62,7 +62,7 @@ dependencies = [
     "mdurl==0.1.2",
     "meshio==5.3.5",
     "more-itertools==10.8.0",
-    "msgpack==1.1.2",
+    "msgpack==1.2.1",
     "multidict==6.7.0",
     "mypy-extensions==1.1.0",
     "nest-asyncio==1.6.0",
