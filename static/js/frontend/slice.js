@@ -361,12 +361,22 @@ let currentFieldStats = null;
             const finalUrl = url.toString();
             console.log('[FOAMFlask] [displaySliceVisualization] Embedding Trame URL:', finalUrl);
             iframe.src = finalUrl;
+        } else if (content.status === 'error' && content.message) {
+            // Server returned a structured error (e.g. timeout waiting for Trame subprocess)
+            console.error('[FOAMFlask] [displaySliceVisualization] Server error:', content.message);
+            container.innerHTML = `
+                <div class="p-4 text-red-600 bg-red-50 rounded-lg">
+                    <h3 class="font-semibold">Error displaying visualization</h3>
+                    <p class="text-sm mt-1">${content.message}</p>
+                </div>
+            `;
+            return;
         } else {
             console.warn('[FOAMFlask] [displaySliceVisualization] Unexpected content format', content);
             container.innerHTML = `
                 <div class="p-4 text-red-600 bg-red-50 rounded-lg">
                     <h3 class="font-semibold">Error displaying visualization</h3>
-                    <p class="text-sm mt-1">Received unexpected response format representing from server.</p>
+                    <p class="text-sm mt-1">Received unexpected response format from server.</p>
                 </div>
             `;
             return;

@@ -11,11 +11,19 @@
 [![trame](https://img.shields.io/badge/trame-3.1.2-8bc392)](https://github.com/Kitware/trame)
 [![pyvista](https://img.shields.io/badge/pyvista-0.46.4-5d3f3f)](https://docs.pyvista.org/)
 
+> [!WARNING]
+> **This repository is now ARCHIVED and no longer actively maintained.**
+> 
+> Please use **[FOAMTrame](https://github.com/dhruvhaldar/FOAMTrame)** for active development, latest updates, and ongoing support.
+
 <p align="center">
   <img src="static/icons/banner.svg" alt="FOAMFlask Banner" height="50" width="500">
 </p>
 
-**FOAMFlask** is an attempt to make a yet another lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations. It allows users to easily select a tutorial, set a case directory, and execute OpenFOAM commands directly from a browser. Since this is targeted for beginners, the documentation has been kept as extensive as possible.
+**FOAMFlask** is a legacy lightweight web-based GUI for managing and running **OpenFOAM** tutorials and simulations.
+
+> [!NOTE]
+> Active development has moved to [FOAMTrame](https://github.com/dhruvhaldar/FOAMTrame).
 
 **Important**
 

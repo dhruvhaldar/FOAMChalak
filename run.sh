@@ -48,6 +48,16 @@ echo -e "Access the application at: ${GREEN}http://localhost:5000${NC}"
 echo -e "Press Ctrl+C to stop the server."
 echo -e ""
 
+# --- Clean Restart ---
+# Kill any existing FOAMFlask python processes so re-running always starts fresh.
+echo -e "${YELLOW}Checking for existing FOAMFlask processes...${NC}"
+OLD_PIDS=$(pgrep -f "(-m app|start_worker|foamflask_slice|foamflask_iso)" 2>/dev/null)
+if [ -n "$OLD_PIDS" ]; then
+    echo -e "${YELLOW}Stopping existing processes: $OLD_PIDS${NC}"
+    kill $OLD_PIDS 2>/dev/null || true
+    sleep 1
+fi
+
 # Run the application using python -m app
 # We enforce Flask-only architecture as specified in AGENTS.md
 uv run python backend/start_worker.py &

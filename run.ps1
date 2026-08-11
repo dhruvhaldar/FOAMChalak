@@ -47,6 +47,26 @@ Write-Host ""
 # This fixes "The system cannot find the file specified" errors if the context was swapped
 docker context use default 2>$null | Out-Null
 
+# --- Clean Restart ---
+# Kill any existing FOAMFlask python processes so re-running always starts fresh.
+Write-Host "Checking for existing FOAMFlask processes..." -ForegroundColor Yellow
+$existingJobs = Get-Job -ErrorAction SilentlyContinue
+if ($existingJobs) {
+    $existingJobs | Stop-Job -ErrorAction SilentlyContinue
+    $existingJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    Write-Host "Stopped existing background jobs." -ForegroundColor Yellow
+}
+
+# Kill python processes running app.py / start_worker.py (FOAMFlask-specific)
+Get-WmiObject Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
+    $cmdLine = $_.CommandLine
+    if ($cmdLine -match "(-m app|start_worker|foamflask_slice|foamflask_iso)") {
+        Write-Host "Stopping existing process: PID $($_.ProcessId)" -ForegroundColor Yellow
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+}
+Start-Sleep -Milliseconds 800
+
 # Run the application using python -m app
 # We use --no-python-downloads to ensure we use the local environment
 Start-Job -ScriptBlock { uv run python backend/start_worker.py }

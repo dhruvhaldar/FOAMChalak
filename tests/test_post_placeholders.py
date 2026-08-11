@@ -51,7 +51,7 @@ def test_create_slice_success(client, tmp_path, mocker):
     # Patch CASE_ROOT
     mocker.patch('app.CASE_ROOT', str(tmp_path))
     # Mock SliceVisualizer.process
-    mock_process = mocker.patch('backend.post.slice.SliceVisualizer.process', return_value=fake_viz_info)
+    mock_process = mocker.patch('backend.post.trame_vtk_slicer.SliceVisualizer.process', return_value=fake_viz_info)
 
     response = client.post('/api/slice/create', json={
         "tutorial": "test_tutorial",
@@ -76,7 +76,7 @@ def test_create_slice_success(client, tmp_path, mocker):
     )
 
 def test_streamline_placeholder(client, mocker):
-    mocker.patch('backend.post.streamline.StreamlineVisualizer.process', return_value={"parent_id": "456"})
+    mocker.patch('backend.post.trame_vtk_slicer.StreamlineVisualizer.process', return_value={"parent_id": "456"})
     response = client.post("/api/streamline/create", json={"parent_id": "456"})
     assert response.status_code == 501
     data = response.get_json()
@@ -85,7 +85,7 @@ def test_streamline_placeholder(client, mocker):
     assert data["details"]["parent_id"] == "456"
 
 def test_surface_projection_placeholder(client, mocker):
-    mocker.patch('backend.post.surface_projection.SurfaceProjectionVisualizer.process', return_value={"parent_id": "789"})
+    mocker.patch('backend.post.trame_vtk_slicer.SurfaceProjectionVisualizer.process', return_value={"parent_id": "789"})
     response = client.post("/api/surface_projection/create", json={"parent_id": "789"})
     assert response.status_code == 501
     data = response.get_json()

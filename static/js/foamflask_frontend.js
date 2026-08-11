@@ -4,8 +4,8 @@
  * Background Color Palette: https://coolors.co/gradient-maker/b6f0ff-ffb1b9?position=0,100&opacity=100,100&type=linear&rotation=180
 
  * When making changes to the frontend, always edit foamflask_frontend.ts and build foamflask_frontend.js using `npm run build`
- */ import { generateContours as generateContoursFn, loadContourMesh } from "./frontend/isosurface.js";
-import { generateSlices as generateSlicesFn, loadSliceMesh } from "./frontend/slice.js";
+ */ import { loadContourMesh } from "./frontend/isosurface.js";
+import { loadSliceMesh } from "./frontend/slice.js";
 // 🎨 Palette UX: Dynamic Page Title
 const DEFAULT_TITLE = "FOAMFlask";
 let titleResetTimer = null;
@@ -940,8 +940,10 @@ const switchPage = (pageName, updateUrl = true)=>{
             break;
         case "post":
             const postContainer = document.getElementById("page-post");
-            if (postContainer && !postContainer.hasAttribute("data-initialized")) {
-                postContainer.setAttribute("data-initialized", "true");
+            if (postContainer) {
+                if (!postContainer.hasAttribute("data-initialized")) {
+                    postContainer.setAttribute("data-initialized", "true");
+                }
                 refreshPostList();
             }
             break;
@@ -3918,6 +3920,14 @@ const refreshPostListVTK = async (btnElement)=>{
             };
             updateSelect(contourSelect);
             updateSelect(sliceSelect);
+            const postCaseSelect = document.getElementById("postCaseSelect");
+            if (postCaseSelect) {
+                if (activeCase) {
+                    postCaseSelect.innerHTML = `<option value="${activeCase}" selected>${activeCase}</option>`;
+                } else {
+                    postCaseSelect.innerHTML = `<option value="">-- No Active Case Selected --</option>`;
+                }
+            }
         }
         if (btn) showNotification("VTK file list refreshed", "success", NOTIFY_MEDIUM);
     } catch (e) {
@@ -3932,10 +3942,73 @@ const refreshPostListVTK = async (btnElement)=>{
         }
     }
 };
-const runPostOperation = async (operation)=>{
-// Stub
+let trameInitialOp = "Slice";
+const setTrameInitialOp = (op)=>{
+    trameInitialOp = op;
+    [
+        'slice',
+        'clip',
+        'transform',
+        'streamlines'
+    ].forEach((o)=>{
+        const btn = document.getElementById(`op-btn-${o}`);
+        if (btn) {
+            if (o === op.toLowerCase()) {
+                btn.className = "px-2.5 py-1 rounded-md bg-white text-cyan-800 shadow-sm";
+            } else {
+                btn.className = "px-2.5 py-1 rounded-md text-gray-700 hover:text-cyan-800";
+            }
+        }
+    });
 };
-const loadCustomVTKFile = async ()=>{};
+window.setTrameInitialOp = setTrameInitialOp;
+const startTrameVisualizer = async ()=>{
+    if (!activeCase) {
+        console.warn("[FOAMFlask Post] startTrameVisualizer called without activeCase");
+        showNotification("Please select an active case first.", "warning");
+        return;
+    }
+    console.log(`[FOAMFlask Post] Starting Trame visualizer server for case: '${activeCase}', operation: '${trameInitialOp}'`);
+    const loadingEl = document.getElementById("post-trame-loading");
+    const placeholderEl = document.getElementById("post-trame-placeholder");
+    const iframeEl = document.getElementById("post-trame-iframe");
+    const launchBtn = document.getElementById("startPostVisualizerBtn");
+    if (loadingEl) loadingEl.classList.remove("hidden");
+    if (launchBtn) launchBtn.disabled = true;
+    try {
+        const res = await fetch("/api/post/visualizer/start", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                caseDir: activeCase,
+                operation: trameInitialOp
+            })
+        });
+        const data = await res.json();
+        console.log("[FOAMFlask Post] Trame visualizer API response:", data);
+        if (data.status === "success" && data.src) {
+            console.log(`[FOAMFlask Post] Loading visualizer iframe URL: ${data.src}`);
+            if (placeholderEl) placeholderEl.classList.add("hidden");
+            if (iframeEl) {
+                iframeEl.src = data.src;
+                iframeEl.classList.remove("hidden");
+            }
+            showNotification("Trame VTK Slicer server started successfully.", "success");
+        } else {
+            console.error("[FOAMFlask Post] Visualizer start failed:", data);
+            showNotification(`Failed to start visualizer: ${data.message || "Unknown error"}`, "error");
+        }
+    } catch (e) {
+        console.error("[FOAMFlask Post] Visualizer connection error:", e);
+        showNotification("Error connecting to server to start visualizer.", "error");
+    } finally{
+        if (loadingEl) loadingEl.classList.add("hidden");
+        if (launchBtn) launchBtn.disabled = false;
+    }
+};
+window.startTrameVisualizer = startTrameVisualizer;
 const loadSliceVTK = async ()=>{
     const vtkFileSelect = document.getElementById("slice_vtkFileSelect");
     let fileToLoad = "";
@@ -4067,6 +4140,10 @@ const checkStartupStatus = async ()=>{
     });
 };
 // Removed window.onload in favor of unified async init
+const loadCustomVTKFile = async ()=>{};
+const generateContoursFn = async ()=>{};
+const generateSlicesFn = async ()=>{};
+const runPostOperation = async (op)=>{};
 // Exports
 window.switchPage = switchPage;
 window.setCase = setCase;
@@ -4114,6 +4191,8 @@ window.copyMeshingOutput = copyMeshingOutput;
 window.downloadMeshingLog = downloadMeshingLog;
 window.togglePlots = togglePlots;
 window.toggleSection = toggleSection;
+window.startTrameVisualizer = startTrameVisualizer;
+window.setTrameInitialOp = setTrameInitialOp;
 const init = async ()=>{
     // 1. Initial UI Setup (Optimistic UX)
     const savedCase = localStorage.getItem("lastSelectedCase");
@@ -5057,6 +5136,8 @@ window._requestCache = requestCache;
 window.showNotification = showNotification;
 window.runCommand = runCommand;
 window.switchPage = switchPage;
+window.startTrameVisualizer = startTrameVisualizer;
+window.setTrameInitialOp = setTrameInitialOp;
 const resetState = ()=>{
     requestCache = new Map();
     if (typeof window !== 'undefined') window._requestCache = requestCache;

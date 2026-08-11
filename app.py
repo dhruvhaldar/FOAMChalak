@@ -46,10 +46,13 @@ from backend.plots.realtime_plots import (
     clear_cache as clear_plots_cache,
     get_available_fields,
 )
-from backend.post.isosurface import IsosurfaceVisualizer, isosurface_visualizer
-from backend.post.slice import SliceVisualizer
-from backend.post.streamline import StreamlineVisualizer
-from backend.post.surface_projection import SurfaceProjectionVisualizer
+from backend.post.trame_vtk_slicer import (
+    IsosurfaceVisualizer,
+    SliceVisualizer,
+    StreamlineVisualizer,
+    SurfaceProjectionVisualizer,
+    isosurface_visualizer,
+)
 from backend.startup import run_initial_setup_checks, check_docker_permissions
 from backend.case.manager import CaseManager
 from backend.geometry.manager import GeometryManager
@@ -2835,6 +2838,27 @@ def post_process() -> Union[Response, Tuple[Response, int]]:
     except Exception as e:
         logger.error(f"Error during post-processing: {e}", exc_info=True)
         return fast_jsonify({"error": sanitize_error(e)}), 500
+
+
+@app.route("/api/post/visualizer/start", methods=["POST"])
+def api_start_trame_visualizer() -> Union[Response, Tuple[Response, int]]:
+    """Start interactive Trame VTK visualizer (slice, clip, transform, streamlines)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        case_dir_str = data.get("caseDir") or data.get("case_path")
+        operation = data.get("operation", "Slice")
+
+        if not case_dir_str:
+            return fast_jsonify({"status": "error", "message": "Case directory not specified"}), 400
+
+        case_dir = validate_safe_path(CASE_ROOT, case_dir_str)
+        from backend.post.postprocessor import TrameVisualizer
+        viz = TrameVisualizer()
+        res = viz.start_visualization(str(case_dir), {"operation": operation})
+        return fast_jsonify(res)
+    except Exception as e:
+        logger.error(f"Error starting Trame visualizer: {e}", exc_info=True)
+        return fast_jsonify({"status": "error", "message": sanitize_error(e)}), 500
 
 
 @app.route("/api/slice/create", methods=["POST", "OPTIONS"])
